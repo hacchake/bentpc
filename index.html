@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>BLIPPY BOOK 30 — bent</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;700&family=Share+Tech+Mono&display=swap" />
+  </head>
+  <body>
+    <div id="stage">
+      <div class="toy" id="toy">
+        <!-- ふた（液晶側） -->
+        <div class="lid">
+          <div class="speaker-grill left"></div>
+          <div class="speaker-grill right"></div>
+          <div class="bezel">
+            <div class="lcd-wrap">
+              <canvas id="lcd"></canvas>
+              <div class="lcd-glare"></div>
+            </div>
+            <div class="brand"><span class="b1">BLIPPY</span><span class="b2">BOOK</span><span class="b3">30</span></div>
+          </div>
+        </div>
+        <div class="hinge"><i></i><i></i></div>
+        <!-- 本体（キーボード側） -->
+        <div class="base">
+          <div class="control-row">
+            <div class="power-group">
+              <div class="pwr-led" id="pwrLed"></div>
+              <button class="pwr on" id="btnOn" title="電源ON">ON</button>
+              <button class="pwr off" id="btnOff" title="電源OFF">OFF</button>
+            </div>
+            <div class="mode-group">
+              <div class="mode-labels" id="modeLabels"></div>
+              <div class="mode-slider" id="modeSlider"><div class="track"></div><div class="thumb"></div></div>
+              <div class="mode-caption">MODE</div>
+            </div>
+            <div class="vol-group">
+              <div class="vol-knob" id="volKnob"><div class="cap"><i></i></div></div>
+              <div class="vol-caption">VOLUME</div>
+            </div>
+          </div>
+          <div class="keyboard" id="keyboard"></div>
+        </div>
+      </div>
+    </div>
+    <div id="help">
+      <b>A〜Z</b> キー / <b>1 2 3 4</b> = ♪ ? ★ OK / <b>← →</b> = MODE / <b>Enter</b> = 電源ON / <b>Esc</b> = 電源OFF
+    </div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

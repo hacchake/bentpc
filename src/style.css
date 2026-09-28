@@ -1,0 +1,341 @@
+:root {
+  --bg: #26222e;
+  --bg2: #3a3346;
+  --lid: #2f6be0;
+  --lid-dark: #1f4fb0;
+  --bezel: #ffd84a;
+  --bezel-dark: #e6b820;
+  --base: #ff9a3c;
+  --base-dark: #e07412;
+  --ink: #1d2a55;
+  --key-a: #fff0f5;
+  --key-b: #eafff0;
+  --key-c: #e8f4ff;
+  --key-d: #fffbe0;
+  --fn: #7ad35a;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  background: radial-gradient(ellipse at 50% 30%, var(--bg2), var(--bg) 70%);
+  font-family: 'Fredoka', 'Arial Rounded MT Bold', 'Hiragino Maru Gothic ProN', sans-serif;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+#stage {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 1200px;
+  height: 900px;
+  transform-origin: 50% 50%;
+}
+
+#help {
+  position: fixed;
+  left: 0; right: 0; bottom: 6px;
+  text-align: center;
+  font-size: 12px;
+  color: #9b93ab;
+  pointer-events: none;
+}
+#help b { color: #d9d2e8; font-weight: 500; }
+
+.toy {
+  position: absolute;
+  left: 100px;
+  top: 20px;
+  width: 1000px;
+  height: 860px;
+}
+
+/* ---------- ふた ---------- */
+.lid {
+  position: absolute;
+  left: 60px;
+  top: 0;
+  width: 880px;
+  height: 410px;
+  border-radius: 46px 46px 18px 18px;
+  background:
+    radial-gradient(ellipse at 30% 0%, rgba(255,255,255,.35), transparent 50%),
+    linear-gradient(180deg, #4a82f0, var(--lid) 40%, var(--lid-dark));
+  box-shadow:
+    inset 0 3px 0 rgba(255,255,255,.35),
+    inset 0 -6px 0 rgba(0,0,0,.18),
+    0 18px 40px rgba(0,0,0,.45);
+}
+
+.bezel {
+  position: absolute;
+  left: 110px;
+  top: 34px;
+  width: 660px;
+  height: 344px;
+  border-radius: 30px;
+  background: linear-gradient(180deg, #ffe680, var(--bezel) 30%, var(--bezel-dark));
+  box-shadow: inset 0 2px 0 rgba(255,255,255,.6), inset 0 -4px 0 rgba(0,0,0,.12), 0 3px 0 rgba(0,0,0,.2);
+}
+
+.lcd-wrap {
+  position: absolute;
+  left: 50px;
+  top: 28px;
+  width: 560px;
+  height: 280px;
+  border-radius: 10px;
+  padding: 12px 16px;
+  background: #3c4436;
+  box-shadow: inset 0 6px 12px rgba(0,0,0,.6), 0 2px 0 rgba(255,255,255,.5);
+}
+
+#lcd {
+  display: block;
+  width: 528px;
+  height: 256px;
+  border-radius: 3px;
+  image-rendering: pixelated;
+}
+
+.lcd-glare {
+  position: absolute;
+  inset: 12px 16px;
+  border-radius: 3px;
+  pointer-events: none;
+  background: linear-gradient(160deg, rgba(255,255,255,.18), transparent 35%, transparent 70%, rgba(0,0,0,.08));
+}
+
+.brand {
+  position: absolute;
+  left: 0; right: 0;
+  bottom: 4px;
+  text-align: center;
+  font-weight: 700;
+  font-size: 22px;
+  letter-spacing: 2px;
+  line-height: 1;
+}
+.brand .b1 { color: #e8354a; text-shadow: 0 2px 0 #fff; }
+.brand .b2 { color: var(--lid); margin-left: 8px; text-shadow: 0 2px 0 #fff; }
+.brand .b3 {
+  margin-left: 8px;
+  font-size: 14px;
+  background: #e8354a;
+  color: #fff;
+  padding: 2px 7px;
+  border-radius: 10px;
+  vertical-align: 3px;
+}
+
+.speaker-grill {
+  position: absolute;
+  top: 120px;
+  width: 64px;
+  height: 170px;
+  border-radius: 32px;
+  background-image: radial-gradient(circle, #13306f 3.2px, transparent 4px);
+  background-size: 14px 14px;
+  background-position: 4px 4px;
+  opacity: .9;
+}
+.speaker-grill.left { left: 24px; }
+.speaker-grill.right { right: 24px; }
+
+.hinge {
+  position: absolute;
+  left: 140px;
+  top: 404px;
+  width: 720px;
+  height: 22px;
+  border-radius: 10px;
+  background: linear-gradient(180deg, #1c3f8f, #2a5bc7 50%, #163173);
+  box-shadow: 0 3px 6px rgba(0,0,0,.4);
+}
+
+/* ---------- 本体 ---------- */
+.base {
+  position: absolute;
+  left: 0;
+  top: 424px;
+  width: 1000px;
+  height: 420px;
+  border-radius: 24px 24px 60px 60px;
+  background:
+    radial-gradient(ellipse at 50% 0%, rgba(255,255,255,.3), transparent 60%),
+    linear-gradient(180deg, #ffb563, var(--base) 30%, var(--base-dark));
+  box-shadow:
+    inset 0 3px 0 rgba(255,255,255,.45),
+    inset 0 -10px 0 rgba(0,0,0,.18),
+    0 24px 50px rgba(0,0,0,.5);
+  clip-path: polygon(3% 0, 97% 0, 100% 100%, 0 100%);
+}
+
+.control-row {
+  position: absolute;
+  left: 70px;
+  right: 70px;
+  top: 16px;
+  height: 90px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.power-group { display: flex; align-items: center; gap: 12px; }
+.pwr {
+  width: 66px;
+  height: 52px;
+  border: none;
+  border-radius: 26px;
+  font: 700 17px 'Fredoka', sans-serif;
+  color: #fff;
+  cursor: pointer;
+  box-shadow: 0 6px 0 rgba(0,0,0,.35), inset 0 2px 0 rgba(255,255,255,.45);
+  transition: transform .05s, box-shadow .05s;
+}
+.pwr.on { background: linear-gradient(180deg, #6ee06a, #2fa52a); }
+.pwr.off { background: linear-gradient(180deg, #ff6b6b, #d02a2a); }
+.pwr:active { transform: translateY(5px); box-shadow: 0 1px 0 rgba(0,0,0,.35), inset 0 2px 0 rgba(255,255,255,.45); }
+.pwr-led {
+  width: 14px; height: 14px; border-radius: 50%;
+  background: #2d4d2b;
+  box-shadow: inset 0 1px 2px rgba(0,0,0,.6);
+}
+.pwr-led.lit { background: #8dff6a; box-shadow: 0 0 10px #8dff6a, 0 0 2px #fff inset; }
+
+.mode-group { position: relative; width: 460px; height: 90px; }
+.mode-labels {
+  position: absolute;
+  left: 0; right: 0; top: 0;
+  height: 22px;
+}
+.mode-labels span {
+  position: absolute;
+  top: 0;
+  transform: translateX(-50%);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink);
+  cursor: pointer;
+}
+.mode-labels span.sel { color: #fff; text-shadow: 0 1px 0 var(--ink); }
+.mode-slider {
+  position: absolute;
+  left: 0; right: 0;
+  top: 26px;
+  height: 34px;
+  cursor: pointer;
+  --pos: 0;
+}
+.mode-slider .track {
+  position: absolute;
+  left: 0; right: 0; top: 11px;
+  height: 12px;
+  border-radius: 6px;
+  background: #7a3a06;
+  box-shadow: inset 0 2px 3px rgba(0,0,0,.6), 0 1px 0 rgba(255,255,255,.4);
+}
+.mode-slider .thumb {
+  position: absolute;
+  top: 0;
+  left: calc(var(--pos) * 100%);
+  width: 40px;
+  height: 34px;
+  margin-left: -20px;
+  border-radius: 8px;
+  background: linear-gradient(180deg, #fff, #d8dde8);
+  box-shadow: 0 3px 0 rgba(0,0,0,.35), inset 0 -3px 0 rgba(0,0,0,.1);
+  transition: left .08s;
+}
+.mode-slider .thumb::after {
+  content: '';
+  position: absolute;
+  left: 50%; top: 6px; bottom: 6px;
+  width: 4px; margin-left: -2px;
+  background: #e8354a;
+  border-radius: 2px;
+}
+.mode-caption, .vol-caption {
+  position: absolute;
+  bottom: 2px;
+  left: 0; right: 0;
+  text-align: center;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink);
+  letter-spacing: 3px;
+}
+
+.vol-group { position: relative; width: 90px; height: 90px; }
+.vol-knob {
+  position: absolute;
+  left: 13px; top: 0;
+  width: 64px; height: 64px;
+  border-radius: 50%;
+  background: #7a3a06;
+  cursor: ns-resize;
+  box-shadow: inset 0 2px 4px rgba(0,0,0,.6);
+}
+.vol-knob .cap {
+  position: absolute;
+  inset: 5px;
+  border-radius: 50%;
+  background:
+    repeating-conic-gradient(from 0deg, #3a7cf0 0 10deg, #2f6be0 10deg 20deg);
+  box-shadow: 0 3px 0 rgba(0,0,0,.35), inset 0 2px 0 rgba(255,255,255,.35);
+}
+.vol-knob .cap i {
+  position: absolute;
+  left: 50%; top: 5px;
+  width: 6px; height: 16px;
+  margin-left: -3px;
+  border-radius: 3px;
+  background: #fff;
+}
+
+/* ---------- キーボード ---------- */
+.keyboard {
+  position: absolute;
+  left: 60px;
+  right: 60px;
+  top: 118px;
+  height: 270px;
+  padding: 14px 18px;
+  border-radius: 20px;
+  background: rgba(120, 50, 0, .28);
+  box-shadow: inset 0 3px 8px rgba(0,0,0,.35);
+  display: grid;
+  grid-template-columns: repeat(10, 1fr);
+  grid-template-rows: repeat(3, 1fr);
+  gap: 12px;
+}
+.key {
+  position: relative;
+  border-radius: 14px;
+  background: var(--kc, var(--key-a));
+  box-shadow: 0 7px 0 rgba(0,0,0,.3), inset 0 -4px 0 rgba(0,0,0,.08), inset 0 2px 0 #fff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 34px;
+  font-weight: 700;
+  color: var(--ink);
+  transition: transform .04s, box-shadow .04s;
+}
+.key small {
+  position: absolute;
+  right: 8px; bottom: 5px;
+  font-size: 10px;
+  font-weight: 500;
+  opacity: .45;
+}
+.key.down { transform: translateY(6px); box-shadow: 0 1px 0 rgba(0,0,0,.3), inset 0 -2px 0 rgba(0,0,0,.08), inset 0 2px 0 #fff; }
+.key.fn { --kc: var(--fn); color: #fff; text-shadow: 0 2px 0 rgba(0,0,0,.25); font-size: 30px; }
+.key.fn.f4 { --kc: #e8354a; font-size: 24px; }

@@ -1,0 +1,100 @@
+// 汎用の操作部品：ノブ・段階スライダー・押しボタン。マウスとタッチの両方で動く。
+
+export class Knob {
+  value: number;
+  private el: HTMLElement;
+  private cap: HTMLElement;
+
+  constructor(
+    el: HTMLElement,
+    private def: { default: number },
+    private onChange: (v: number) => void,
+    private sweepDeg = 270,
+  ) {
+    this.el = el;
+    this.cap = el.querySelector('.cap') ?? el;
+    this.value = def.default;
+    el.style.touchAction = 'none';
+    let startY = 0, startV = 0;
+    el.addEventListener('pointerdown', (e) => {
+      el.setPointerCapture(e.pointerId);
+      startY = e.clientY;
+      startV = this.value;
+      el.classList.add('grab');
+      e.preventDefault();
+    });
+    el.addEventListener('pointermove', (e) => {
+      if (!el.hasPointerCapture(e.pointerId)) return;
+      const fine = e.shiftKey ? 0.25 : 1;
+      this.set(startV + ((startY - e.clientY) / 180) * fine);
+    });
+    const end = (e: PointerEvent) => { el.releasePointerCapture?.(e.pointerId); el.classList.remove('grab'); };
+    el.addEventListener('pointerup', end);
+    el.addEventListener('pointercancel', end);
+    el.addEventListener('wheel', (e) => { e.preventDefault(); this.set(this.value - Math.sign(e.deltaY) * 0.04); }, { passive: false });
+    el.addEventListener('dblclick', () => this.set(this.def.default));
+    this.render();
+  }
+
+  set(v: number, notify = true): void {
+    const nv = Math.max(0, Math.min(1, v));
+    if (nv === this.value && notify) return;
+    this.value = nv;
+    this.render();
+    if (notify) this.onChange(nv);
+  }
+
+  private render(): void {
+    const deg = -this.sweepDeg / 2 + this.value * this.sweepDeg;
+    this.cap.style.transform = `rotate(${deg}deg)`;
+  }
+}
+
+/** 段階スライダー（MODE など）。el の中に .thumb を置く。横方向 */
+export class SteppedSlider {
+  value: number;
+  constructor(
+    private el: HTMLElement,
+    private steps: number,
+    initial: number,
+    private onChange: (v: number) => void,
+    private vertical = false,
+  ) {
+    this.value = initial;
+    el.style.touchAction = 'none';
+    const pick = (e: PointerEvent) => {
+      const r = el.getBoundingClientRect();
+      const k = vertical ? (e.clientY - r.top) / r.height : (e.clientX - r.left) / r.width;
+      this.set(Math.round(Math.max(0, Math.min(1, k)) * (steps - 1)));
+    };
+    el.addEventListener('pointerdown', (e) => { el.setPointerCapture(e.pointerId); pick(e); e.preventDefault(); });
+    el.addEventListener('pointermove', (e) => { if (el.hasPointerCapture(e.pointerId)) pick(e); });
+    this.render();
+  }
+
+  set(v: number, notify = true): void {
+    if (v === this.value) return;
+    this.value = v;
+    this.render();
+    if (notify) this.onChange(v);
+  }
+
+  private render(): void {
+    const k = this.steps > 1 ? this.value / (this.steps - 1) : 0;
+    this.el.style.setProperty('--pos', String(k));
+    this.el.dataset.value = String(this.value);
+  }
+}
+
+/** 押している間だけオンになるボタン */
+export function momentary(el: HTMLElement, onDown: () => void, onUp: () => void = () => {}): { press: () => void; release: () => void } {
+  let down = false;
+  const press = () => { if (down) return; down = true; el.classList.add('down'); onDown(); };
+  const release = () => { if (!down) return; down = false; el.classList.remove('down'); onUp(); };
+  el.style.touchAction = 'none';
+  el.addEventListener('pointerdown', (e) => { el.setPointerCapture(e.pointerId); press(); e.preventDefault(); });
+  el.addEventListener('pointerup', release);
+  el.addEventListener('pointercancel', release);
+  el.addEventListener('lostpointercapture', release);
+  return { press, release };
+}
