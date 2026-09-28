@@ -30,6 +30,10 @@ export class Firmware {
   mode = 0;
   display: DisplayState = { screen: 'off', mode: 0 };
   displayVersion = 0;
+  /** 誤読み上げで最後に読んだキー（液晶の文字化けと揃えるため） */
+  lastOtherKey = -1;
+  /** マイクで録音した自分の声（キーごと、8kHz） */
+  userSamples: (Float32Array | null)[] = [];
   private quizTarget = 0;
   private pendingAfterSound: (() => PlayRequest | null) | null = null;
   private rng: Rng;
@@ -105,6 +109,12 @@ export class Firmware {
   press(key: number): PlayRequest | null {
     if (!this.powered || this.booting) return null;
     this.pendingAfterSound = null;
+    const user = this.userSamples[key];
+    if (user && this.mode !== 6) {
+      const name = key < 26 ? LETTER_KEYS[key] : key < FIRST_NUMBER_KEY ? ['♪', '?', '★', 'OK'][key - 26] : String(key - FIRST_NUMBER_KEY + 1);
+      this.show({ screen: 'key', big: name, sprite: 'SPEAKER', text: 'MY VOICE' });
+      return { buf: user, key };
+    }
     if (key >= FIRST_NUMBER_KEY) return this.pressNumber(key);
     const isLetter = key < 26;
     const l = isLetter ? LETTER_KEYS[key] : '';
@@ -189,6 +199,7 @@ export class Firmware {
   /** 誤読み上げ用：いまのモードの、どれかの文字キーの音（液晶は変えない） */
   otherSound(rng: Rng): Float32Array {
     const k = rng.int(26);
+    this.lastOtherKey = k;
     const l = LETTER_KEYS[k];
     const b = this.bank;
     switch (this.mode) {

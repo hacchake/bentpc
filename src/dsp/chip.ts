@@ -50,6 +50,9 @@ export class Chip {
   stretchHold = 0.4;
   stretchRel = 0.4;
 
+  /** 外から強制的に入れるグリッチ（25bit）。熱による暴発で使う */
+  forced = 0;
+
   // ---- 内部状態 ----
   loopActive = false;
   private loopStart = 0;
@@ -87,6 +90,16 @@ export class Chip {
   stop(): void {
     this.playing = false;
     this.loopActive = false;
+  }
+
+  /** 乱数の状態（液晶のグリッチ模様を音と揃えるために使う） */
+  get rngState(): number {
+    return this.rng.getState();
+  }
+
+  /** いま効いているグリッチの組み合わせ（25bit） */
+  get activeCombos(): number {
+    return this.prevActive;
   }
 
   /** LOOP HOLD：いま鳴っている直前の断片をつかむ */
@@ -154,6 +167,7 @@ export class Chip {
     // ---- 有効なグリッチの組み合わせを調べる ----
     let active = 0;
     for (let i = 0; i < 5; i++) if (mask & (1 << i)) active |= 1 << (base * 5 + i);
+    if (this.playing) active |= this.forced;
     if (active !== this.prevActive) {
       const rising = active & ~this.prevActive;
       for (let c = 0; c < 25; c++) if (rising & (1 << c)) this.initGlitch(c);

@@ -435,3 +435,23 @@ html, body {
 #help td { padding: 2px 8px 2px 0; vertical-align: top; }
 #help td:first-child { font-family: 'Share Tech Mono', monospace; font-weight: 700; white-space: nowrap; }
 #help p { margin: 8px 0 0; color: #555; }
+
+/* 録音時間・MIDI 名 */
+.rec-time {
+  position: absolute;
+  transform: translateX(-50%);
+  padding: 1px 5px;
+  border-radius: 3px;
+  background: #1c2419;
+  color: #9dff7a;
+  font: 11px 'Share Tech Mono', monospace;
+  white-space: nowrap;
+}
+.midi-name:empty { display: none; }
+/* 自分の声が入っているキー */
+.key.has-voice::after, .num-key.has-voice::after {
+  content: ''; position: absolute; right: 6px; top: 6px; width: 8px; height: 8px; border-radius: 50%;
+  background: #e02b2b; box-shadow: 0 0 0 2px #fff;
+}
+/* マイク待機中：キーに赤い点線 */
+body.mic-armed .key, body.mic-armed .num-key { outline: 2px dashed rgba(224, 43, 43, .7); outline-offset: 2px; }

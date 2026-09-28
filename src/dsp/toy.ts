@@ -9,6 +9,8 @@ export interface ToyStatus {
   playing: boolean;
   /** LED などの表示用の値（名前→0..1） */
   leds: Record<string, number>;
+  /** 画面側の演出用の値（おもちゃごとに中身が違う） */
+  fx: Record<string, number>;
 }
 
 export interface ToyEngine<Display = unknown> {

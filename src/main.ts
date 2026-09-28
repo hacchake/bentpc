@@ -1,18 +1,24 @@
 import './style.css';
 import { AudioHost } from './audio';
+import { startMidi } from './midi';
+import { download, encodeWav } from './wav';
 import type { DisplayState } from './dsp/firmware';
 import { WORDS } from './dsp/phonemes';
 import {
   FIRST_NUMBER_KEY, FUNCTION_KEY_LABELS, LETTER_KEYS, MODE_NAMES, NUMBER_KEY_LABELS, PARAMS, PARAM_INDEX, type ParamId,
 } from './params';
 import { Knob, SteppedKnob, Toggle, momentary } from './ui/controls';
-import { Bitmap, LcdView, drawDisplay } from './ui/lcd';
+import { Bitmap, LCD_H, LCD_W, LcdView, drawDisplay } from './ui/lcd';
+import { applyFx, misreadOverride, type LcdFx } from './ui/lcdfx';
 import { spriteCanvas } from './ui/pixels';
 
 const $ = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
 const audio = new AudioHost();
 const setParam = (id: ParamId, v: number) => audio.setParam(PARAM_INDEX[id], v);
 const def = (id: ParamId) => PARAMS[PARAM_INDEX[id]];
+/** パラメーターごとの操作部品（MIDI から動かすため） */
+type Ctl = { set(v: number, notify?: boolean): void } | { press(): void; release(): void };
+const ctl: Partial<Record<ParamId, Ctl>> = {};
 
 // ---- 画面サイズに合わせて拡大縮小 ----
 function fit(): void {
@@ -68,10 +74,23 @@ audio.onMessage = (m) => {
     leds.stretch?.classList.toggle('lit', st.leds.stretch > 0);
     leds.loop?.classList.toggle('lit', st.leds.loop > 0);
     leds.glitch?.classList.toggle('lit', st.leds.glitch > 0.05);
+    fx = st.fx as unknown as LcdFx;
+  } else if (m.type === 'recChunk') {
+    recChunks.push(m.data);
+  } else if (m.type === 'recDone') {
+    finishRecording();
+  } else if (m.type === 'userSample') {
+    saveUserSample(m.key, m.data);
   }
 };
+let fx: LcdFx = { combos: 0, heat: 0, seed: 0, misread: -1 };
+let frameNo = 0;
+const prevFrame = new Uint8Array(LCD_W * LCD_H);
 function frame(now: number): void {
-  drawDisplay(bm, display, now / 1000, (now - displayAt) / 1000);
+  const d = display.screen === 'off' || display.screen === 'boot' ? display : misreadOverride(display, fx);
+  drawDisplay(bm, d, now / 1000, (now - displayAt) / 1000);
+  if (display.screen !== 'off') applyFx(bm, fx, frameNo++, prevFrame);
+  prevFrame.set(bm.px);
   lcd.paint(bm, display.screen !== 'off');
   requestAnimationFrame(frame);
 }
@@ -79,7 +98,14 @@ requestAnimationFrame(frame);
 
 // ================= キーボード（A〜Z ＋ ♪?★OK） =================
 const keyCtl: { press: () => void; release: () => void }[] = [];
-const post = (key: number, down: boolean) => audio.post({ type: 'key', key, down });
+let micArmed = false;
+const post = (key: number, down: boolean) => {
+  if (micArmed) {
+    audio.post({ type: 'mic', key, on: down });
+    leds.mic?.classList.toggle('lit', down);
+  } else audio.post({ type: 'key', key, down });
+};
+const keyEls: HTMLElement[] = [];
 const panel = $('keysPanel');
 for (let row = 0; row < 3; row++) {
   const strip = document.createElement('div');
@@ -104,6 +130,7 @@ for (let row = 0; row < 3; row++) {
     }
     strip.appendChild(w);
     keys.appendChild(el);
+    keyEls[k] = el;
     keyCtl[k] = momentary(el, () => post(k, true), () => post(k, false));
   }
   panel.append(strip, keys);
@@ -117,13 +144,14 @@ for (let i = 0; i < 10; i++) {
   el.className = 'num-key';
   el.innerHTML = `<small>${NUMBER_KEY_LABELS[i]}</small><b>${i + 1}</b>`;
   numRow.appendChild(el);
+  keyEls[k] = el;
   keyCtl[k] = momentary(el, () => post(k, true), () => post(k, false));
 }
 
 // ================= MODE（緑のダイヤル＋絵のボタン） =================
 const modeIcons = ['A', 'C', 'NOTE', 'SPEAKER', 'DRUM', 'STAR', 'BLIP', 'K'];
 const pillColors = ['#ff9fb2', '#ffd36b', '#9fe07a', '#8fd3ff', '#c9a6ff', '#ffb36b', '#7fe3d0', '#ff8f8f'];
-const modeDial = new SteppedKnob($('modeDial'), 8, def('mode').default, (v) => { setParam('mode', v); syncMode(); }, 315);
+const modeDial = ctl.mode = new SteppedKnob($('modeDial'), 8, def('mode').default, (v) => { setParam('mode', v); syncMode(); }, 315);
 const modeEls: HTMLElement[] = [];
 MODE_NAMES.forEach((name, i) => {
   const pill = document.createElement('div');
@@ -162,19 +190,19 @@ label('ON', 62, 96);
 momentary(place('dome big', 62, 140), powerOff);
 label('OFF', 62, 166);
 
-new Knob(knob('blue', 62, 218), def('volume'), (v) => setParam('volume', v));
+ctl.volume = new Knob(knob('blue', 62, 218), def('volume'), (v) => setParam('volume', v));
 label('VOLUME', 62, 248);
 
 tape('RESET', 26, 316, true);
-const resetBtn = momentary(place('dome chrome', 70, 316), () => setParam('reset', 1), () => setParam('reset', 0));
+const resetBtn = ctl.reset = momentary(place('dome chrome', 70, 316), () => setParam('reset', 1), () => setParam('reset', 0));
 
 tape('STRETCH', 26, 470, true, -1);
-const stretchSw = new Toggle(place('toggle', 70, 396), 2, def('stretch').default, (v) => setParam('stretch', v));
+const stretchSw = ctl.stretch = new Toggle(place('toggle', 70, 396), 2, def('stretch').default, (v) => setParam('stretch', v));
 label('ON/OFF', 70, 428);
 leds.stretch = place('led yellow', 70, 452);
-new Knob(knob('red small', 70, 494), def('stretchHold'), (v) => setParam('stretchHold', v));
+ctl.stretchHold = new Knob(knob('red small', 70, 494), def('stretchHold'), (v) => setParam('stretchHold', v));
 label('HOLD', 70, 516);
-new Knob(knob('red small', 70, 556), def('stretchRelease'), (v) => setParam('stretchRelease', v));
+ctl.stretchRelease = new Knob(knob('red small', 70, 556), def('stretchRelease'), (v) => setParam('stretchRelease', v));
 label('REL', 70, 578);
 
 // ================= 右の列：GLITCH ×5 =================
@@ -184,28 +212,28 @@ const glitchBtns = [0, 1, 2, 3, 4].map((i) => {
   const y = 90 + i * 76;
   label(String(i + 1), 724, y - 6);
   const id = `glitch${i + 1}` as ParamId;
-  return momentary(place('dome big', 756, y), () => setParam(id, 1), () => setParam(id, 0));
+  return (ctl[id] = momentary(place('dome big', 756, y), () => setParam(id, 1), () => setParam(id, 0)));
 });
 
 // ================= 左下：LOOP ＋ LFO =================
 tape('LOOP', 70, 660, false, -2);
 leds.loop = place('led', 126, 660);
-const loopSw = new Toggle(place('toggle', 48, 714), 3, def('loopSwitch').default, (v) => setParam('loopSwitch', v));
+const loopSw = ctl.loopSwitch = new Toggle(place('toggle', 48, 714), 3, def('loopSwitch').default, (v) => setParam('loopSwitch', v));
 label('HOLD', 86, 690);
 label('PLAY', 86, 708);
 label('MUTE', 86, 726);
-const holdBtn = momentary(place('dome', 150, 704), () => setParam('loopHold', 1), () => setParam('loopHold', 0));
+const holdBtn = ctl.loopHold = momentary(place('dome', 150, 704), () => setParam('loopHold', 1), () => setParam('loopHold', 0));
 label('HOLD', 150, 726);
-const relBtn = momentary(place('dome black', 206, 704), () => setParam('loopRelease', 1), () => setParam('loopRelease', 0));
+const relBtn = ctl.loopRelease = momentary(place('dome black', 206, 704), () => setParam('loopRelease', 1), () => setParam('loopRelease', 0));
 label('RELEASE', 206, 726);
-new Knob(knob('red', 146, 768), def('lfoRate'), (v) => setParam('lfoRate', v));
+ctl.lfoRate = new Knob(knob('red', 146, 768), def('lfoRate'), (v) => setParam('lfoRate', v));
 label('LFO RATE', 146, 794);
-new Knob(knob('red', 214, 768), def('lfoDepth'), (v) => setParam('lfoDepth', v));
+ctl.lfoDepth = new Knob(knob('red', 214, 768), def('lfoDepth'), (v) => setParam('lfoDepth', v));
 label('LFO DEPTH', 214, 794);
 
 // ================= 右下：BASE と DIST =================
 tape('BASE', 730, 666, false, 2);
-const baseKnob = new SteppedKnob(knob('black big', 724, 730), 5, def('base').default, (v) => setParam('base', v), 240);
+const baseKnob = ctl.base = new SteppedKnob(knob('black big', 724, 730), 5, def('base').default, (v) => setParam('base', v), 240);
 const ticks = place('ticks', 724, 730);
 for (let i = 0; i < 5; i++) {
   const a = ((-120 + i * 60) * Math.PI) / 180;
@@ -216,16 +244,129 @@ for (let i = 0; i < 5; i++) {
   ticks.appendChild(t);
 }
 tape('DIST', 596, 672, false, -1);
-new Knob(knob('red', 596, 730), def('dist'), (v) => setParam('dist', v));
-const distSw = new Toggle(place('toggle', 650, 730), 2, def('distType').default, (v) => setParam('distType', v));
+ctl.dist = new Knob(knob('red', 596, 730), def('dist'), (v) => setParam('dist', v));
+ctl.distType = new Toggle(place('toggle', 650, 730), 2, def('distType').default, (v) => setParam('distType', v));
 label('FOLD', 650, 694);
 label('CLIP', 650, 762);
 
 // ================= 飾り：ジャック・ネジ =================
-place('jack', 410, 712);
-label('LINE OUT', 410, 736);
-for (const [x, y] of [[300, 680], [520, 680], [340, 790], [480, 790], [22, 22], [798, 22]]) place('screw', x, y);
-for (const [x, y] of [[372, 700], [448, 700]]) place('hole', x, y);
+for (const [x, y] of [[296, 668], [524, 668], [300, 806], [520, 806], [22, 22], [798, 22]]) place('screw', x, y);
+
+// ================= 中央下：REC（LINE OUT 録音）・MIDI・自分の声 =================
+place('jack', 410, 700);
+label('LINE OUT', 410, 722);
+leds.rec = place('led', 346, 668);
+const recBtn = place('dome', 346, 700);
+label('REC', 346, 722);
+const recTime = document.createElement('div');
+recTime.className = 'rec-time';
+recTime.style.left = '346px';
+recTime.style.top = '738px';
+recTime.textContent = '--:--';
+base.appendChild(recTime);
+let recChunks: Float32Array[] = [];
+let recording = false;
+let recStart = 0;
+recBtn.addEventListener('pointerdown', async () => {
+  await audio.start();
+  recording = !recording;
+  if (recording) {
+    recChunks = [];
+    recStart = performance.now();
+    recTime.textContent = '00:00';
+  }
+  audio.post({ type: 'rec', on: recording });
+  recBtn.classList.toggle('down', recording);
+  leds.rec.classList.toggle('lit', recording);
+});
+function finishRecording(): void {
+  if (!recChunks.length || !audio.ctx) return;
+  const d = new Date();
+  const p2 = (n: number) => String(n).padStart(2, '0');
+  const name = `bentpc-${d.getFullYear()}${p2(d.getMonth() + 1)}${p2(d.getDate())}-${p2(d.getHours())}${p2(d.getMinutes())}${p2(d.getSeconds())}.wav`;
+  download(encodeWav(recChunks, audio.ctx.sampleRate), name);
+  recChunks = [];
+}
+setInterval(() => {
+  if (!recording) return;
+  const sec = Math.floor((performance.now() - recStart) / 1000);
+  recTime.textContent = `${String(Math.floor(sec / 60)).padStart(2, '0')}:${String(sec % 60).padStart(2, '0')}`;
+}, 250);
+
+leds.midi = place('led green', 474, 668);
+const midiBtn = place('dome chrome', 474, 700);
+label('MIDI', 474, 722);
+const midiName = document.createElement('div');
+midiName.className = 'rec-time midi-name';
+midiName.style.left = '474px';
+midiName.style.top = '738px';
+base.appendChild(midiName);
+midiBtn.addEventListener('pointerdown', async () => {
+  await audio.start();
+  const ok = await startMidi({
+    key: (k, down) => (down ? keyCtl[k]?.press() : keyCtl[k]?.release()),
+    param: (i, v) => {
+      const c = ctl[PARAMS[i].id];
+      if (!c) return;
+      if ('set' in c) c.set(v);
+      else if (v > 0.5) c.press();
+      else c.release();
+    },
+    mode: (m) => modeDial.set(m),
+    power: (on) => (on ? void powerOn() : powerOff()),
+    onDevices: (names) => {
+      midiName.textContent = names.length ? names[0].slice(0, 14) : 'NO DEVICE';
+      leds.midi.classList.toggle('lit', names.length > 0);
+    },
+  });
+  if (!ok) midiName.textContent = 'NOT AVAILABLE';
+});
+
+tape('MY VOICE', 410, 770, false, 1);
+leds.mic = place('led', 366, 800);
+const micBtn = place('dome black', 410, 800);
+micBtn.addEventListener('pointerdown', async () => {
+  if (!micArmed && !(await audio.enableMic())) {
+    alert('マイクが使えませんでした（ブラウザのマイク許可を確認してください）');
+    return;
+  }
+  micArmed = !micArmed;
+  micBtn.classList.toggle('down', micArmed);
+  document.body.classList.toggle('mic-armed', micArmed);
+});
+
+// ---- 自分の声の保存（このブラウザの中に保存） ----
+const STORE = 'bentpc.userSamples.v1';
+function loadStore(): Record<string, string> {
+  try {
+    return JSON.parse(localStorage.getItem(STORE) ?? '{}');
+  } catch {
+    return {};
+  }
+}
+function saveUserSample(key: number, data: Int8Array | null): void {
+  keyEls[key]?.classList.toggle('has-voice', !!data);
+  const st = loadStore();
+  if (data) {
+    let bin = '';
+    for (let i = 0; i < data.length; i++) bin += String.fromCharCode(data[i] & 255);
+    st[key] = btoa(bin);
+  } else delete st[key];
+  try {
+    localStorage.setItem(STORE, JSON.stringify(st));
+  } catch {
+    // 保存できなくても演奏はできる
+  }
+}
+for (const [k, b64] of Object.entries(loadStore())) {
+  const bin = atob(b64);
+  const data = new Int8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) data[i] = (bin.charCodeAt(i) << 24) >> 24;
+  const key = Number(k);
+  keyEls[key]?.classList.add('has-voice');
+  audio.post({ type: 'userSample', key, data });
+}
+
 
 // ================= PC キーボード =================
 const FN_CODES = ['Minus', 'Equal', 'BracketLeft', 'BracketRight'];
@@ -264,7 +405,6 @@ window.addEventListener('keydown', (e) => {
 window.addEventListener('keyup', (e) => momentaryFor(e.code)?.release());
 // ウィンドウから離れたら押しっぱなしを解除
 window.addEventListener('blur', () => [...keyCtl, ...glitchBtns, holdBtn, relBtn, resetBtn].forEach((m) => m.release()));
-void distSw;
 
 // ================= ヘルプ =================
 $('helpBtn').addEventListener('click', () => { $('help').hidden = !$('help').hidden; });

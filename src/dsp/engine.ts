@@ -6,6 +6,7 @@ import { PARAMS, PARAM_INDEX, defaultParamValues, type ParamId } from '../params
 import { Chip } from './chip';
 import { distort } from './dist';
 import { Firmware, type DisplayState, type PlayRequest } from './firmware';
+import { Heat } from './heat';
 import { Rng, hashSeed } from './rng';
 import type { ToyEngine, ToyStatus } from './toy';
 
@@ -23,6 +24,8 @@ export class Engine implements ToyEngine<DisplayState> {
   private dcY = 0;
   private lpCoef: number;
   private distAmt = 0;
+  readonly heat: Heat;
+  private presses = 0;
 
   constructor(readonly sampleRate: number, readonly seed: number = DEFAULT_SEED) {
     this.fw = new Firmware(seed);
@@ -30,6 +33,7 @@ export class Engine implements ToyEngine<DisplayState> {
       other: (r) => this.fw.otherSound(r),
       system: (r) => this.fw.systemSound(r),
     });
+    this.heat = new Heat(new Rng(hashSeed(seed, 'heat')));
     this.lpCoef = 1 - Math.exp((-2 * Math.PI * 6500) / sampleRate);
   }
 
@@ -73,9 +77,16 @@ export class Engine implements ToyEngine<DisplayState> {
   reset(): void {
     this.fw.reset();
     this.chip.stop();
+    this.heat.reset();
+  }
+
+  /** マイクで録った自分の声をキーに割り当てる（null で消す）。8kHz の波形 */
+  setUserSample(key: number, buf: Float32Array | null): void {
+    this.fw.userSamples[key] = buf;
   }
 
   keyDown(key: number): void {
+    this.presses++;
     this.play(this.fw.press(key));
   }
 
@@ -103,6 +114,12 @@ export class Engine implements ToyEngine<DisplayState> {
         loop: this.chip.loopActive && this.chip.playing ? 1 : 0,
         glitch: this.chip.glitchActivity,
       },
+      fx: {
+        combos: this.chip.activeCombos,
+        heat: Math.round(this.heat.value * 100) / 100,
+        seed: this.chip.rngState,
+        misread: this.fw.lastOtherKey,
+      },
     };
   }
 
@@ -125,6 +142,19 @@ export class Engine implements ToyEngine<DisplayState> {
   process(out: Float32Array): void {
     this.applyParams();
     const n = out.length;
+    let glitchCount = 0;
+    for (let i = 0; i < 5; i++) if (this.chip.glitchMask & (1 << i)) glitchCount++;
+    this.heat.update(n / this.sampleRate, {
+      glitchCount,
+      base: this.chip.base,
+      dist: this.p('dist'),
+      looping: this.chip.loopActive,
+      stretching: this.chip.stretchOn,
+      playing: this.chip.playing && this.fw.powered,
+      presses: this.presses,
+    });
+    this.presses = 0;
+    this.chip.forced = this.heat.forced;
     const volTarget = this.p('volume') ** 2;
     const on = this.fw.powered && this.p('loopSwitch') !== 2 ? 1 : 0;
     const distTarget = this.p('dist');
