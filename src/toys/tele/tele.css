@@ -93,3 +93,15 @@
 .tk-key.down { transform: translateY(4px); box-shadow: 0 1px 0 #3f3b33, inset 0 0 0 1px rgba(0,0,0,.12); background: linear-gradient(180deg, #fff6b0, #ffe066) !important; }
 .tk-key.down .top { color: #333 !important; }
 .tk-key.down .fn { color: #b3261e !important; }
+
+/* YouTube モードでグリッチ中：ノイズの横線と明滅を重ねる */
+.tk-ytfx.glitching {
+  background:
+    repeating-linear-gradient(180deg, rgba(0,0,0,.35) 0 1px, transparent 1px 3px),
+    repeating-linear-gradient(180deg, transparent 0 37px, rgba(255,255,255,.18) 37px 39px, transparent 39px 83px),
+    radial-gradient(ellipse at center, rgba(255,255,255,calc(var(--flash, 0) * 1.5)) 0%, transparent 55%, rgba(0,0,0,.65) 100%);
+  animation: tk-noise .12s steps(3) infinite;
+}
+@keyframes tk-noise { 0% { background-position: 0 0, 0 0, 0 0; } 33% { background-position: 0 1px, 0 -60px, 0 0; } 66% { background-position: 0 2px, 0 45px, 0 0; } }
+/* シーケンサーなど、エンジン側で効いているグリッチのキー */
+.tk-key.lit { box-shadow: 0 5px 0 #968e75, 0 0 12px 3px rgba(255,90,70,.8), inset 0 0 0 2px #ff5a4f; }

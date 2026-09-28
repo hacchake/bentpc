@@ -83,6 +83,7 @@ export class Sources {
 
   /** 前の入力を片付ける */
   private stopAll(): void {
+    for (const k of [...this.actions.keys()]) this.stopAction(k);
     this.stream?.getTracks().forEach((t) => t.stop());
     this.stream = null;
     this.video.pause();
@@ -196,7 +197,74 @@ export class Sources {
   }
 
   seekBy(sec: number): void {
-    if (this.kind === 'youtube' && this.yt) this.yt.seekTo(Math.max(0, this.yt.getCurrentTime() + sec), true);
-    else if (this.kind === 'file') this.video.currentTime = Math.max(0, this.video.currentTime + sec);
+    this.seekTo(this.currentTime + sec);
+  }
+
+  get currentTime(): number {
+    if (this.kind === 'youtube' && this.yt) return this.yt.getCurrentTime();
+    if (this.kind === 'file') return this.video.currentTime;
+    return 0;
+  }
+
+  seekTo(t: number): void {
+    if (this.kind === 'youtube' && this.yt) this.yt.seekTo(Math.max(0, t), true);
+    else if (this.kind === 'file') this.video.currentTime = Math.max(0, Math.min(this.video.duration || 0, t));
+  }
+
+  // ---- 再生の速さ（- ^ ¥ キーと、グリッチの一時的な変更） ----
+  private baseRate = 1;
+  private glitchRate = 0; // 0 = グリッチによる変更なし
+
+  /** キーで変える基本の速さ（0.25〜2） */
+  setBaseRate(r: number): void {
+    this.baseRate = Math.max(0.25, Math.min(2, r));
+    this.applyRate();
+  }
+
+  get rate(): number {
+    return this.baseRate;
+  }
+
+  private applyRate(): void {
+    const r = this.glitchRate || this.baseRate;
+    if (this.kind === 'youtube' && this.yt) this.yt.setPlaybackRate(r);
+    else if (this.kind === 'file') this.video.playbackRate = r;
+  }
+
+  // ---- YouTube / ファイルの「再生そのものを壊す」操作（押している間だけ） ----
+  private actions = new Map<string, { t0: number; timer: number }>();
+
+  /** kind：stutter（同じ所を連打）/ pause（止める）/ slow / fast / jump（あちこちへ飛ぶ）/ mute（音の明滅） */
+  startAction(kind: 'stutter' | 'pause' | 'slow' | 'fast' | 'jump' | 'mute'): void {
+    if (this.actions.has(kind) || !(this.kind === 'youtube' || this.kind === 'file')) return;
+    const t0 = this.currentTime;
+    let timer = 0;
+    switch (kind) {
+      case 'stutter': timer = window.setInterval(() => this.seekTo(t0), 170); break;
+      case 'pause': if (this.kind === 'youtube') this.yt?.pauseVideo(); else this.video.pause(); break;
+      case 'slow': this.glitchRate = 0.25; this.applyRate(); break;
+      case 'fast': this.glitchRate = 2; this.applyRate(); break;
+      case 'jump': timer = window.setInterval(() => this.seekTo(t0 + (Math.random() - 0.3) * 20), 380); break;
+      case 'mute': {
+        let m = false;
+        timer = window.setInterval(() => {
+          m = !m;
+          if (this.kind === 'youtube') (m ? this.yt?.mute() : this.yt?.unMute());
+          else this.video.muted = m;
+        }, 70);
+        break;
+      }
+    }
+    this.actions.set(kind, { t0, timer });
+  }
+
+  stopAction(kind: string): void {
+    const a = this.actions.get(kind);
+    if (!a) return;
+    this.actions.delete(kind);
+    if (a.timer) clearInterval(a.timer);
+    if (kind === 'pause') { if (this.kind === 'youtube') this.yt?.playVideo(); else void this.video.play(); }
+    if (kind === 'slow' || kind === 'fast') { this.glitchRate = 0; this.applyRate(); }
+    if (kind === 'mute') { if (this.kind === 'youtube') this.yt?.unMute(); else this.video.muted = false; }
   }
 }
