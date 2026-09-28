@@ -9,6 +9,7 @@
 | 2 | **PIKOTONE PT-32** | 安物ミニキーボード＋エフェクト別ユニット。AMP/CPU 電圧 Starve・タッチポイント・INST HOLD・GLITCH・DIST/FIZZ/HIPASS/FEEDBACK |
 | 3 | **SPIN-TOT DJ-28** | 子供用 DJ セット。スクラッチ・パッド・ミニ鍵盤・リズム 28 種（隠し 7 種）・PITCH 粗/微・光センサー・STOP・DIST×2・FEEDBACK＋ソース切替 |
 | 4 | **VROOMBOX VR-5** | オリジナル設計。子供用ドライブ・ダッシュボード。点火の粒で作るエンジン音・FIRING ORDER×8＋CAM・REDLINE・SPARK・TURBO FB・RADIO BLEED・TUNE・PRESET HIJACK（MIDI でエンジンを弾ける） |
+| 5 | **TYPOTRON TT-109** | オリジナル設計。PC キーボードそのものが楽器。全キーに役目（4 段の音階・SUSTAIN・Shift でオクターブ・打った行を Enter でループ等）、キーボードの故障 GHOST/SCAN/BOUNCE/OVERFLOW、ツマミ 12 個 |
 
 ## 使い方
 
@@ -17,7 +18,7 @@
 - 自動テスト：`npm test`（全おもちゃの全キー・全パーツを検査。`out/` に WAV を書き出す）
 - 処理速度の目安：`npx tsx scripts/bench.ts`
 
-上のタブ（または F1〜F4）でおもちゃを切り替える。裏のおもちゃも鳴り続けるので、重ねて演奏できる。
+上のタブ（または F1〜F5）でおもちゃを切り替える（TYPOTRON 表示中は F キーが楽器の機能なのでタブで）。裏のおもちゃも鳴り続けるので、重ねて演奏できる。
 REC は全部のおもちゃのミックスを WAV で保存する。MIDI はチャンネル n → n 台目。
 
 ## 構成
@@ -26,7 +27,7 @@ REC は全部のおもちゃのミックスを WAV で保存する。MIDI はチ
 - `src/host/` … アプリ本体（AudioWorklet でおもちゃを全部動かして混ぜる、録音、MIDI）
 - `src/toys/<名前>/` … おもちゃごとの `params.ts`・`dsp/`（DOM 非依存。VST 移植対象）・画面
 - `src/toys/engines.ts` / `uis.ts` … おもちゃの一覧（並び順 = おもちゃ番号）
-- `docs/BLIPPY_DSP_SPEC.md`、`docs/PIKO_DSP_SPEC.md`、`docs/DJ_DSP_SPEC.md`、`docs/VROOM_DSP_SPEC.md` … 音の処理の仕様（JUCE / Rust 移植用）
+- `docs/BLIPPY_DSP_SPEC.md`、`docs/PIKO_DSP_SPEC.md`、`docs/DJ_DSP_SPEC.md`、`docs/VROOM_DSP_SPEC.md`、`docs/TYPO_DSP_SPEC.md` … 音の処理の仕様（JUCE / Rust 移植用）
 
 ## おもちゃを増やすには
 

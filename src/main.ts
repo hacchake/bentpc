@@ -14,9 +14,9 @@ const stage = $('stage');
 const COMMON_HELP = `
 <h3>アプリ全体</h3>
 <table>
-  <tr><td>上のタブ / F1〜F4</td><td>おもちゃの切り替え（裏のおもちゃも鳴り続けます）</td></tr>
+  <tr><td>上のタブ / F1〜F5</td><td>おもちゃの切り替え（裏のおもちゃも鳴り続けます）。TYPOTRON 表示中は F キーが楽器の機能なので、タブで切り替え</td></tr>
   <tr><td>REC</td><td>全部のおもちゃの音を録音。もう一度押すと WAV をダウンロード</td></tr>
-  <tr><td>MIDI</td><td>チャンネル n → n 台目（1〜4）、それ以外→表示中のおもちゃ</td></tr>
+  <tr><td>MIDI</td><td>チャンネル n → n 台目（1〜5）、それ以外→表示中のおもちゃ</td></tr>
 </table>
 <p>ノブ：上下にドラッグ（Shift で細かく）、ホイール、ダブルクリックで初期値</p>`;
 
@@ -127,13 +127,16 @@ $('midiBtn').addEventListener('click', async () => {
 // ---- PC キーボード（表示中のおもちゃへ） ----
 window.addEventListener('keydown', (e) => {
   if (e.ctrlKey || e.metaKey || e.altKey) return;
+  // まず表示中のおもちゃに渡す（F キーを楽器として使うおもちゃもある）。使わなければ F キーで切り替え
+  if (toys[active].keyDown(e)) {
+    e.preventDefault();
+    return;
+  }
   const f = /^F([1-9])$/.exec(e.code);
   if (f && Number(f[1]) <= toys.length) {
     e.preventDefault();
     show(Number(f[1]) - 1);
-    return;
   }
-  if (toys[active].keyDown(e)) e.preventDefault();
 });
 window.addEventListener('keyup', (e) => toys[active].keyUp(e));
 window.addEventListener('blur', () => toys.forEach((t) => t.releaseAll()));

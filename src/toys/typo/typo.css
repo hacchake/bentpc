@@ -1,0 +1,72 @@
+/* 5台目 TYPOTRON TT-109：アイボリーの古い PC キーボード＋上にボルト留めした金属板 */
+.toy-typo { font-family: 'Share Tech Mono', 'Consolas', monospace; }
+
+.tt-plate {
+  position: absolute; left: 20px; top: 20px; width: 1740px; height: 236px;
+  border-radius: 10px;
+  background: repeating-linear-gradient(90deg, #c4c8cc 0 2px, #b3b7bb 2px 3px, #cfd3d6 3px 5px);
+  box-shadow: inset 0 0 0 2px rgba(255,255,255,.5), 0 12px 26px rgba(0,0,0,.6);
+}
+.tt-brand {
+  position: absolute; left: 36px; top: 16px;
+  font: 700 22px 'Share Tech Mono', monospace; letter-spacing: 4px; color: #222;
+}
+.tt-brand b { color: #d21f1f; }
+.tt-brand i { margin-left: 14px; font-size: 12px; font-style: normal; background: #d21f1f; color: #fff; padding: 2px 8px; letter-spacing: 2px; vertical-align: 3px; }
+.tt-lcd {
+  position: absolute; left: 36px; top: 56px; width: 680px; height: 150px;
+  border-radius: 8px;
+  background: linear-gradient(180deg, #9ec48a, #86ad73);
+  box-shadow: inset 0 4px 10px rgba(0,0,0,.45), 0 0 0 8px #2a2a2a;
+  padding: 14px 18px;
+  color: #17240f;
+  overflow: hidden;
+}
+.tt-line { font-size: 38px; letter-spacing: 3px; white-space: nowrap; overflow: hidden; height: 52px; }
+.tt-line span.cur { background: #17240f; color: #9ec48a; }
+.tt-line .caret { animation: tt-blink 1s steps(2) infinite; }
+@keyframes tt-blink { 50% { opacity: 0; } }
+.tt-info { margin-top: 26px; font-size: 18px; letter-spacing: 2px; border-top: 2px dashed rgba(23,36,15,.4); padding-top: 12px; }
+.toy-typo .tt-lbl { color: #222; font-size: 10px; transform: translate(-50%, -50%); font-weight: 700; letter-spacing: 1px; }
+
+.tt-case {
+  position: absolute; left: 20px; top: 270px; width: 1740px; height: 565px;
+  border-radius: 14px 14px 24px 24px;
+  background: linear-gradient(180deg, #e9e3d2, #d9d2bd 40%, #c7bfa7);
+  box-shadow: inset 0 3px 0 #fff, inset 0 -8px 0 rgba(0,0,0,.15), 0 24px 50px rgba(0,0,0,.6);
+}
+.tt-keys { position: absolute; left: 0; top: 0; }
+
+.tt-key {
+  position: absolute;
+  border-radius: 7px;
+  cursor: pointer;
+  background: linear-gradient(180deg, #fbf8ef, #ebe5d4 70%, #d9d2bd);
+  box-shadow: 0 5px 0 #9e9680, 0 6px 6px rgba(0,0,0,.35), inset 0 0 0 1px rgba(0,0,0,.12);
+  transition: transform .03s, box-shadow .03s;
+}
+.tt-key .top { position: absolute; left: 7px; top: 4px; font: 700 15px 'Fredoka', sans-serif; color: #333; }
+.tt-key .fn { position: absolute; left: 6px; right: 4px; bottom: 5px; font-size: 9.5px; font-weight: 700; color: #1f5fe0; white-space: nowrap; overflow: hidden; }
+.tt-key.down { transform: translateY(4px); box-shadow: 0 1px 0 #9e9680, inset 0 0 0 1px rgba(0,0,0,.12); background: linear-gradient(180deg, #fff6b0, #ffe066); }
+
+/* 段ごとに少しずつ色を変える（音の高さの目印） */
+.tt-key.role-note.row0 { background: linear-gradient(180deg, #fdeee8, #f2d6cb 70%, #e3bfb1); }
+.tt-key.role-note.row1 { background: linear-gradient(180deg, #fbf8ef, #ebe5d4 70%, #d9d2bd); }
+.tt-key.role-note.row2 { background: linear-gradient(180deg, #edf4fb, #d6e3f0 70%, #bfcfe0); }
+.tt-key.role-note.row3 { background: linear-gradient(180deg, #eef8ea, #d6ebcd 70%, #bcd8b0); }
+.tt-key.role-note.down { background: linear-gradient(180deg, #fff6b0, #ffe066); }
+
+/* 機能キーは濃い色 */
+.tt-key.role-fn, .tt-key.role-none { background: linear-gradient(180deg, #8a8578, #6f6a5e 70%, #5c574c); box-shadow: 0 5px 0 #3f3b33, 0 6px 6px rgba(0,0,0,.35); }
+.tt-key.role-fn .top, .tt-key.role-none .top { color: #fff; }
+.tt-key.role-fn .fn { color: #ffb4a8; }
+.tt-key.role-none .fn { color: #bbb; }
+.tt-key.role-drum { background: linear-gradient(180deg, #ffd9a8, #f7b465 70%, #e0953b); box-shadow: 0 5px 0 #8a5516, 0 6px 6px rgba(0,0,0,.35); }
+.tt-key.role-drum .fn { color: #6a2d00; }
+.tt-key.role-wave { background: linear-gradient(180deg, #cfe3ff, #9fc3f5 70%, #7fa8e0); }
+.tt-key.role-scale { background: linear-gradient(180deg, #d6f5cf, #a8e39b 70%, #86c877); }
+.tt-key.role-bend { background: linear-gradient(180deg, #ffd0cc, #f59a92 70%, #e07168); }
+.tt-key.role-wave .fn, .tt-key.role-scale .fn, .tt-key.role-bend .fn { color: #222; }
+.tt-key.sel { box-shadow: 0 5px 0 #3f3b33, 0 0 0 3px #fff, 0 0 16px 4px rgba(255,230,90,.9); }
+.tt-key.down.role-fn, .tt-key.down.role-drum, .tt-key.down.role-wave, .tt-key.down.role-scale, .tt-key.down.role-bend { background: linear-gradient(180deg, #fff6b0, #ffe066); }
+.tt-key.down .top { color: #333; }

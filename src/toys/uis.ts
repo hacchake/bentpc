@@ -3,6 +3,7 @@ import type { ToyUIFactory } from '../core/ui';
 import { mountBlippy } from './blippy/ui/panel';
 import { mountDj } from './dj/ui';
 import { mountPiko } from './piko/ui';
+import { mountTypo } from './typo/ui';
 import { mountVroom } from './vroom/ui';
 
-export const TOY_UIS: ToyUIFactory[] = [mountBlippy, mountPiko, mountDj, mountVroom];
+export const TOY_UIS: ToyUIFactory[] = [mountBlippy, mountPiko, mountDj, mountVroom, mountTypo];
