@@ -8,9 +8,10 @@
     "dev": "vite",
     "build": "vite build",
     "typecheck": "tsc --noEmit",
-    "render-test": "tsx scripts/render-test.ts"
+    "test": "tsx scripts/engine-test.ts && tsx scripts/mods-test.ts"
   },
   "devDependencies": {
+    "@types/node": "^26.6.3",
     "esbuild": "^0.28.2",
     "tsx": "^4.23.15",
     "typescript": "^7.0.2",

@@ -1,5 +1,6 @@
 // UI ⇔ AudioWorklet のメッセージ形式
 import type { DisplayState } from './dsp/firmware';
+import type { ToyStatus } from './dsp/toy';
 
 export type ToEngine =
   | { type: 'param'; index: number; value: number }
@@ -8,4 +9,4 @@ export type ToEngine =
 
 export type FromEngine =
   | { type: 'display'; display: DisplayState; version: number }
-  | { type: 'status'; playing: boolean; powered: boolean };
+  | { type: 'status'; status: ToyStatus };

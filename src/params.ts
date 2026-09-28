@@ -48,7 +48,8 @@ export const PARAMS = [
   { id: 'stretchHold', name: 'STRETCH HOLD', kind: 'continuous', min: 0, max: 1, default: 0.4, midiCC: 86, phase: 2 },
   { id: 'stretchRelease', name: 'STRETCH REL', kind: 'continuous', min: 0, max: 1, default: 0.4, midiCC: 87, phase: 2 },
   { id: 'dist', name: 'DIST', kind: 'continuous', min: 0, max: 1, default: 0, midiCC: 88, phase: 2 },
-  { id: 'distType', name: 'DIST TYPE', kind: 'toggle', min: 0, max: 1, default: 0, midiCC: 89, phase: 2 },
+  { id: 'distType', name: 'DIST TYPE', kind: 'toggle', min: 0, max: 1, default: 0, midiCC: 89, phase: 2, labels: ['CLIP', 'FOLD'] },
+  { id: 'reset', name: 'RESET', kind: 'momentary', min: 0, max: 1, default: 0, midiCC: 90, phase: 2 },
 ] as const satisfies readonly ParamDef[];
 
 export type ParamId = (typeof PARAMS)[number]['id'];
@@ -59,8 +60,10 @@ export function defaultParamValues(): Float32Array {
   return Float32Array.from(PARAMS.map((p) => p.default));
 }
 
-// ---- キー（A〜Z＋機能キー4つ） ----
+// ---- キー（A〜Z＋機能キー4つ＋ドレミの数字キー10個） ----
 export const LETTER_KEYS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
 export const FUNCTION_KEYS = ['F1', 'F2', 'F3', 'F4'] as const; // ♪ ? ★ OK
 export const FUNCTION_KEY_LABELS = ['♪', '?', '★', 'OK'];
-export const KEY_COUNT = 30; // 0..25 = A..Z, 26..29 = F1..F4
+export const NUMBER_KEY_LABELS = ['do', 're', 'mi', 'fa', 'so', 'la', 'ti', 'do', 're', 'mi'];
+export const FIRST_NUMBER_KEY = 30;
+export const KEY_COUNT = 40; // 0..25 = A..Z, 26..29 = F1..F4, 30..39 = 数字キー 1..10

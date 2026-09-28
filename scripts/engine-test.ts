@@ -30,10 +30,10 @@ for (let m = 0; m < 8; m++) {
   e.setParamById('mode', m);
   run(0.8);
   const silent: string[] = [];
-  for (let k = 0; k < 30; k++) {
+  for (let k = 0; k < 40; k++) {
     e.keyDown(k);
     const p = run(m === 4 && k >= 26 ? 2.2 : 1.2);
-    if (p < 0.01) silent.push(`${k}${e.fw.deadKeys[m].has(k) ? '(dead)' : '(!!)'}`);
+    if (p < 0.01) silent.push(String(k));
   }
   console.log(`mode ${m} ${MODE_NAMES[m]}: silent keys = ${silent.join(' ')}`);
   writeWav(`out/mode${m}-${MODE_NAMES[m]}.wav`, rec);

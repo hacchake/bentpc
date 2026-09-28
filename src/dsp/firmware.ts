@@ -1,8 +1,8 @@
-// おもちゃPCの「ファームウェア」。電源・起動・モード・キー・クイズ・壊れたキーを管理する。
+// おもちゃPCの「ファームウェア」。電源・起動・モード・キー・クイズを管理する。
 // 鳴らす音（SoundBank の波形）と、液晶に出す内容（DisplayState）を決めるだけで、
 // 音の再生そのものは chip（再生回路）が行う。DOM には依存しない。
 
-import { LETTER_KEYS, KEY_COUNT } from '../params';
+import { FIRST_NUMBER_KEY, LETTER_KEYS, NUMBER_KEY_LABELS } from '../params';
 import { WORDS } from './phonemes';
 import { Rng, hashSeed } from './rng';
 import { DRUM_NAMES, SFX_NAMES, SoundBank } from './soundbank';
@@ -15,7 +15,7 @@ export interface DisplayState {
   big?: string; // 大きく出す文字（'K' や 'C4'）
   sprite?: string; // ドット絵の名前（'K'〜'Z'、'NOTE'、'DRUM'、'STAR' など）
   text?: string; // 下の行の文字
-  mark?: 'ok' | 'ng' | 'q' | 'dead';
+  mark?: 'ok' | 'ng' | 'q';
 }
 
 export interface PlayRequest {
@@ -30,8 +30,6 @@ export class Firmware {
   mode = 0;
   display: DisplayState = { screen: 'off', mode: 0 };
   displayVersion = 0;
-  /** モードごとの、音が出ないキー */
-  deadKeys: Set<number>[] = [];
   private quizTarget = 0;
   private pendingAfterSound: (() => PlayRequest | null) | null = null;
   private rng: Rng;
@@ -39,14 +37,6 @@ export class Firmware {
   constructor(readonly seed: number) {
     this.bank = new SoundBank(seed);
     this.rng = new Rng(hashSeed(seed, 'firmware'));
-    // 魔改造の代償：モードごとに 2〜3 個のキーが死んでいる
-    for (let m = 0; m < 8; m++) {
-      const r = new Rng(hashSeed(seed, 'dead', m));
-      const n = 2 + r.int(2);
-      const s = new Set<number>();
-      while (s.size < n) s.add(r.int(KEY_COUNT));
-      this.deadKeys.push(s);
-    }
   }
 
   private show(d: Omit<DisplayState, 'mode'>): void {
@@ -115,15 +105,10 @@ export class Firmware {
   press(key: number): PlayRequest | null {
     if (!this.powered || this.booting) return null;
     this.pendingAfterSound = null;
+    if (key >= FIRST_NUMBER_KEY) return this.pressNumber(key);
     const isLetter = key < 26;
     const l = isLetter ? LETTER_KEYS[key] : '';
     const fk = key - 26; // 機能キー番号 0..3
-
-    if (this.deadKeys[this.mode].has(key)) {
-      // 音は出ないが、液晶だけは反応する（配線が切れている）
-      this.show({ screen: 'key', big: isLetter ? l : ['♪', '?', '★', 'OK'][fk], mark: 'dead', text: '' });
-      return null;
-    }
 
     const b = this.bank;
     const play = (buf: Float32Array): PlayRequest => ({ buf, key });
@@ -187,6 +172,46 @@ export class Firmware {
       }
     }
     return null;
+  }
+
+  /** ドレミの数字キー（どのモードでも鳴る） */
+  private pressNumber(key: number): PlayRequest | null {
+    const i = key - FIRST_NUMBER_KEY;
+    this.show({ screen: 'key', big: String(i + 1), sprite: 'NOTE', text: NUMBER_KEY_LABELS[i].toUpperCase() });
+    return { buf: this.bank.numberNote(i), key };
+  }
+
+  /** リセット：CPU が止まり、電源を入れ直すまで何も起きない */
+  reset(): void {
+    this.powerOff();
+  }
+
+  /** 誤読み上げ用：いまのモードの、どれかの文字キーの音（液晶は変えない） */
+  otherSound(rng: Rng): Float32Array {
+    const k = rng.int(26);
+    const l = LETTER_KEYS[k];
+    const b = this.bank;
+    switch (this.mode) {
+      case 0: return b.letterName(l);
+      case 2: return b.tune(l);
+      case 3: return b.pianoNote(k).buf;
+      case 4: return b.drum(k);
+      case 5: return b.sfx(k);
+      case 7: return b.isFor(l);
+      default: return b.word(l);
+    }
+  }
+
+  /** 誤読み上げ用：システム音 */
+  systemSound(rng: Rng): Float32Array {
+    const b = this.bank;
+    switch (rng.int(5)) {
+      case 0: return b.boot();
+      case 1: return b.correct('RIGHT');
+      case 2: return b.wrong('NO');
+      case 3: return b.quizQuestion(LETTER_KEYS[rng.int(26)]);
+      default: return b.phrase(b.modePhrase(this.mode));
+    }
   }
 
   /** ABC/WORD/TUNE/SFX/SAY モードの機能キー */

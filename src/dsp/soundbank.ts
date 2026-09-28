@@ -114,6 +114,11 @@ export class SoundBank {
   modeSfx(mode: number): number {
     return this.rng('fsfx', mode).int(10);
   }
+  /** ドレミの数字キー（1〜10 = ド〜ミ） */
+  numberNote(i: number): Float32Array {
+    const midi = 72 + 12 * Math.floor(i / 7) + MAJOR[i % 7];
+    return this.get(`num:${i}`, () => melody([[midi, 380]], { wave: 'square', decay: 260, gate: 1, vol: 0.6 }));
+  }
   blip(): Float32Array {
     return this.get('blip', () => melody([[96, 30]], { wave: 'square', gate: 1, vol: 0.5 }));
   }

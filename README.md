@@ -7,7 +7,7 @@
 
 - すぐ遊ぶ：`dist/index.html` をダブルクリック（`npm run build` で作り直せる）
 - 開発：`npm run dev` → http://localhost:5178
-- エンジン試験：`npx tsx scripts/engine-test.ts`（全モード全キーを鳴らし、`out/` に WAV を書き出す）
+- 自動テスト：`npm test`（全モード全キー、25種のグリッチ・LOOP・STRETCH・DIST を検査。`out/` に WAV を書き出す）
 
 ## 構成
 
@@ -19,6 +19,11 @@
 
 ## 進捗
 
-- [x] フェーズ1：電源・モード8種・A〜Z＋機能キー4つ・音声合成/メロディ/効果音・液晶・死んだキー
-- [ ] フェーズ2：GLITCH×5＋BASE、LOOP、LFO、STRETCH、DIST
+- [x] フェーズ1：電源・モード8種・A〜Z＋機能キー4つ＋ドレミキー10個・音声合成/メロディ/効果音・液晶
+- [x] フェーズ2：GLITCH×5＋BASE、LOOP、LFO、STRETCH、DIST、RESET、改造おもちゃ風の外観
 - [ ] フェーズ3：ストレスとフリーズ／RESET、液晶グリッチ連動、録音(WAV)、MIDI、見た目の仕上げ、マイク録音スロット
+
+## 将来の構想
+
+複数の改造おもちゃを並べて演奏し、DAW 用に収録できる KORG Gadget のようなアプリにする。
+`src/dsp/toy.ts` の `ToyEngine` が「おもちゃ1台」の共通の形。

@@ -12,8 +12,7 @@ class ToyPcProcessor extends AudioWorkletProcessor {
   private engine = new Engine(sampleRate);
   private sentVersion = -1;
   private statusCounter = 0;
-  private lastPlaying = false;
-  private lastPowered = false;
+  private lastStatus = '';
 
   constructor() {
     super();
@@ -40,14 +39,15 @@ class ToyPcProcessor extends AudioWorkletProcessor {
       this.sentVersion = e.displayVersion;
       this.send({ type: 'display', display: e.display, version: e.displayVersion });
     }
-    // 状態は約 20ms ごと、変化があったときだけ送る
+    // 状態（LED など）は約 20ms ごと、変化があったときだけ送る
     if (++this.statusCounter >= 8) {
       this.statusCounter = 0;
-      const playing = e.isPlaying, powered = e.fw.powered;
-      if (playing !== this.lastPlaying || powered !== this.lastPowered) {
-        this.lastPlaying = playing;
-        this.lastPowered = powered;
-        this.send({ type: 'status', playing, powered });
+      const st = e.status();
+      st.leds.glitch = Math.round(st.leds.glitch * 20) / 20;
+      const key = JSON.stringify(st);
+      if (key !== this.lastStatus) {
+        this.lastStatus = key;
+        this.send({ type: 'status', status: st });
       }
     }
     return true;

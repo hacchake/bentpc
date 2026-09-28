@@ -98,3 +98,77 @@ export function momentary(el: HTMLElement, onDown: () => void, onUp: () => void 
   el.addEventListener('lostpointercapture', release);
   return { press, release };
 }
+
+/** 段階つきの回転つまみ（BASE・MODE ダイヤル）。上下ドラッグ・ホイール・クリックで切り替え */
+export class SteppedKnob {
+  value: number;
+  private cap: HTMLElement;
+  constructor(
+    private el: HTMLElement,
+    private steps: number,
+    initial: number,
+    private onChange: (v: number) => void,
+    private sweepDeg = 270,
+  ) {
+    this.value = initial;
+    this.cap = el.querySelector('.cap') ?? el;
+    el.style.touchAction = 'none';
+    let startY = 0, startV = 0, moved = false;
+    el.addEventListener('pointerdown', (e) => {
+      el.setPointerCapture(e.pointerId);
+      startY = e.clientY; startV = this.value; moved = false;
+      e.preventDefault();
+    });
+    el.addEventListener('pointermove', (e) => {
+      if (!el.hasPointerCapture(e.pointerId)) return;
+      const d = Math.round((startY - e.clientY) / 24);
+      if (d !== 0) moved = true;
+      this.set(Math.max(0, Math.min(this.steps - 1, startV + d)));
+    });
+    el.addEventListener('pointerup', () => { if (!moved) this.set((this.value + 1) % this.steps); });
+    el.addEventListener('wheel', (e) => { e.preventDefault(); this.set(Math.max(0, Math.min(this.steps - 1, this.value - Math.sign(e.deltaY)))); }, { passive: false });
+    this.render();
+  }
+  set(v: number, notify = true): void {
+    if (v === this.value) return;
+    this.value = v;
+    this.render();
+    if (notify) this.onChange(v);
+  }
+  private render(): void {
+    const deg = -this.sweepDeg / 2 + (this.steps > 1 ? this.value / (this.steps - 1) : 0) * this.sweepDeg;
+    this.cap.style.transform = `rotate(${deg}deg)`;
+  }
+}
+
+/** レバー式トグルスイッチ。steps=2 なら上=1（ON）、steps=3 なら上=0・中=1・下=2 */
+export class Toggle {
+  value: number;
+  constructor(private el: HTMLElement, private steps: number, initial: number, private onChange: (v: number) => void) {
+    this.value = initial;
+    el.innerHTML = '<div class="bat"></div>';
+    el.style.touchAction = 'none';
+    el.addEventListener('pointerdown', (e) => {
+      e.preventDefault();
+      if (this.steps === 2) return this.cycle(); // 2 段はクリックで切り替え
+      const r = el.getBoundingClientRect();
+      const k = (e.clientY - r.top) / r.height; // 0 = 上
+      this.set(Math.round(Math.max(0, Math.min(1, k)) * (this.steps - 1)));
+    });
+    this.render();
+  }
+  /** 次の位置へ（キーボード用） */
+  cycle(): void {
+    this.set((this.value + 1) % this.steps);
+  }
+  set(v: number, notify = true): void {
+    if (v === this.value) return;
+    this.value = v;
+    this.render();
+    if (notify) this.onChange(v);
+  }
+  private render(): void {
+    const pos = this.steps === 2 ? 1 - this.value : this.value / (this.steps - 1);
+    this.el.style.setProperty('--pos', String(pos));
+  }
+}

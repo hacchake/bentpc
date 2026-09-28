@@ -84,13 +84,7 @@ export function drawDisplay(bm: Bitmap, d: DisplayState, t: number, since: numbe
   const bw = bm.textWidth(big, bigScale);
   const bx = 30 - bw / 2;
   const by = 32 - (GLYPH_H * bigScale) / 2;
-  if (d.mark === 'dead') {
-    // 死んだキー：文字が点滅してかすれる
-    if (Math.floor(since * 6) % 2 === 0) bm.text(big, bx, by, bigScale);
-    for (let i = 0; i < 40; i++) bm.set(bx + ((i * 37) % Math.max(1, bw)), by + ((i * 11) % 28), 0);
-  } else {
-    bm.text(big, bx, by, bigScale);
-  }
+  bm.text(big, bx, by, bigScale);
 
   // 右：キャラ
   if (d.sprite) {
