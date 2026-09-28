@@ -98,17 +98,6 @@
 }
 .pk-pad.down { transform: translateY(4px); box-shadow: 0 1px 0 #4d0503; }
 
-/* タッチポイント（銀の丸い頭） */
-.stud {
-  width: 34px; height: 34px; border-radius: 50%;
-  cursor: pointer;
-  touch-action: none;
-  --glow: 0;
-  background: radial-gradient(circle at 38% 30%, #fff, #c9c9c9 30%, #777 70%, #444);
-  box-shadow: 0 3px 5px rgba(0,0,0,.6), 0 0 0 3px #222;
-}
-.stud.down { box-shadow: 0 1px 2px rgba(0,0,0,.6), 0 0 0 3px #222, 0 0 calc(8px + var(--glow) * 16px) rgba(120, 200, 255, calc(.3 + var(--glow) * .6)); }
-
 /* 銀色の大きなノブ（PITCH） */
 .knob.chrome .cap {
   background:

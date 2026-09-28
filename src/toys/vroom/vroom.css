@@ -1,0 +1,156 @@
+/* 4台目 VROOMBOX VR-5 の見た目：赤いおもちゃのダッシュボード＋左にボルト留めした改造パネル */
+.toy-vroom { font-family: 'Fredoka', 'Arial Rounded MT Bold', sans-serif; }
+
+.vr-wires { position: absolute; left: 0; top: 0; pointer-events: none; z-index: 3; }
+.vr-wires path { fill: none; stroke-width: 7; stroke-linecap: round; }
+.vr-wires path:first-child { stroke: #d21f1f; }
+.vr-wires path:last-child { stroke: #111; }
+
+.vr-plate {
+  position: absolute; left: 20px; top: 30px; width: 310px; height: 850px;
+  border-radius: 8px;
+  background: repeating-linear-gradient(90deg, #c4c8cc 0 2px, #b3b7bb 2px 3px, #cfd3d6 3px 5px);
+  box-shadow: inset 0 0 0 2px rgba(255,255,255,.5), 0 14px 30px rgba(0,0,0,.6);
+}
+
+.vr-body {
+  position: absolute; left: 340px; top: 40px; width: 1440px; height: 840px;
+  border-radius: 70px 70px 40px 40px;
+  background: radial-gradient(ellipse at 50% 0%, rgba(255,255,255,.35), transparent 45%), linear-gradient(180deg, #ff4d3d, #d8231b 40%, #a3140e);
+  box-shadow: inset 0 4px 0 rgba(255,255,255,.4), inset 0 -10px 0 rgba(0,0,0,.25), 0 24px 60px rgba(0,0,0,.6);
+}
+
+.vr-dash {
+  position: absolute; left: 460px; top: 70px; width: 1200px; height: 290px;
+  border-radius: 140px 140px 30px 30px;
+  background: linear-gradient(180deg, #2b2b2b, #111 40%, #0a0a0a);
+  box-shadow: inset 0 3px 0 rgba(255,255,255,.12), 0 6px 0 #7a0c07;
+}
+.vr-gauge { position: absolute; top: 20px; width: 230px; height: 230px; border-radius: 50%; background: #222; box-shadow: 0 0 0 8px #c8ccd0, 0 0 0 11px #555; }
+.vr-gauge.tach { left: 15px; }
+.vr-gauge.speedo { right: 15px; }
+.vr-gauge svg { width: 100%; height: 100%; }
+.vr-gauge .face { fill: #fdf7e3; }
+.vr-gauge .tick { stroke: #222; stroke-width: 4; }
+.vr-gauge .tick.red { stroke: #e0221b; stroke-width: 6; }
+.vr-gauge .num { font: 700 15px 'Fredoka', sans-serif; fill: #222; text-anchor: middle; }
+.vr-gauge .needle { stroke: #e0221b; stroke-width: 5; stroke-linecap: round; transition: transform .06s linear; }
+.vr-gauge .cap { fill: #222; }
+.vr-speed {
+  position: absolute; left: 50%; top: 150px; transform: translateX(-50%);
+  padding: 2px 8px; border-radius: 4px; background: #1a0303;
+  color: #ff3b2f; font: 700 22px 'Share Tech Mono', monospace; letter-spacing: 3px;
+  text-shadow: 0 0 8px rgba(255,60,40,.9);
+}
+
+.vr-radio {
+  position: absolute; left: 440px; top: 20px; width: 320px; height: 225px;
+  border-radius: 14px;
+  background: linear-gradient(180deg, #3a3a3a, #1c1c1c);
+  box-shadow: inset 0 2px 0 rgba(255,255,255,.15), 0 0 0 4px #555;
+}
+.vr-radio-lcd {
+  position: absolute; left: 20px; right: 20px; top: 16px; height: 56px;
+  border-radius: 6px;
+  background: linear-gradient(180deg, #9ec48a, #7fa86c);
+  box-shadow: inset 0 3px 6px rgba(0,0,0,.5);
+  color: #1c2a14; font: 700 22px 'Share Tech Mono', monospace; text-align: center; line-height: 56px; letter-spacing: 2px;
+}
+.vr-preset {
+  width: 50px; height: 36px; border-radius: 6px; cursor: pointer;
+  background: linear-gradient(180deg, #f2f2f2, #b5b5b5);
+  box-shadow: 0 4px 0 #555, inset 0 -2px 0 rgba(0,0,0,.15);
+  font: 700 16px 'Fredoka', sans-serif; color: #333; text-align: center; line-height: 36px;
+}
+.vr-preset.down { transform: translateY(3px); box-shadow: 0 1px 0 #555; background: linear-gradient(180deg, #fff, #dde); }
+.toy-vroom .vr-arrow { color: #243; font-size: 34px; text-shadow: none; }
+.toy-vroom .vr-arrow.lit { color: #5dff5a; text-shadow: 0 0 14px #5dff5a; }
+.vr-lamp {
+  padding: 3px 8px; border-radius: 4px; background: #331; color: #664;
+  font: 700 12px 'Share Tech Mono', monospace; letter-spacing: 1px;
+}
+.vr-lamp.lit { background: #ffb31a; color: #321; box-shadow: 0 0 14px rgba(255,180,30,.9); }
+.vr-lamp.blue.lit { background: #4db8ff; box-shadow: 0 0 14px rgba(80,180,255,.9); }
+
+/* ハンドル */
+.vr-wheel {
+  position: absolute; left: 800px; top: 380px; width: 480px; height: 480px;
+  cursor: grab; touch-action: none; z-index: 2;
+  filter: drop-shadow(0 12px 14px rgba(0,0,0,.5));
+}
+.vr-wheel svg { width: 100%; height: 100%; }
+.vr-wheel .rim { fill: #ffd23a; stroke: #b88a00; stroke-width: 4; }
+.vr-wheel .rim-in { fill: transparent; stroke: #e0aa12; stroke-width: 3; }
+.vr-wheel .spoke { fill: #ffd23a; stroke: #b88a00; stroke-width: 3; }
+.vr-wheel .hub { fill: #1d62d8; stroke: #0e3b8a; stroke-width: 5; }
+.vr-wheel .hub-text { fill: #fff; font: 700 22px 'Fredoka', sans-serif; text-anchor: middle; }
+.vr-wheel .mark { fill: #e0221b; }
+.vr-wheel circle.rim { pointer-events: visiblePainted; }
+.vr-hub {
+  position: absolute; left: 970px; top: 550px; width: 140px; height: 140px; border-radius: 50%;
+  cursor: pointer; z-index: 3;
+}
+.vr-hub.down { background: radial-gradient(circle, rgba(255,255,255,.25), transparent 70%); }
+
+/* キー（イグニッション） */
+.vr-key {
+  width: 76px; height: 76px; border-radius: 50%; cursor: pointer;
+  background: radial-gradient(circle at 40% 35%, #fff, #bbb 40%, #777 75%, #444);
+  box-shadow: 0 0 0 6px #222, 0 5px 10px rgba(0,0,0,.6);
+  --rot: -50deg;
+}
+.vr-key-head {
+  position: absolute; left: 26px; top: -18px; width: 24px; height: 70px; border-radius: 10px 10px 4px 4px;
+  background: linear-gradient(90deg, #d6a400, #ffe27a 40%, #b88700);
+  box-shadow: 0 3px 5px rgba(0,0,0,.5);
+  transform-origin: 12px 56px;
+  transform: rotate(var(--rot));
+  transition: transform .12s;
+}
+.vr-small {
+  padding: 4px 8px; border-radius: 4px; cursor: pointer;
+  background: #222; color: #ccc; font: 700 11px 'Share Tech Mono', monospace;
+}
+.vr-small.down { background: #444; }
+.vr-btn {
+  width: 100px; height: 52px; border-radius: 12px; cursor: pointer;
+  font: 700 15px 'Fredoka', sans-serif; color: #fff; text-align: center; line-height: 52px;
+  background: linear-gradient(180deg, #ffd23a, #e0a800); color: #5a3a00;
+  box-shadow: 0 6px 0 rgba(0,0,0,.4), inset 0 2px 0 rgba(255,255,255,.4);
+}
+.vr-btn.blue { background: linear-gradient(180deg, #5fb0ff, #1d62d8); color: #fff; }
+.vr-btn.green { background: linear-gradient(180deg, #7ee08a, #2fa24a); color: #063; }
+.vr-btn.red { background: linear-gradient(180deg, #333, #111); color: #ff5a4f; }
+.vr-btn.orange { background: linear-gradient(180deg, #ffb35a, #f07a00); color: #4a1f00; }
+.vr-btn.big { width: 130px; height: 70px; line-height: 70px; font-size: 20px; border-radius: 35px; }
+.vr-btn.sel { transform: translateY(3px); box-shadow: 0 2px 0 rgba(0,0,0,.4), 0 0 16px rgba(255,255,255,.6); }
+.vr-btn.down { transform: translateY(4px); box-shadow: 0 1px 0 rgba(0,0,0,.4); }
+
+/* ギアとペダル */
+.vr-gear {
+  width: 26px; height: 280px; border-radius: 13px; cursor: pointer; touch-action: none;
+  background: #1a1a1a; box-shadow: inset 0 3px 6px #000, 0 0 0 4px #7a0c07;
+  --pos: 0;
+}
+.vr-gear .thumb {
+  position: absolute; left: -22px; width: 70px; height: 50px; border-radius: 50%;
+  top: calc(var(--pos) * 236px - 3px);
+  background: radial-gradient(circle at 40% 35%, #666, #111 70%);
+  box-shadow: 0 6px 10px rgba(0,0,0,.6);
+  transition: top .08s;
+}
+.toy-vroom .vr-lbl.on { color: #ffe27a; text-shadow: 0 0 8px rgba(255,220,100,.9); }
+.vr-pedal {
+  width: 100px; height: 300px; border-radius: 12px; cursor: pointer; touch-action: none;
+  background: #1a1a1a; box-shadow: inset 0 4px 8px #000;
+  --v: 0;
+}
+.vr-pedal-top {
+  position: absolute; left: 6px; right: 6px; top: calc(var(--v) * 210px + 6px); height: 80px; border-radius: 8px;
+  background: repeating-linear-gradient(180deg, #555 0 6px, #333 6px 12px);
+  box-shadow: 0 6px 10px rgba(0,0,0,.6);
+}
+.vr-sticker { padding: 4px 10px; background: #fff; color: #d21f1f; font: 700 18px 'Fredoka', sans-serif; border-radius: 6px; transform: rotate(-4deg); }
+
+.toy-vroom .vr-lbl { color: #222; font: 700 11px 'Share Tech Mono', monospace; transform: translate(-50%, -50%); letter-spacing: 1px; }
+.toy-vroom .vr-lbl.light { color: #fff; }

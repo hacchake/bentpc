@@ -14,9 +14,9 @@ const stage = $('stage');
 const COMMON_HELP = `
 <h3>アプリ全体</h3>
 <table>
-  <tr><td>上のタブ / F1 F2 F3</td><td>おもちゃの切り替え（裏のおもちゃも鳴り続けます）</td></tr>
+  <tr><td>上のタブ / F1〜F4</td><td>おもちゃの切り替え（裏のおもちゃも鳴り続けます）</td></tr>
   <tr><td>REC</td><td>全部のおもちゃの音を録音。もう一度押すと WAV をダウンロード</td></tr>
-  <tr><td>MIDI</td><td>チャンネル1→1台目、2→2台目、3→3台目、それ以外→表示中のおもちゃ</td></tr>
+  <tr><td>MIDI</td><td>チャンネル n → n 台目（1〜4）、それ以外→表示中のおもちゃ</td></tr>
 </table>
 <p>ノブ：上下にドラッグ（Shift で細かく）、ホイール、ダブルクリックで初期値</p>`;
 
@@ -34,7 +34,8 @@ const tabEls = toys.map((t, i) => {
   stage.appendChild(t.root);
   const tab = document.createElement('button');
   tab.className = 'tab';
-  tab.innerHTML = `<span class="dot"></span>${i + 1}. ${t.title}`;
+  tab.innerHTML = `<span class="dot"></span>${i + 1}. ${t.title.split(' ')[0]}`;
+  tab.title = t.title;
   tab.addEventListener('click', () => show(i));
   $('tabs').appendChild(tab);
   return tab;

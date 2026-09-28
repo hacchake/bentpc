@@ -87,3 +87,10 @@ html, body {
 #help td { padding: 2px 8px 2px 0; vertical-align: top; }
 #help td:first-child { font-family: 'Share Tech Mono', monospace; font-weight: 700; white-space: nowrap; }
 #help p { margin: 8px 0 0; color: #555; }
+
+/* 画面が狭いときはアプリ名を隠して、タブを詰める */
+@media (max-width: 900px) {
+  #topbar .app { display: none; }
+  .tab { padding: 0 9px; font-size: 12px; }
+  .bar-btn { padding: 0 9px; }
+}
