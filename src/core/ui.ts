@@ -13,6 +13,8 @@ export interface HostApi {
   /** 音を出す準備（最初のユーザー操作で呼ぶ） */
   start(): Promise<void>;
   enableMic(): Promise<boolean>;
+  /** 取り込んだ動画の音をエンジンへ流す（6台目） */
+  connectVideo(src: MediaStream | HTMLMediaElement | null): Promise<void>;
 }
 
 export interface ToyUI {

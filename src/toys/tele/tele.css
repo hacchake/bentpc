@@ -1,0 +1,95 @@
+/* 6台目 TELEKEY TK-6：ベージュのブラウン管モニターと、改造された古いキーボード */
+.toy-tele { font-family: 'Share Tech Mono', 'Consolas', monospace; }
+
+.tk-monitor {
+  position: absolute; left: 450px; top: 16px; width: 880px; height: 625px;
+  border-radius: 34px 34px 22px 22px;
+  background: radial-gradient(ellipse at 40% 0%, rgba(255,255,255,.35), transparent 50%), linear-gradient(180deg, #e8e1cc, #d6ceb5 60%, #bdb398);
+  box-shadow: inset 0 3px 0 #fff, inset 0 -8px 0 rgba(0,0,0,.18), 0 26px 50px rgba(0,0,0,.6);
+}
+.tk-screen {
+  position: absolute; left: 110px; top: 34px; width: 660px; height: 495px;
+  border-radius: 40px / 34px;
+  overflow: hidden;
+  background: #070807;
+  box-shadow: 0 0 0 14px #2a2823, 0 0 0 18px #9a927c, inset 0 0 40px rgba(0,0,0,.9);
+}
+.tk-screen canvas { position: absolute; left: 10px; top: 7px; width: 640px; height: 480px; }
+.tk-yt { position: absolute; left: 10px; top: 7px; width: 640px; height: 480px; pointer-events: none; display: none; }
+.tk-yt iframe { width: 100%; height: 100%; border: 0; }
+.toy-tele[data-src='youtube'] .tk-yt { display: block; }
+/* YouTube のときに重ねる層（走査線・周辺減光）。フェーズ2でグリッチもここに重なる */
+.tk-ytfx { position: absolute; inset: 0; pointer-events: none; display: none;
+  background:
+    repeating-linear-gradient(180deg, rgba(0,0,0,.28) 0 1px, transparent 1px 3px),
+    radial-gradient(ellipse at center, transparent 55%, rgba(0,0,0,.65) 100%);
+}
+.toy-tele[data-src='youtube'] .tk-ytfx { display: block; }
+.toy-tele:not(.powered) .tk-yt { opacity: 0; }
+.tk-osd {
+  position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+  color: #cfe; font-size: 34px; letter-spacing: 6px; text-shadow: 0 0 10px #7ff;
+  background: rgba(0, 20, 40, .6); padding: 6px 18px;
+}
+.tk-brand { position: absolute; right: 70px; top: 7px; font: 700 16px 'Share Tech Mono', monospace; color: #5a5446; letter-spacing: 4px; }
+.tk-brand b { color: #c0281f; }
+.tk-src { position: absolute; left: 40px; top: 546px; display: flex; gap: 6px; align-items: center; }
+.tk-src button, .tk-src input {
+  height: 30px; padding: 0 10px; border-radius: 5px;
+  border: 1px solid #8a826c; background: linear-gradient(180deg, #f4efe0, #d8d0b8);
+  color: #333; font: 700 12px 'Share Tech Mono', monospace; cursor: pointer;
+  box-shadow: 0 2px 0 #8a826c;
+}
+.tk-src input { width: 250px; cursor: text; background: #fbf9f1; font-weight: 400; }
+.tk-src button.sel { background: linear-gradient(180deg, #ffe066, #f0b400); }
+.tk-note { position: absolute; left: 40px; right: 40px; top: 590px; font-size: 12px; color: #4a4538; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tk-note.warn { color: #b3261e; font-weight: 700; }
+
+.tk-side {
+  position: absolute; top: 40px; width: 400px; height: 580px;
+  border-radius: 10px;
+  background: repeating-linear-gradient(90deg, #c4c8cc 0 2px, #b3b7bb 2px 3px, #cfd3d6 3px 5px);
+  box-shadow: inset 0 0 0 2px rgba(255,255,255,.5), 0 12px 26px rgba(0,0,0,.6);
+}
+.tk-side.left { left: 30px; }
+.tk-side.right { left: 1350px; }
+.tk-guide { margin: 26px; padding: 16px; background: #fffdf3; color: #222; border-radius: 6px; font: 13px/1.6 sans-serif; box-shadow: 0 3px 8px rgba(0,0,0,.3); transform: rotate(-1deg); }
+.tk-guide b { font-size: 15px; }
+.tk-guide i { font-style: normal; font-weight: 700; color: #c0281f; }
+.tk-guide u { text-decoration-color: #c0281f; text-decoration-thickness: 2px; }
+.tk-mods { margin: 200px auto 0; text-align: center; color: #555; font-size: 20px; letter-spacing: 4px; }
+.tk-mods small { font-size: 12px; letter-spacing: 1px; }
+.toy-tele .tk-lbl { color: #4a4538; font-size: 10px; transform: translate(-50%, -50%); font-weight: 700; }
+
+.tk-case {
+  position: absolute; left: 330px; top: 648px; width: 1120px; height: 420px;
+  border-radius: 14px 14px 24px 24px;
+  background: linear-gradient(180deg, #e3dcc6, #d2c9ae 40%, #bdb398);
+  box-shadow: inset 0 3px 0 #fff, inset 0 -8px 0 rgba(0,0,0,.15), 0 24px 50px rgba(0,0,0,.6);
+}
+.tk-keys { position: absolute; left: 0; top: 0; }
+.tk-key {
+  position: absolute; border-radius: 6px; cursor: pointer;
+  background: linear-gradient(180deg, #f7f3e6, #e6dfca 70%, #d3cbb1);
+  box-shadow: 0 5px 0 #968e75, 0 6px 6px rgba(0,0,0,.35), inset 0 0 0 1px rgba(0,0,0,.12);
+  transition: transform .03s, box-shadow .03s;
+  overflow: hidden;
+}
+.tk-key .top { position: absolute; left: 6px; top: 3px; font: 700 14px 'Fredoka', sans-serif; color: #333; }
+.tk-key .fn { position: absolute; left: 5px; right: 3px; bottom: 3px; font-size: 7.5px; line-height: 1.15; font-weight: 700; color: #b3261e; }
+.tk-key.role-inst { background: linear-gradient(180deg, #ffd9a8, #f7b465 70%, #e0953b); }
+.tk-key.role-inst .fn { color: #6a2d00; }
+.tk-key.role-cue { background: linear-gradient(180deg, #d6e6fb, #aac6ee 70%, #8aaddf); }
+.tk-key.role-cue .fn { color: #123a78; }
+.tk-key.role-fn, .tk-key.role-none { background: linear-gradient(180deg, #8a8578, #6f6a5e 70%, #5c574c); box-shadow: 0 5px 0 #3f3b33, 0 6px 6px rgba(0,0,0,.35); }
+.tk-key.role-fn .top, .tk-key.role-none .top { color: #fff; }
+.tk-key.role-fn .fn { color: #ffcbc3; }
+.tk-key.role-none .fn { color: #bbb; }
+.tk-key.role-bang { background: radial-gradient(circle at 40% 30%, #ff8a80, #e5231b 55%, #9a0d08); box-shadow: 0 5px 0 #4d0503, 0 6px 6px rgba(0,0,0,.35); }
+.tk-key.role-bang .top, .tk-key.role-bang .fn { color: #fff; }
+.tk-key.role-base { background: linear-gradient(180deg, #444, #222); box-shadow: 0 5px 0 #000, 0 6px 6px rgba(0,0,0,.35); }
+.tk-key.role-base .top { color: #fff; }
+.tk-key.role-base .fn { color: #ffd84a; }
+.tk-key.down { transform: translateY(4px); box-shadow: 0 1px 0 #3f3b33, inset 0 0 0 1px rgba(0,0,0,.12); background: linear-gradient(180deg, #fff6b0, #ffe066) !important; }
+.tk-key.down .top { color: #333 !important; }
+.tk-key.down .fn { color: #b3261e !important; }

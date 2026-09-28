@@ -17,7 +17,8 @@ export class AudioHost {
     this.starting = (async () => {
       const ctx = new AudioContext({ latencyHint: 'interactive' });
       await ctx.audioWorklet.addModule(workletUrl);
-      const node = new AudioWorkletNode(ctx, 'toy-rack', { numberOfInputs: 1, numberOfOutputs: 1, outputChannelCount: [2] });
+      // 入力 0 = マイク（1台目の自分の声）、入力 1 = 取り込んだ動画の音（6台目）
+      const node = new AudioWorkletNode(ctx, 'toy-rack', { numberOfInputs: 2, numberOfOutputs: 1, outputChannelCount: [2] });
       node.port.onmessage = (e: MessageEvent<FromEngine>) => this.onMessage(e.data);
       node.connect(ctx.destination);
       this.ctx = ctx;
@@ -45,6 +46,27 @@ export class AudioHost {
     }
   }
 
+  private videoSrc: AudioNode | null = null;
+
+  /** 取り込んだ動画の音をエンジンの 2 つ目の入力へつなぐ（前のものは外す）。null で外すだけ */
+  async connectVideo(src: MediaStream | HTMLMediaElement | null): Promise<void> {
+    await this.start();
+    this.videoSrc?.disconnect();
+    this.videoSrc = null;
+    if (!src) return;
+    const ctx = this.ctx!;
+    if (src instanceof MediaStream) {
+      if (!src.getAudioTracks().length) return;
+      this.videoSrc = ctx.createMediaStreamSource(src);
+    } else {
+      // 同じ要素から 2 回は作れないので覚えておく
+      const el = src as HTMLMediaElement & { __bentSrc?: MediaElementAudioSourceNode };
+      el.__bentSrc ??= ctx.createMediaElementSource(el);
+      this.videoSrc = el.__bentSrc;
+    }
+    this.videoSrc.connect(this.node!, 0, 1);
+  }
+
   /** マイクをつなぐ（初回は許可を求められる）。出力には混ぜず、エンジンの入力にだけ入れる */
   async enableMic(): Promise<boolean> {
     await this.start();
@@ -52,7 +74,7 @@ export class AudioHost {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: false, autoGainControl: true } });
       this.mic = this.ctx!.createMediaStreamSource(stream);
-      this.mic.connect(this.node!);
+      this.mic.connect(this.node!, 0, 0);
       return true;
     } catch {
       return false;

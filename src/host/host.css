@@ -89,6 +89,9 @@ html, body {
 #help p { margin: 8px 0 0; color: #555; }
 
 /* 画面が狭いときはアプリ名を隠して、タブを詰める */
+@media (max-width: 1100px) {
+  .tab:not(.sel) .name { display: none; }
+}
 @media (max-width: 900px) {
   #topbar .app { display: none; }
   .tab { padding: 0 9px; font-size: 12px; }

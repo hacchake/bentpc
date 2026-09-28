@@ -98,7 +98,7 @@ export class Sequencer {
    * n サンプル分、すべてのおもちゃを動かして out（モノラル）に混ぜる。
    * click にはメトロノームの音だけを書く（録音には入れないため別にする）。
    */
-  render(out: Float32Array, click: Float32Array, tmp: Float32Array): void {
+  render(out: Float32Array, click: Float32Array, tmp: Float32Array, input?: Float32Array): void {
     const n = out.length;
     const evs: Ev[][] = this.toys.map(() => []);
     click.fill(0);
@@ -106,12 +106,13 @@ export class Sequencer {
     out.fill(0);
     this.toys.forEach((t, toy) => {
       const list = evs[toy].sort((a, b) => a.off - b.off);
+      const inp = t.wantsInput ? input : undefined;
       let cur = 0;
       for (const e of list) {
-        if (e.off > cur) { t.process(tmp.subarray(cur, e.off)); for (let i = cur; i < e.off; i++) out[i] += tmp[i]; cur = e.off; }
+        if (e.off > cur) { t.process(tmp.subarray(cur, e.off), inp?.subarray(cur, e.off)); for (let i = cur; i < e.off; i++) out[i] += tmp[i]; cur = e.off; }
         e.apply();
       }
-      if (cur < n) { t.process(tmp.subarray(cur, n)); for (let i = cur; i < n; i++) out[i] += tmp[i]; }
+      if (cur < n) { t.process(tmp.subarray(cur, n), inp?.subarray(cur, n)); for (let i = cur; i < n; i++) out[i] += tmp[i]; }
     });
     // メトロノーム
     if (this.song.metronome && this.playing) {

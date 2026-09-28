@@ -15,10 +15,10 @@ const stage = $('stage');
 const COMMON_HELP = `
 <h3>アプリ全体</h3>
 <table>
-  <tr><td>上のタブ / F1〜F5</td><td>おもちゃの切り替え（裏のおもちゃも鳴り続けます）。TYPOTRON 表示中は F キーが楽器の機能なので、タブで切り替え</td></tr>
+  <tr><td>上のタブ / F1〜F6</td><td>おもちゃの切り替え（裏のおもちゃも鳴り続けます）。TYPOTRON・TELEKEY 表示中は F キーが楽器の機能なので、タブで切り替え</td></tr>
   <tr><td>REC</td><td>全部のおもちゃの音を録音。もう一度押すと WAV をダウンロード</td></tr>
   <tr><td>☰ SEQ</td><td>シーケンサー：演奏の操作を録音（重ね録り）して、ピアノロールで手直しできる</td></tr>
-  <tr><td>MIDI</td><td>チャンネル n → n 台目（1〜5）、それ以外→表示中のおもちゃ</td></tr>
+  <tr><td>MIDI</td><td>チャンネル n → n 台目（1〜6）、それ以外→表示中のおもちゃ</td></tr>
 </table>
 <p>ノブ：上下にドラッグ（Shift で細かく）、ホイール、ダブルクリックで初期値</p>`;
 
@@ -28,6 +28,7 @@ const toys: ToyUI[] = TOY_UIS.map((make, toy) =>
     post: (m) => audio.post({ ...m, toy }),
     start: () => audio.start(),
     enableMic: () => audio.enableMic(),
+    connectVideo: (src) => audio.connectVideo(src),
   }),
 );
 const tabEls = toys.map((t, i) => {
@@ -36,7 +37,7 @@ const tabEls = toys.map((t, i) => {
   stage.appendChild(t.root);
   const tab = document.createElement('button');
   tab.className = 'tab';
-  tab.innerHTML = `<span class="dot"></span>${i + 1}. ${t.title.split(' ')[0]}`;
+  tab.innerHTML = `<span class="dot"></span>${i + 1}.<span class="name"> ${t.title.split(' ')[0]}</span>`;
   tab.title = t.title;
   tab.addEventListener('click', () => show(i));
   $('tabs').appendChild(tab);

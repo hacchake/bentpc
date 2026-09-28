@@ -21,6 +21,7 @@ class ToyRackProcessor extends AudioWorkletProcessor {
   private statusCounter = 0;
   private tmp = new Float32Array(128);
   private click = new Float32Array(128);
+  private vin = new Float32Array(128); // 取り込んだ動画の音（モノラル）
   private posCounter = 0;
   private seq = new Sequencer(sampleRate, this.toys, {
     onTake: (take, data) => this.send({ type: 'seqTake', take, data }),
@@ -97,7 +98,14 @@ class ToyRackProcessor extends AudioWorkletProcessor {
     const out = outputs[0];
     const l = out[0];
     if (this.tmp.length !== l.length) { this.tmp = new Float32Array(l.length); this.click = new Float32Array(l.length); }
-    this.seq.render(l, this.click, this.tmp);
+    // 2 つ目の入力 = 取り込んだ動画の音。モノラルにまとめて渡す
+    const vi = inputs[1];
+    if (this.vin.length !== l.length) this.vin = new Float32Array(l.length);
+    this.vin.fill(0);
+    if (vi && vi.length) {
+      for (const ch of vi) for (let i = 0; i < ch.length; i++) this.vin[i] += ch[i] / vi.length;
+    }
+    this.seq.render(l, this.click, this.tmp, this.vin);
     for (let i = 0; i < l.length; i++) l[i] = Math.max(-1, Math.min(1, l[i]));
 
     if (this.recording) {
