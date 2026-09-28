@@ -14,9 +14,9 @@ const stage = $('stage');
 const COMMON_HELP = `
 <h3>アプリ全体</h3>
 <table>
-  <tr><td>上のタブ / F1 F2</td><td>おもちゃの切り替え（裏のおもちゃも鳴り続けます）</td></tr>
+  <tr><td>上のタブ / F1 F2 F3</td><td>おもちゃの切り替え（裏のおもちゃも鳴り続けます）</td></tr>
   <tr><td>REC</td><td>全部のおもちゃの音を録音。もう一度押すと WAV をダウンロード</td></tr>
-  <tr><td>MIDI</td><td>チャンネル1→1台目、2→2台目、それ以外→表示中のおもちゃ</td></tr>
+  <tr><td>MIDI</td><td>チャンネル1→1台目、2→2台目、3→3台目、それ以外→表示中のおもちゃ</td></tr>
 </table>
 <p>ノブ：上下にドラッグ（Shift で細かく）、ホイール、ダブルクリックで初期値</p>`;
 
@@ -107,7 +107,7 @@ setInterval(() => {
   recTime.textContent = `${p2(Math.floor(sec / 60))}:${p2(sec % 60)}`;
 }, 250);
 
-// ---- MIDI：チャンネル1→1台目、2→2台目、それ以外→表示中のおもちゃ ----
+// ---- MIDI：チャンネル n → n 台目、おもちゃの数より大きいチャンネル → 表示中のおもちゃ ----
 $('midiBtn').addEventListener('click', async () => {
   await audio.start();
   const ok = await startMidi(
@@ -126,9 +126,10 @@ $('midiBtn').addEventListener('click', async () => {
 // ---- PC キーボード（表示中のおもちゃへ） ----
 window.addEventListener('keydown', (e) => {
   if (e.ctrlKey || e.metaKey || e.altKey) return;
-  if (e.code === 'F1' || e.code === 'F2') {
+  const f = /^F([1-9])$/.exec(e.code);
+  if (f && Number(f[1]) <= toys.length) {
     e.preventDefault();
-    show(e.code === 'F1' ? 0 : 1);
+    show(Number(f[1]) - 1);
     return;
   }
   if (toys[active].keyDown(e)) e.preventDefault();

@@ -7,16 +7,17 @@
 |---|---|---|
 | 1 | **BLIPPY BOOK 30** | 子供向けおもちゃPC。音声合成・8モード・GLITCH×5＋BASE・LOOP・STRETCH・DIST・液晶グリッチ・自分の声 |
 | 2 | **PIKOTONE PT-32** | 安物ミニキーボード＋エフェクト別ユニット。AMP/CPU 電圧 Starve・タッチポイント・INST HOLD・GLITCH・DIST/FIZZ/HIPASS/FEEDBACK |
+| 3 | **SPIN-TOT DJ-28** | 子供用 DJ セット。スクラッチ・パッド・ミニ鍵盤・リズム 28 種（隠し 7 種）・PITCH 粗/微・光センサー・STOP・DIST×2・FEEDBACK＋ソース切替 |
 
 ## 使い方
 
 - すぐ遊ぶ：`dist/index.html` をダブルクリック（`npm run build` で作り直せる）
 - 開発：`npm run dev` → http://localhost:5178
-- 自動テスト：`npm test`（2台とも全キー・全パーツを検査。`out/` に WAV を書き出す）
+- 自動テスト：`npm test`（全おもちゃの全キー・全パーツを検査。`out/` に WAV を書き出す）
 - 処理速度の目安：`npx tsx scripts/bench.ts`
 
-上のタブ（または F1 / F2）でおもちゃを切り替える。裏のおもちゃも鳴り続けるので、2台を重ねて演奏できる。
-REC は全部のおもちゃのミックスを WAV で保存する。MIDI はチャンネル1→1台目、2→2台目。
+上のタブ（または F1〜F3）でおもちゃを切り替える。裏のおもちゃも鳴り続けるので、重ねて演奏できる。
+REC は全部のおもちゃのミックスを WAV で保存する。MIDI はチャンネル n → n 台目。
 
 ## 構成
 
@@ -24,7 +25,7 @@ REC は全部のおもちゃのミックスを WAV で保存する。MIDI はチ
 - `src/host/` … アプリ本体（AudioWorklet でおもちゃを全部動かして混ぜる、録音、MIDI）
 - `src/toys/<名前>/` … おもちゃごとの `params.ts`・`dsp/`（DOM 非依存。VST 移植対象）・画面
 - `src/toys/engines.ts` / `uis.ts` … おもちゃの一覧（並び順 = おもちゃ番号）
-- `docs/BLIPPY_DSP_SPEC.md`、`docs/PIKO_DSP_SPEC.md` … 音の処理の仕様（JUCE / Rust 移植用）
+- `docs/BLIPPY_DSP_SPEC.md`、`docs/PIKO_DSP_SPEC.md`、`docs/DJ_DSP_SPEC.md` … 音の処理の仕様（JUCE / Rust 移植用）
 
 ## おもちゃを増やすには
 

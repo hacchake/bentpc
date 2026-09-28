@@ -1,0 +1,193 @@
+/* 3台目 SPIN-TOT DJ-28 の見た目：黒い DJ ユニット＋銀のパッドユニット＋黒いミニ鍵盤 */
+.toy-dj { font-family: 'Share Tech Mono', 'Consolas', monospace; }
+
+.dj-left {
+  position: absolute; left: 30px; top: 20px; width: 440px; height: 900px;
+  border-radius: 60px 60px 150px 150px;
+  background: linear-gradient(180deg, #2a2a2a, #111 20%, #0a0a0a);
+  box-shadow: inset 0 2px 0 rgba(255,255,255,.15), 0 20px 50px rgba(0,0,0,.6);
+}
+/* 上のしま模様の U 字 */
+.dj-rings {
+  position: absolute; left: 40px; top: 22px; width: 360px; height: 290px;
+  border-radius: 180px 180px 150px 150px;
+  background: repeating-radial-gradient(circle at 50% 42%, #111 0 58px, #cfd3d8 58px 76px, #111 76px 92px, #cfd3d8 92px 104px, #111 104px 118px, #cfd3d8 118px 128px);
+  box-shadow: inset 0 4px 10px rgba(0,0,0,.8);
+}
+.dj-display {
+  position: absolute; left: 180px; top: 150px; width: 140px; height: 70px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 50% 40%, #3a0808, #120202);
+  box-shadow: 0 0 0 10px #b9bec4, 0 0 0 14px #555, inset 0 4px 10px #000;
+  color: #ff3b2f;
+  font: 700 34px 'Share Tech Mono', monospace;
+  letter-spacing: 3px;
+  text-align: center;
+  line-height: 70px;
+  text-shadow: 0 0 10px rgba(255,60,40,.9);
+}
+.dj-display.off { color: transparent; text-shadow: none; }
+.toy-dj.hidden-pattern .dj-display { color: #6bff5a; text-shadow: 0 0 10px rgba(100,255,80,.9); animation: dj-flicker .18s steps(2) infinite; }
+@keyframes dj-flicker { 50% { opacity: .75; transform: translateX(1px); } }
+
+/* ディスク */
+.dj-disc-ring {
+  position: absolute; left: 50px; top: 520px; width: 400px; height: 400px;
+  border-radius: 50%;
+  background: conic-gradient(from 110deg, #aeb3b8, #e8ebee, #9ca1a6, #d7dadd, #aeb3b8);
+  box-shadow: 0 10px 30px rgba(0,0,0,.6), inset 0 0 0 30px rgba(0,0,0,.06);
+}
+.dj-disc-ring::after {
+  content: ''; position: absolute; inset: 40px; border-radius: 50%;
+  background: #2b2f2c; box-shadow: inset 0 6px 14px rgba(0,0,0,.8);
+}
+.dj-disc {
+  position: absolute; left: 110px; top: 580px; width: 280px; height: 280px;
+  border-radius: 50%;
+  cursor: grab;
+  touch-action: none;
+  background: radial-gradient(circle, #555c57 0 30%, #3a403c 31%, #2c312d 70%, #1c201d);
+  box-shadow: inset 0 0 0 4px #111, 0 4px 10px rgba(0,0,0,.6);
+  z-index: 1;
+}
+.dj-disc:active { cursor: grabbing; }
+.dj-label {
+  position: absolute; inset: 60px;
+  border-radius: 50%;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  font-family: 'Fredoka', sans-serif;
+  pointer-events: none;
+}
+.dj-label b { color: #e8322b; font-size: 44px; font-style: italic; letter-spacing: -1px; line-height: .9; text-shadow: 2px 2px 0 #000; }
+.dj-label i { color: #fff; font-size: 36px; font-weight: 700; transform: rotate(-8deg); line-height: .9; }
+
+.dj-lbl { color: #ddd; font-size: 10px; transform: translate(-50%, -50%); letter-spacing: 1px; }
+.dj-mid .dj-lbl, .toy-dj .dj-lbl.dark { color: #222; }
+.dj-box {
+  padding: 2px 6px; border: 1px solid #ddd; color: #fff; background: #000;
+  font-size: 11px; font-weight: 700; letter-spacing: 1px; white-space: nowrap;
+}
+
+.dj-dot {
+  width: 44px; height: 44px; border-radius: 50%;
+  cursor: pointer;
+  background: #1c1c1c;
+  box-shadow: inset 0 2px 4px #000, 0 1px 0 #333;
+}
+.dj-dot::after {
+  content: ''; position: absolute; left: 15px; top: 15px; width: 14px; height: 14px; border-radius: 50%;
+  background: radial-gradient(circle at 40% 35%, #6aa9ff, #1f5fe0);
+  box-shadow: 0 2px 0 #0a2a70;
+}
+.dj-dot.red::after { background: radial-gradient(circle at 40% 35%, #ff7a70, #e02b22); box-shadow: 0 2px 0 #6a0b07; }
+.dj-dot.sel::after { box-shadow: 0 0 10px 3px rgba(120,170,255,.9); }
+.dj-dot.red.sel::after { box-shadow: 0 0 10px 3px rgba(255,90,70,.9); }
+
+/* 光センサー（丸いレンズ）：影になると暗くなる */
+.dj-sensor {
+  width: 44px; height: 44px; border-radius: 50%;
+  cursor: pointer;
+  touch-action: none;
+  --dark: 0;
+  background: radial-gradient(circle at 45% 40%, #f6f2e6, #b9b3a3 55%, #7d786c);
+  box-shadow: 0 0 0 6px #9aa0a6, 0 0 0 8px #333, 0 4px 6px rgba(0,0,0,.6);
+}
+.dj-sensor::after {
+  content: ''; position: absolute; inset: 0; border-radius: 50%;
+  background: rgba(0,0,0,calc(var(--dark) * .85));
+}
+
+/* 真ん中の銀のユニット */
+.dj-mid {
+  position: absolute; left: 480px; top: 20px; width: 510px; height: 900px;
+  border-radius: 10px;
+  background: linear-gradient(90deg, #c9cdd1, #eef0f2 20%, #dfe2e5 80%, #b9bdc1);
+  box-shadow: inset 0 2px 0 #fff, 0 20px 50px rgba(0,0,0,.6);
+}
+.dj-padframe {
+  position: absolute; left: 20px; top: 34px; width: 470px; height: 340px;
+  border-radius: 6px; background: #1a1a1a;
+}
+.dj-strip {
+  position: absolute; left: 150px; bottom: 16px; width: 210px; height: 26px;
+  background: #000; color: #fff; text-align: center; line-height: 26px;
+  font-size: 14px; letter-spacing: 5px;
+}
+.dj-strip b { color: #ff5a4f; }
+.dj-pad {
+  width: 130px; height: 136px; border-radius: 4px;
+  cursor: pointer;
+  background: linear-gradient(180deg, #e3e8f2, #b8c0d0);
+  box-shadow: inset 0 0 0 3px #50555c, 0 3px 0 #000;
+}
+.dj-pad.down { background: linear-gradient(180deg, #fff, #d8e6ff); box-shadow: inset 0 0 0 3px #50555c, 0 0 18px rgba(160,200,255,.9); }
+.dj-yellow {
+  width: 62px; height: 26px; border-radius: 3px; cursor: pointer;
+  background: linear-gradient(180deg, #ffe45a, #d9a800);
+  box-shadow: 0 3px 0 #6e5500, inset 0 0 0 2px #b88a00;
+}
+.dj-yellow.sel { background: linear-gradient(180deg, #fff6b0, #ffd000); box-shadow: 0 1px 0 #6e5500, 0 0 10px rgba(255,210,0,.9); transform: translateY(2px); }
+.dj-red {
+  width: 66px; height: 30px; border-radius: 3px; cursor: pointer;
+  background: linear-gradient(180deg, #ff6b62, #d8231b);
+  box-shadow: 0 3px 0 #6a0b07, inset 0 0 0 2px #a8160f;
+}
+.dj-red.down, .dj-red.sel { transform: translateY(2px); box-shadow: 0 1px 0 #6a0b07, 0 0 10px rgba(255,80,60,.7); }
+.dj-grey {
+  width: 100px; height: 40px; border-radius: 3px; cursor: pointer;
+  background: linear-gradient(180deg, #d8d8d8, #9e9e9e);
+  box-shadow: 0 3px 0 #444, inset 0 0 0 2px #777;
+  color: #555; font-size: 18px; text-align: center; line-height: 40px;
+}
+.dj-grey.down { transform: translateY(2px); box-shadow: 0 1px 0 #444; }
+.dj-blue {
+  width: 48px; height: 44px; border-radius: 4px; cursor: pointer;
+  background: linear-gradient(180deg, #3f7df0, #1846b8);
+  box-shadow: 0 3px 0 #0b2466, inset 0 0 0 2px #133a9a;
+}
+.dj-blue::after { content: ''; position: absolute; left: 18px; top: 16px; width: 12px; height: 12px; border-radius: 50%; border: 2px solid #0e2e80; }
+.dj-blue.down { transform: translateY(2px); box-shadow: 0 1px 0 #0b2466; }
+.knob.blue.big { width: 76px; height: 76px; }
+.dj-slider {
+  width: 34px; height: 200px; border-radius: 4px; cursor: ns-resize; touch-action: none;
+  --v: .75;
+  background: #9a9ea3;
+  box-shadow: inset 0 2px 5px rgba(0,0,0,.6);
+}
+.dj-thumb {
+  position: absolute; left: -4px; width: 42px; height: 30px;
+  top: calc((1 - var(--v)) * 170px);
+  border-radius: 3px;
+  background: linear-gradient(180deg, #eee, #aaa);
+  box-shadow: 0 2px 3px rgba(0,0,0,.5), inset 0 -2px 0 rgba(0,0,0,.2);
+}
+
+/* 右のミニ鍵盤 */
+.dj-kb {
+  position: absolute; left: 990px; top: 360px; width: 590px; height: 350px;
+  border-radius: 6px;
+  background: linear-gradient(180deg, #2a2a2a, #0e0e0e);
+  box-shadow: 0 20px 50px rgba(0,0,0,.6);
+}
+.dj-grille {
+  position: absolute; right: 12px; top: 20px; width: 34px; height: 310px;
+  background: repeating-linear-gradient(180deg, #333 0 8px, #050505 8px 12px);
+  border-radius: 3px;
+}
+.dj-keys { position: absolute; left: 22px; top: 100px; width: 520px; height: 234px; }
+.dj-key {
+  position: absolute; top: 0; height: 234px;
+  border-radius: 0 0 5px 5px;
+  background: linear-gradient(180deg, #d9d9d9, #fff 10%, #f2f2f2 92%, #ccc);
+  box-shadow: inset 0 -5px 0 #bbb, 0 2px 3px rgba(0,0,0,.5);
+  cursor: pointer;
+}
+.dj-key.black { width: 36px; height: 140px; z-index: 2; background: linear-gradient(180deg, #000, #2a2a2a 88%, #444); box-shadow: inset 0 -4px 0 #111; }
+.dj-key.down { background: linear-gradient(180deg, #c8c8c8, #e6e6e6); }
+.dj-key.black.down { background: linear-gradient(180deg, #000, #333); }
+.dj-teal {
+  width: 30px; height: 30px; border-radius: 50%; cursor: pointer;
+  background: radial-gradient(circle at 40% 35%, #8ff4ff, #10a8c4 55%, #06576a);
+  box-shadow: 0 0 0 5px #111, 0 3px 4px rgba(0,0,0,.6);
+}
+.dj-teal.sel { box-shadow: 0 0 0 5px #111, 0 0 12px 4px rgba(80,230,255,.8); }
