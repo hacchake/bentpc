@@ -1,24 +1,10 @@
-// すべてのパラメーター（ノブ・スイッチ・ボタン）の定義。
+// BLIPPY BOOK 30 のパラメーター（ノブ・スイッチ・ボタン）の定義。
 // UI・DSP・MIDI・（将来の）VST3 はこの表だけを見てパラメーターを扱う。
 // index は配列上の位置で、DSP 側は Float32Array(PARAMS.length) で値を持つ。
 
-export type ParamKind =
-  | 'continuous' // ノブ（0..1 などの連続値）
-  | 'stepped' // ロータリー・スライダー（整数ステップ）
-  | 'toggle' // オン/オフのスイッチ
-  | 'momentary'; // 押している間だけ 1 になるボタン
+import type { ParamDef } from '../../core/params';
 
-export interface ParamDef {
-  id: string;
-  name: string; // 表示名
-  kind: ParamKind;
-  min: number;
-  max: number;
-  default: number;
-  labels?: string[]; // stepped の各位置の名前
-  midiCC?: number; // Web MIDI の CC 番号（任意）
-  phase: 1 | 2 | 3; // どのフェーズで実装されるか（目安）
-}
+export type { ParamDef };
 
 export const MODE_NAMES = ['ABC', 'WORD', 'TUNE', 'PIANO', 'DRUM', 'SFX', 'QUIZ', 'SAY'] as const;
 

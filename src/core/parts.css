@@ -1,0 +1,130 @@
+/* おもちゃ共通の改造パーツ（ボタン・ノブ・スイッチ・LED・ネジ・ラベルテープ） */
+:root { --red: #e02b2b; }
+.mod { position: absolute; }
+.mod-label {
+  position: absolute;
+  font: 700 10px 'Share Tech Mono', monospace;
+  color: #3a3226;
+  letter-spacing: 1px;
+  white-space: nowrap;
+  transform: translateX(-50%);
+}
+
+/* ドーム型ボタン */
+.dome {
+  width: 36px; height: 36px; border-radius: 50%;
+  cursor: pointer;
+  background: radial-gradient(circle at 50% 50%, #aaa 0 58%, #666 60%, #ddd 66%, #888 100%);
+  box-shadow: 0 3px 4px rgba(0,0,0,.45);
+}
+.dome::after {
+  content: ''; position: absolute; inset: 6px; border-radius: 50%;
+  background: radial-gradient(circle at 38% 30%, #ff9a92, var(--red) 45%, #8b0f0f);
+  box-shadow: 0 3px 0 #5a0808, inset 0 -2px 3px rgba(0,0,0,.3);
+  transition: transform .04s, box-shadow .04s;
+}
+.dome.black::after { background: radial-gradient(circle at 38% 30%, #888, #222 45%, #000); box-shadow: 0 3px 0 #000; }
+.dome.green::after { background: radial-gradient(circle at 38% 30%, #b6ffb0, #2fbf3a 45%, #0f6d17); box-shadow: 0 3px 0 #0a4510; }
+.dome.chrome::after { background: radial-gradient(circle at 38% 30%, #fff, #bbb 45%, #666); box-shadow: 0 2px 0 #444; }
+.dome.down::after { transform: translateY(3px); box-shadow: 0 0 0 #000; }
+.dome.big { width: 44px; height: 44px; }
+
+/* ノブ */
+.knob {
+  width: 46px; height: 46px; border-radius: 50%;
+  cursor: ns-resize;
+  touch-action: none;
+}
+.knob .cap {
+  position: absolute; inset: 0; border-radius: 50%;
+  background:
+    radial-gradient(circle at 40% 30%, rgba(255,255,255,.55), transparent 40%),
+    repeating-conic-gradient(#e33 0 8deg, #b11 8deg 16deg);
+  box-shadow: 0 4px 0 #600, 0 5px 6px rgba(0,0,0,.4);
+}
+.knob .cap::after {
+  content: ''; position: absolute; left: 50%; top: 3px; width: 4px; height: 15px; margin-left: -2px;
+  border-radius: 2px; background: #fff;
+}
+.knob.black .cap {
+  background: radial-gradient(circle at 40% 30%, rgba(255,255,255,.35), transparent 45%), repeating-conic-gradient(#333 0 6deg, #111 6deg 12deg);
+  box-shadow: 0 4px 0 #000, 0 5px 6px rgba(0,0,0,.5);
+}
+.knob.blue .cap {
+  background: radial-gradient(circle at 40% 30%, rgba(255,255,255,.55), transparent 40%), repeating-conic-gradient(#3a8cf0 0 10deg, #2f6be0 10deg 20deg);
+  box-shadow: 0 4px 0 #173a80, 0 5px 6px rgba(0,0,0,.4);
+}
+.knob.small { width: 36px; height: 36px; }
+.knob.big { width: 62px; height: 62px; }
+.knob.grab .cap { filter: brightness(1.15); }
+.ticks { position: absolute; pointer-events: none; }
+.ticks span { position: absolute; font: 700 10px 'Share Tech Mono', monospace; color: #3a3226; transform: translate(-50%, -50%); }
+
+/* トグルスイッチ（レバー） */
+.toggle {
+  width: 30px; height: 56px;
+  cursor: pointer;
+  touch-action: none;
+  --pos: .5;
+}
+.toggle::before {
+  content: ''; position: absolute; left: 3px; top: 16px; width: 24px; height: 24px; border-radius: 50%;
+  background: radial-gradient(circle, #eee 0 30%, #999 32%, #ddd 60%, #777 100%);
+  box-shadow: 0 2px 3px rgba(0,0,0,.4);
+}
+.toggle .bat {
+  position: absolute; left: 11px; width: 8px; height: 26px; border-radius: 4px;
+  background: linear-gradient(90deg, #888, #fff 40%, #aaa);
+  box-shadow: 0 2px 3px rgba(0,0,0,.4);
+  top: calc(var(--pos) * 30px);
+  transition: top .06s;
+}
+.toggle .bat::after {
+  content: ''; position: absolute; left: -2px; width: 12px; height: 8px; border-radius: 50%;
+  background: #eee; box-shadow: 0 1px 2px rgba(0,0,0,.4);
+  top: calc((1 - var(--pos)) * -2px + var(--pos) * 20px);
+}
+
+/* LED */
+.led {
+  width: 14px; height: 14px; border-radius: 50%;
+  background: radial-gradient(circle at 40% 35%, #a55, #511);
+  box-shadow: 0 0 0 2px #bbb, 0 2px 3px rgba(0,0,0,.4);
+}
+.led.green { background: radial-gradient(circle at 40% 35%, #5a5, #152); }
+.led.yellow { background: radial-gradient(circle at 40% 35%, #aa5, #551); }
+.led.lit { background: radial-gradient(circle at 40% 35%, #fff, #ff3b3b 50%); box-shadow: 0 0 0 2px #bbb, 0 0 14px 4px rgba(255,40,40,.7); }
+.led.green.lit { background: radial-gradient(circle at 40% 35%, #fff, #5f5 50%); box-shadow: 0 0 0 2px #bbb, 0 0 14px 4px rgba(80,255,80,.6); }
+.led.yellow.lit { background: radial-gradient(circle at 40% 35%, #fff, #ffd83b 50%); box-shadow: 0 0 0 2px #bbb, 0 0 14px 4px rgba(255,210,50,.7); }
+
+/* ネジ・ジャック */
+.screw {
+  width: 16px; height: 16px; border-radius: 50%;
+  background: radial-gradient(circle at 40% 35%, #fff, #aaa 50%, #666);
+  box-shadow: 0 1px 2px rgba(0,0,0,.5);
+}
+.screw::before, .screw::after { content: ''; position: absolute; left: 7px; top: 3px; width: 2px; height: 10px; background: #555; }
+.screw::after { transform: rotate(90deg); }
+.jack {
+  width: 34px; height: 34px; border-radius: 50%;
+  background: radial-gradient(circle, #000 0 26%, #999 28%, #eee 45%, #888 60%, #333 62%, #777 100%);
+  box-shadow: 0 2px 4px rgba(0,0,0,.5);
+}
+.hole { width: 10px; height: 10px; border-radius: 50%; background: #6d6350; box-shadow: inset 0 1px 2px rgba(0,0,0,.6); }
+
+
+.tape {
+  display: inline-block;
+  padding: 3px 9px 2px;
+  background: linear-gradient(180deg, #e8323b, #c01e27);
+  color: #fff;
+  font: 700 13px 'Share Tech Mono', 'Consolas', monospace;
+  letter-spacing: 2px;
+  border-radius: 2px;
+  box-shadow: 0 1px 2px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,255,255,.25);
+  text-shadow: 0 -1px 0 rgba(0,0,0,.35), 0 1px 0 rgba(255,255,255,.25);
+  white-space: nowrap;
+  transform: rotate(var(--rot, 0deg));
+}
+.tape.v { writing-mode: vertical-rl; text-orientation: upright; letter-spacing: -1px; padding: 8px 3px; }
+.tape.black { background: linear-gradient(180deg, #333, #111); }

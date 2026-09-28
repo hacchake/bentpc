@@ -1,13 +1,13 @@
-# DSP 仕様書（BLIPPY BOOK 30 bent）
+# DSP 仕様書：BLIPPY BOOK 30（1台目）
 
 後で JUCE（C++）や Rust（nih-plug など）に移植するための、音の処理の設計メモ。
-コードは `src/dsp/` にあり、DOM・Web Audio には一切依存しない。
+コードは `src/toys/blippy/dsp/` にあり、DOM・Web Audio には一切依存しない。乱数は `src/core/rng.ts`。
 
 ## 全体の流れ
 
 ```
 UI / MIDI / ホスト
-   │ パラメーター値（src/params.ts）・キー押下・電源
+   │ パラメーター値（src/toys/blippy/params.ts）・キー押下・電源
    ▼
 Engine（engine.ts） ─── 1サンプルずつ処理
    ├─ Firmware（firmware.ts）  … 電源・起動・モード・クイズ。鳴らす波形と液晶の内容を決める
@@ -24,7 +24,7 @@ Engine（engine.ts） ─── 1サンプルずつ処理
 
 ## パラメーター
 
-`src/params.ts` の `PARAMS` 配列がすべて。各項目は
+`src/toys/blippy/params.ts` の `PARAMS` 配列がすべて（形は `src/core/params.ts`）。各項目は
 `id / name / kind / min / max / default / labels / midiCC` を持つ。
 DSP は `Float32Array(PARAMS.length)` で値を持ち、インデックスは配列の順番。
 
@@ -181,7 +181,7 @@ VST3 化では、この表からそのままパラメーター一覧を作れる
 
 DSP 側は「何を表示するか」だけを決める：`screen`（off/boot/idle/key/quiz）、`mode`、
 `big`（大きな文字）、`sprite`（ドット絵名）、`text`（下の行）、`mark`（ok/ng/q/dead）。
-描画は UI 側（`src/ui/lcd.ts`、128×64 の 1bit）。VST 版の UI も同じ状態から描けばよい。
+描画は UI 側（`src/toys/blippy/ui/lcd.ts`、128×64 の 1bit）。VST 版の UI も同じ状態から描けばよい。
 
 ## RESET
 
@@ -206,7 +206,7 @@ DSP 側は「何を表示するか」だけを決める：`screen`（off/boot/id
 - `leds`：`stretch`（0/1）、`loop`（0/1）、`glitch`（グリッチの効き 0..1）
 - `fx`：`combos`（いま効いているグリッチ 25bit、暴発を含む）、`heat`、`seed`（Chip の乱数状態）、`misread`（誤読みしたキー）
 
-液晶のグリッチ（`src/ui/lcdfx.ts`）はこの `fx` だけから作る。`seed` と描画回数から乱数を作るので、
+液晶のグリッチ（`src/toys/blippy/ui/lcdfx.ts`）はこの `fx` だけから作る。`seed` と描画回数から乱数を作るので、
 音と同じ状態から同じ崩れ方になる。組み合わせ 25 種ごとに崩れ方が違う（行ずれ・行の重複・ドット化け・横伸び・波打ち・反転・しま・ノイズ・キャラの入れ替えなど）。
 VOICE の MISREAD/SCRAMBLE/GARBAGE 中は、液晶の文字とキャラが「誤読みしたキー」のものに変わる。
 
@@ -220,12 +220,12 @@ VOICE の MISREAD/SCRAMBLE/GARBAGE 中は、液晶の文字とキャラが「誤
 
 ## LINE OUT 録音・MIDI（UI 側）
 
-- REC：Worklet が出力（音量・歪み込み）を 8192 サンプルずつ UI へ送り、停止時に WAV（16bit ステレオ、ホストのサンプルレート）にしてダウンロード。
-- Web MIDI（`src/midi.ts`）：ノート 36〜75 → キー 0〜39（36=A … 61=Z, 62〜65=♪?★OK, 66〜75=ドレミ 1〜10）。
+- REC（アプリ上部、全おもちゃのミックス）：Worklet が出力（音量・歪み込み）を 8192 サンプルずつ UI へ送り、停止時に WAV（16bit ステレオ、ホストのサンプルレート）にしてダウンロード。
+- Web MIDI（チャンネル1）：ノート 36〜75 → キー 0〜39（36=A … 61=Z, 62〜65=♪?★OK, 66〜75=ドレミ 1〜10）。
   CC は `params.ts` の `midiCC`（連続値は 0..127 を範囲に、段階は丸め、トグル/ボタンは 64 以上で ON）。
-  CC 102 = 電源（64 以上で ON）。プログラムチェンジ = モード（0〜7）。
+  CC 119 = 電源（64 以上で ON）。プログラムチェンジ = モード（0〜7）。
 
-## おもちゃ1台のインターフェース（toy.ts）と今後の構想
+## おもちゃ1台のインターフェース（src/core/toy.ts）と今後の構想
 
 `Engine` は `ToyEngine` インターフェースを実装する：
 `params / paramDefs / setParam / keyDown / keyUp / powerOn / powerOff / process(out) / display / displayVersion / status()`。

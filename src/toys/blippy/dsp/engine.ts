@@ -7,8 +7,8 @@ import { Chip } from './chip';
 import { distort } from './dist';
 import { Firmware, type DisplayState, type PlayRequest } from './firmware';
 import { Heat } from './heat';
-import { Rng, hashSeed } from './rng';
-import type { ToyEngine, ToyStatus } from './toy';
+import { Rng, hashSeed } from '../../../core/rng';
+import type { ToyEngine, ToyStatus } from '../../../core/toy';
 
 export const DEFAULT_SEED = 0x7a11c0de;
 

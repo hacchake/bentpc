@@ -2,7 +2,7 @@
 // 熱が高いほど、押していないグリッチが勝手に暴発する（予測できない不安定さ）。
 // 固まる（フリーズする）ことはない。手を離せば必ず落ち着く。
 
-import { Rng } from './rng';
+import { Rng } from '../../../core/rng';
 
 export interface HeatInput {
   glitchCount: number; // 押している GLITCH ボタンの数

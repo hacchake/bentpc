@@ -1,15 +1,13 @@
 // Web Audio 側のつなぎ込み。AudioContext と AudioWorkletNode を作り、メッセージを中継する。
-import workletUrl from './worklet/processor.ts?worklet';
-import { PARAMS, defaultParamValues } from './params';
+import workletUrl from './worklet.ts?worklet';
 import type { FromEngine, ToEngine } from './protocol';
 
 export class AudioHost {
   ctx: AudioContext | null = null;
   node: AudioWorkletNode | null = null;
-  readonly values = defaultParamValues();
   onMessage: (m: FromEngine) => void = () => {};
-  /** 起動直後に送るメッセージ（保存してあった自分の声など） */
-  pending: ToEngine[] = [];
+  /** 起動前に送られたメッセージ（ノブの値・保存してあった声）。起動したらまとめて送る */
+  private pending: ToEngine[] = [];
   private starting: Promise<void> | null = null;
   private mic: MediaStreamAudioSourceNode | null = null;
 
@@ -19,14 +17,12 @@ export class AudioHost {
     this.starting = (async () => {
       const ctx = new AudioContext({ latencyHint: 'interactive' });
       await ctx.audioWorklet.addModule(workletUrl);
-      const node = new AudioWorkletNode(ctx, 'toy-pc', { numberOfInputs: 1, numberOfOutputs: 1, outputChannelCount: [2] });
+      const node = new AudioWorkletNode(ctx, 'toy-rack', { numberOfInputs: 1, numberOfOutputs: 1, outputChannelCount: [2] });
       node.port.onmessage = (e: MessageEvent<FromEngine>) => this.onMessage(e.data);
       node.connect(ctx.destination);
       this.ctx = ctx;
       this.node = node;
-      // それまでに動かしたノブの値をまとめて送る
-      PARAMS.forEach((_, i) => this.post({ type: 'param', index: i, value: this.values[i] }));
-      for (const m of this.pending) this.post(m);
+      for (const m of this.pending) node.port.postMessage(m);
       this.pending = [];
       await ctx.resume();
     })();
@@ -34,13 +30,15 @@ export class AudioHost {
   }
 
   post(m: ToEngine): void {
-    if (this.node) this.node.port.postMessage(m);
-    else if (m.type === 'userSample') this.pending.push(m);
-  }
-
-  setParam(index: number, value: number): void {
-    this.values[index] = value;
-    this.post({ type: 'param', index, value });
+    if (this.node) {
+      this.node.port.postMessage(m);
+      return;
+    }
+    // 起動前：ノブの値と保存した声だけ覚えておく（同じノブは最新の値だけ）
+    if (m.type === 'param') {
+      this.pending = this.pending.filter((p) => !(p.type === 'param' && p.toy === m.toy && p.index === m.index));
+      this.pending.push(m);
+    } else if (m.type === 'userSample') this.pending.push(m);
   }
 
   /** マイクをつなぐ（初回は許可を求められる）。出力には混ぜず、エンジンの入力にだけ入れる */

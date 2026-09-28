@@ -1,29 +1,37 @@
-# BLIPPY BOOK 30 — bent
+# BENT TOY RACK
 
-90年代風の子供向け「おもちゃPC」を、サーキットベンディングで魔改造した楽器のシミュレーター（Web版）。
-外観・キャラ・音はすべてオリジナル。
+サーキットベンディングで魔改造したおもちゃ楽器を、ブラウザで演奏・録音するシミュレーター。
+外観・キャラ・音・名前はすべてオリジナル。
+
+| # | おもちゃ | 中身 |
+|---|---|---|
+| 1 | **BLIPPY BOOK 30** | 子供向けおもちゃPC。音声合成・8モード・GLITCH×5＋BASE・LOOP・STRETCH・DIST・液晶グリッチ・自分の声 |
+| 2 | **PIKOTONE PT-32** | 安物ミニキーボード＋エフェクト別ユニット。AMP/CPU 電圧 Starve・タッチポイント・INST HOLD・GLITCH・DIST/FIZZ/HIPASS/FEEDBACK |
 
 ## 使い方
 
 - すぐ遊ぶ：`dist/index.html` をダブルクリック（`npm run build` で作り直せる）
 - 開発：`npm run dev` → http://localhost:5178
-- 自動テスト：`npm test`（全モード全キー、25種のグリッチ・LOOP・STRETCH・DIST・熱を検査。`out/` に WAV を書き出す）
+- 自動テスト：`npm test`（2台とも全キー・全パーツを検査。`out/` に WAV を書き出す）
+- 処理速度の目安：`npx tsx scripts/bench.ts`
+
+上のタブ（または F1 / F2）でおもちゃを切り替える。裏のおもちゃも鳴り続けるので、2台を重ねて演奏できる。
+REC は全部のおもちゃのミックスを WAV で保存する。MIDI はチャンネル1→1台目、2→2台目。
 
 ## 構成
 
-- `src/params.ts` … すべてのパラメーター定義（id・名前・範囲・初期値・種類・MIDI CC）
-- `src/dsp/` … 音の処理（DOM 非依存。VST 移植対象）。詳細は `docs/DSP_SPEC.md`
-- `src/worklet/processor.ts` … AudioWorklet の殻
-- `src/ui/` … 液晶描画・操作部品
-- `vite.config.ts` … Worklet を esbuild でまとめて Blob URL 化するプラグイン（単一HTMLビルド対応）
+- `src/core/` … おもちゃ共通の部品（`toy.ts` = エンジンの共通の形 `ToyEngine`、`params.ts` = パラメーター定義の形、`ui.ts` = 画面の共通の形、乱数、操作部品）
+- `src/host/` … アプリ本体（AudioWorklet でおもちゃを全部動かして混ぜる、録音、MIDI）
+- `src/toys/<名前>/` … おもちゃごとの `params.ts`・`dsp/`（DOM 非依存。VST 移植対象）・画面
+- `src/toys/engines.ts` / `uis.ts` … おもちゃの一覧（並び順 = おもちゃ番号）
+- `docs/BLIPPY_DSP_SPEC.md`、`docs/PIKO_DSP_SPEC.md` … 音の処理の仕様（JUCE / Rust 移植用）
 
-## 進捗
+## おもちゃを増やすには
 
-- [x] フェーズ1：電源・モード8種・A〜Z＋機能キー4つ＋ドレミキー10個・音声合成/メロディ/効果音・液晶
-- [x] フェーズ2：GLITCH×5＋BASE、LOOP、LFO、STRETCH、DIST、RESET、改造おもちゃ風の外観
-- [x] フェーズ3：熱による暴発（フリーズはしない）、液晶グリッチ連動、録音(WAV)、MIDI、自分の声スロット
+1. `src/toys/<名前>/params.ts`（パラメーター表）と `dsp/engine.ts`（`ToyEngine` を実装）を作る
+2. 画面 `ui.ts`（`ToyUI` を返す関数）を作る
+3. `src/toys/engines.ts` と `src/toys/uis.ts` に同じ順番で追加する
 
 ## 将来の構想
 
-複数の改造おもちゃを並べて演奏し、DAW 用に収録できる KORG Gadget のようなアプリにする。
-`src/dsp/toy.ts` の `ToyEngine` が「おもちゃ1台」の共通の形。
+複数の改造おもちゃを並べて演奏し、DAW 用に収録できる KORG Gadget のようなアプリ。VST3 化も視野に入れている。

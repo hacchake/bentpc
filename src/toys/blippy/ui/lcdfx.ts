@@ -1,7 +1,7 @@
 // 液晶のグリッチ。音のグリッチと同じ状態（有効な組み合わせ 25bit・乱数の状態・熱）から模様を作る。
 // 組み合わせ c = BASE*5 + ボタン ごとに違う崩れ方をする。
 
-import { Rng } from '../dsp/rng';
+import { Rng } from '../../../core/rng';
 import { LETTER_KEYS } from '../params';
 import { Bitmap, LCD_H, LCD_W } from './lcd';
 

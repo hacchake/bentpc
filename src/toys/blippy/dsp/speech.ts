@@ -3,7 +3,7 @@
 // パラメーターは 10ms ごとの「フレーム」単位で段差状に更新する（LPC チップ風のザラつき）。
 
 import { PHONEMES, VOWELS, type SegDef } from './phonemes';
-import { Rng } from './rng';
+import { Rng } from '../../../core/rng';
 
 export const CHIP_RATE = 8000;
 const FRAME = 80; // 10ms

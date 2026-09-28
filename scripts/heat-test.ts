@@ -1,5 +1,5 @@
 // 「熱」のテスト：押し続けると暴発が増え、離すと冷めるか。固まらないか。
-import { Engine } from '../src/dsp/engine';
+import { Engine } from '../src/toys/blippy/dsp/engine';
 
 const SR = 48000;
 const e = new Engine(SR);

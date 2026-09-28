@@ -1,8 +1,8 @@
 // エンジンの自動テスト：全モード・全キーを押して、音が出るか／NaN が出ないかを確かめる。
 // あわせて各モードの音を WAV に書き出す（out/ フォルダ）。
 import { mkdirSync, writeFileSync } from 'node:fs';
-import { Engine } from '../src/dsp/engine';
-import { MODE_NAMES } from '../src/params';
+import { Engine } from '../src/toys/blippy/dsp/engine';
+import { MODE_NAMES } from '../src/toys/blippy/params';
 
 const SR = 48000;
 const e = new Engine(SR);

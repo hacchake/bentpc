@@ -1,7 +1,7 @@
 // 矩形波メロディ・効果音・ドラムなど、音声以外の音を 8kHz で作る。
 // すべて Float32Array（-1..1）を返し、乱数はすべて引数の Rng から取る。
 
-import { Rng } from './rng';
+import { Rng } from '../../../core/rng';
 import { CHIP_RATE, normalize } from './speech';
 
 const ms2n = (ms: number) => Math.max(1, Math.round((ms / 1000) * CHIP_RATE));

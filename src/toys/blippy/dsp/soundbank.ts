@@ -2,7 +2,7 @@
 // 同じシード（＝同じ個体）なら、同じキーは必ず同じ音になる。
 
 import { LETTER_NAMES, PHRASES, WORDS } from './phonemes';
-import { Rng, hashSeed } from './rng';
+import { Rng, hashSeed } from '../../../core/rng';
 import { CHIP_RATE, speak } from './speech';
 import {
   concat, correctJingle, drum, gain, melody, quantize8, randomTune, sfx, silence, wrongBuzz, bootSound, normalize,

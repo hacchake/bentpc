@@ -2,7 +2,7 @@
 // 8kHz の波形を「クロック」で読み出し、ホストのサンプルレートへはゼロ次ホールド（補間なし）で出す。
 // ここに GLITCH（25 種のショート）、LOOP（ホールド／LFO）、STRETCH（粒の引き延ばし）が入っている。
 
-import { Rng } from './rng';
+import { Rng } from '../../../core/rng';
 import { CHIP_RATE } from './speech';
 
 export const GLITCH_BASES = ['ADDR', 'DATA', 'CLOCK', 'BEEP', 'VOICE'] as const;

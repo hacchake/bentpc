@@ -1,5 +1,5 @@
 // マイク取り込みの変換テスト：48kHz の「声っぽい音」を 8kHz・8bit にできるか
-import { toChipSample } from '../src/dsp/mic';
+import { toChipSample } from '../src/toys/blippy/dsp/mic';
 const SR = 48000;
 const raw = new Float32Array(SR * 2);
 for (let i = SR * 0.3; i < SR * 1.2; i++) raw[i] = 0.3 * Math.sin((2 * Math.PI * 220 * i) / SR);

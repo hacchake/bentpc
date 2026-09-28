@@ -1,6 +1,6 @@
 // 魔改造パーツの自動テスト：25 種のグリッチがすべて「違う音」になるか、LOOP/STRETCH/DIST が効くか。
-import { Engine } from '../src/dsp/engine';
-import { GLITCH_BASES, GLITCH_NAMES } from '../src/dsp/chip';
+import { Engine } from '../src/toys/blippy/dsp/engine';
+import { GLITCH_BASES, GLITCH_NAMES } from '../src/toys/blippy/dsp/chip';
 
 const SR = 48000;
 function render(setup: (e: Engine) => void, sec = 1.5, during?: (e: Engine) => void, at = 20): Float32Array {

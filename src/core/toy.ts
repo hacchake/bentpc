@@ -2,7 +2,7 @@
 // 将来、複数の改造おもちゃを並べて演奏・録音する（KORG Gadget のような）ホストを作るとき、
 // ホストはこの形だけを知っていればよい。VST3 化するときも、この単位が 1 プラグインになる。
 
-import type { ParamDef } from '../params';
+import type { ParamDef } from './params';
 
 export interface ToyStatus {
   powered: boolean;
@@ -26,4 +26,6 @@ export interface ToyEngine<Display = unknown> {
   readonly display: Display;
   readonly displayVersion: number;
   status(): ToyStatus;
+  /** マイクで録った音をキーに割り当てる（対応しているおもちゃだけ） */
+  setUserSample?(key: number, buf: Float32Array | null): void;
 }

@@ -4,7 +4,7 @@
 
 import { FIRST_NUMBER_KEY, LETTER_KEYS, NUMBER_KEY_LABELS } from '../params';
 import { WORDS } from './phonemes';
-import { Rng, hashSeed } from './rng';
+import { Rng, hashSeed } from '../../../core/rng';
 import { DRUM_NAMES, SFX_NAMES, SoundBank } from './soundbank';
 
 export type Screen = 'off' | 'boot' | 'idle' | 'key' | 'quiz';
