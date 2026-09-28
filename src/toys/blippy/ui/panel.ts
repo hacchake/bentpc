@@ -332,6 +332,9 @@ export function mountBlippy(api: HostApi): ToyUI {
 
   return {
     title: 'BLIPPY BOOK 30',
+    paramDefs: PARAMS,
+    keyCount: KEY_COUNT,
+    keyName: (k) => (k < 26 ? LETTER_KEYS[k] : k < FIRST_NUMBER_KEY ? FUNCTION_KEY_LABELS[k - 26] : `${NUMBER_KEY_LABELS[k - FIRST_NUMBER_KEY]} ${k - FIRST_NUMBER_KEY + 1}`),
     width: 900,
     height: 1300,
     root,

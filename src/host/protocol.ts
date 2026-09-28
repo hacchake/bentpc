@@ -1,4 +1,5 @@
 // UI ⇔ AudioWorklet のメッセージ形式。toy は何台目のおもちゃか（0 始まり）
+import type { Song, takeFromRaw } from '../core/song';
 import type { ToyStatus } from '../core/toy';
 
 export type ToyMsg =
@@ -13,7 +14,16 @@ export type ToyMsg =
 export type ToEngine =
   | (ToyMsg & { toy: number })
   /** 出力（全おもちゃのミックス）の録音 */
-  | { type: 'rec'; on: boolean };
+  | { type: 'rec'; on: boolean }
+  // ---- シーケンサー ----
+  /** 曲を丸ごと差し替える（編集のたびに送る） */
+  | { type: 'song'; song: Song }
+  /** 再生／停止。from を付けるとその拍から */
+  | { type: 'transport'; play: boolean; from?: number }
+  /** 操作の録音（オーバーダブ）。take はテイク番号 */
+  | { type: 'seqRec'; on: boolean; take: number }
+  /** 曲を最初から 1 回だけ鳴らして止まる（WAV 書き出し用） */
+  | { type: 'bounce' };
 
 export type FromToy =
   | { type: 'display'; display: unknown; version: number }
@@ -23,4 +33,7 @@ export type FromToy =
 export type FromEngine =
   | (FromToy & { toy: number })
   | { type: 'recChunk'; data: Float32Array }
-  | { type: 'recDone' };
+  | { type: 'recDone' }
+  | { type: 'seqPos'; beat: number; playing: boolean; recording: boolean }
+  | { type: 'seqTake'; take: number; data: ReturnType<typeof takeFromRaw> }
+  | { type: 'seqEnd' };

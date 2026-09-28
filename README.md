@@ -19,12 +19,13 @@
 - 処理速度の目安：`npx tsx scripts/bench.ts`
 
 上のタブ（または F1〜F5）でおもちゃを切り替える（TYPOTRON 表示中は F キーが楽器の機能なのでタブで）。裏のおもちゃも鳴り続けるので、重ねて演奏できる。
-REC は全部のおもちゃのミックスを WAV で保存する。MIDI はチャンネル n → n 台目。
+REC は全部のおもちゃのミックスを WAV で保存する。
+**☰ SEQ** はシーケンサー：演奏の操作を録音（ループしながら重ね録り）し、ピアノロールとツマミの動きの線で手直しできる。BOUNCE で WAV に書き出し。仕様は `docs/SEQUENCER_SPEC.md`。MIDI はチャンネル n → n 台目。
 
 ## 構成
 
 - `src/core/` … おもちゃ共通の部品（`toy.ts` = エンジンの共通の形 `ToyEngine`、`params.ts` = パラメーター定義の形、`ui.ts` = 画面の共通の形、乱数、操作部品）
-- `src/host/` … アプリ本体（AudioWorklet でおもちゃを全部動かして混ぜる、録音、MIDI）
+- `src/host/` … アプリ本体（AudioWorklet でおもちゃを全部動かして混ぜる、録音、MIDI、シーケンサーと編集パネル）
 - `src/toys/<名前>/` … おもちゃごとの `params.ts`・`dsp/`（DOM 非依存。VST 移植対象）・画面
 - `src/toys/engines.ts` / `uis.ts` … おもちゃの一覧（並び順 = おもちゃ番号）
 - `docs/BLIPPY_DSP_SPEC.md`、`docs/PIKO_DSP_SPEC.md`、`docs/DJ_DSP_SPEC.md`、`docs/VROOM_DSP_SPEC.md`、`docs/TYPO_DSP_SPEC.md` … 音の処理の仕様（JUCE / Rust 移植用）

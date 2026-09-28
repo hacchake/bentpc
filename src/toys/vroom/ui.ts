@@ -1,9 +1,9 @@
 // 4台目：VROOMBOX VR-5（魔改造 子供用ドライブ・ダッシュボード）の画面
 import './vroom.css';
 import { Knob, SteppedKnob, SteppedSlider, Toggle, momentary } from '../../core/controls';
-import { Board, CC_POWER, applyCtl, ccMap, ccToValue, type Ctl, type HostApi, type ToyUI } from '../../core/ui';
+import { Board, CC_POWER, noteName, applyCtl, ccMap, ccToValue, type Ctl, type HostApi, type ToyUI } from '../../core/ui';
 import type { FromToy } from '../../host/protocol';
-import { GEARS, STATIONS, V_CRASH, V_HORN, V_NOTE, V_NOTE_BASE, V_NOTE_COUNT, V_PRESET, V_START, VROOM_INDEX, VROOM_PARAMS, type VroomParamId } from './params';
+import { GEARS, STATIONS, V_KEY_COUNT, V_CRASH, V_HORN, V_NOTE, V_NOTE_BASE, V_NOTE_COUNT, V_PRESET, V_START, VROOM_INDEX, VROOM_PARAMS, type VroomParamId } from './params';
 
 const W = 1800;
 const H = 900;
@@ -296,6 +296,9 @@ export function mountVroom(api: HostApi): ToyUI {
 
   return {
     title: 'VROOMBOX VR-5',
+    paramDefs: VROOM_PARAMS,
+    keyCount: V_KEY_COUNT,
+    keyName: (k) => (k < 8 ? `PRESET ${k + 1}` : k === V_HORN ? 'HORN' : k === V_CRASH ? 'CRASH' : k === V_START ? 'START' : k >= V_NOTE ? `ENGINE ${noteName(V_NOTE_BASE + k - V_NOTE)}` : `KEY ${k}`),
     width: W,
     height: H,
     root,

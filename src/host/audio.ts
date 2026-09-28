@@ -39,6 +39,10 @@ export class AudioHost {
       this.pending = this.pending.filter((p) => !(p.type === 'param' && p.toy === m.toy && p.index === m.index));
       this.pending.push(m);
     } else if (m.type === 'userSample') this.pending.push(m);
+    else if (m.type === 'song') {
+      this.pending = this.pending.filter((p) => p.type !== 'song');
+      this.pending.push(m);
+    }
   }
 
   /** マイクをつなぐ（初回は許可を求められる）。出力には混ぜず、エンジンの入力にだけ入れる */

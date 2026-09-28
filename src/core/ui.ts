@@ -2,6 +2,10 @@
 import type { ParamDef } from './params';
 import type { FromToy, ToyMsg } from '../host/protocol';
 
+const NOTE_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+/** MIDI ノート番号 → 音名（60 = C4） */
+export const noteName = (m: number) => `${NOTE_NAMES[((m % 12) + 12) % 12]}${Math.floor(m / 12) - 1}`;
+
 /** ホスト（アプリ本体）が各おもちゃの画面に渡す窓口 */
 export interface HostApi {
   /** このおもちゃのエンジンへ送る */
@@ -17,6 +21,10 @@ export interface ToyUI {
   readonly height: number;
   readonly root: HTMLElement;
   readonly help: string; // ヘルプ欄の HTML
+  /** シーケンサーの編集画面用：パラメーター表・キーの数・キーの名前 */
+  readonly paramDefs: readonly ParamDef[];
+  readonly keyCount: number;
+  keyName(key: number): string;
   onMessage(m: FromToy): void;
   /** PC キーボード。処理したら true */
   keyDown(e: KeyboardEvent): boolean;

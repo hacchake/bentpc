@@ -3,6 +3,7 @@ import type { ToyEngine } from '../core/toy';
 import { fromInt8, toChipSample, toInt8 } from '../toys/blippy/dsp/mic';
 import { TOY_ENGINES } from '../toys/engines';
 import type { FromEngine, ToEngine } from './protocol';
+import { Sequencer } from './sequencer';
 
 declare const sampleRate: number;
 declare function registerProcessor(name: string, ctor: unknown): void;
@@ -19,6 +20,12 @@ class ToyRackProcessor extends AudioWorkletProcessor {
   private lastStatus: string[] = this.toys.map(() => '');
   private statusCounter = 0;
   private tmp = new Float32Array(128);
+  private click = new Float32Array(128);
+  private posCounter = 0;
+  private seq = new Sequencer(sampleRate, this.toys, {
+    onTake: (take, data) => this.send({ type: 'seqTake', take, data }),
+    onEnd: () => this.send({ type: 'seqEnd' }),
+  });
   // 録音
   private recording = false;
   private recBuf = new Float32Array(REC_CHUNK);
@@ -33,6 +40,10 @@ class ToyRackProcessor extends AudioWorkletProcessor {
     super();
     this.port.onmessage = (e: MessageEvent<ToEngine>) => {
       const m = e.data;
+      if (m.type === 'song') { this.seq.setSong(m.song); return; }
+      if (m.type === 'transport') { if (m.play) this.seq.play(m.from); else this.seq.stop(); return; }
+      if (m.type === 'seqRec') { if (m.on && !this.seq.playing) this.seq.play(); this.seq.setRecording(m.on, m.take); return; }
+      if (m.type === 'bounce') { this.seq.stop(); this.seq.bounce = true; this.seq.play(0); return; }
       if (m.type === 'rec') {
         if (m.on) { this.recording = true; this.recPos = 0; }
         else if (this.recording) { this.recording = false; this.flushRec(); this.send({ type: 'recDone' }); }
@@ -41,8 +52,8 @@ class ToyRackProcessor extends AudioWorkletProcessor {
       const t = this.toys[m.toy];
       if (!t) return;
       switch (m.type) {
-        case 'param': t.setParam(m.index, m.value); break;
-        case 'key': m.down ? t.keyDown(m.key) : t.keyUp(m.key); break;
+        case 'param': t.setParam(m.index, m.value); this.seq.live(m.toy, m); break;
+        case 'key': m.down ? t.keyDown(m.key) : t.keyUp(m.key); this.seq.live(m.toy, m); break;
         case 'power': m.on ? t.powerOn() : t.powerOff(); break;
         case 'mic':
           if (m.on) { this.micToy = m.toy; this.micKey = m.key; this.micPos = 0; }
@@ -85,14 +96,9 @@ class ToyRackProcessor extends AudioWorkletProcessor {
 
     const out = outputs[0];
     const l = out[0];
-    if (this.tmp.length !== l.length) this.tmp = new Float32Array(l.length);
-    l.fill(0);
-    for (const t of this.toys) {
-      t.process(this.tmp);
-      for (let i = 0; i < l.length; i++) l[i] += this.tmp[i];
-    }
+    if (this.tmp.length !== l.length) { this.tmp = new Float32Array(l.length); this.click = new Float32Array(l.length); }
+    this.seq.render(l, this.click, this.tmp);
     for (let i = 0; i < l.length; i++) l[i] = Math.max(-1, Math.min(1, l[i]));
-    for (let c = 1; c < out.length; c++) out[c].set(l);
 
     if (this.recording) {
       let i = 0;
@@ -103,6 +109,13 @@ class ToyRackProcessor extends AudioWorkletProcessor {
         i += n;
         if (this.recPos >= REC_CHUNK) this.flushRec();
       }
+    }
+    // メトロノームは録音に入れず、スピーカーにだけ足す
+    for (let i = 0; i < l.length; i++) l[i] = Math.max(-1, Math.min(1, l[i] + this.click[i]));
+    for (let c = 1; c < out.length; c++) out[c].set(l);
+    if (++this.posCounter >= 6) {
+      this.posCounter = 0;
+      this.send({ type: 'seqPos', beat: this.seq.pos, playing: this.seq.playing, recording: this.seq.recording });
     }
 
     this.toys.forEach((t, toy) => {

@@ -1,10 +1,10 @@
 // 2台目：PIKOTONE PT-32（魔改造ミニキーボード＋エフェクト別ユニット）の画面
 import './piko.css';
 import { Knob, Toggle, momentary } from '../../core/controls';
-import { Board, CC_POWER, applyCtl, ccMap, ccToValue, type Ctl, type HostApi, type ToyUI } from '../../core/ui';
+import { Board, CC_POWER, noteName, applyCtl, ccMap, ccToValue, type Ctl, type HostApi, type ToyUI } from '../../core/ui';
 import type { FromToy } from '../../host/protocol';
 import {
-  INSTRUMENTS, KEY_DEMO, KEY_START, KEY_STOP, KEY_TEMPO_DOWN, KEY_TEMPO_UP, PAD_KEY, PIKO_FIRST_NOTE, PIKO_INDEX, PIKO_NOTE_COUNT,
+  INSTRUMENTS, KEY_DEMO, PIKO_KEY_COUNT, KEY_START, KEY_STOP, KEY_TEMPO_DOWN, KEY_TEMPO_UP, PAD_KEY, PIKO_FIRST_NOTE, PIKO_INDEX, PIKO_NOTE_COUNT,
   PIKO_PARAMS, RHYTHMS, type PikoParamId,
 } from './params';
 
@@ -254,6 +254,9 @@ export function mountPiko(api: HostApi): ToyUI {
 
   return {
     title: 'PIKOTONE PT-32',
+    paramDefs: PIKO_PARAMS,
+    keyCount: PIKO_KEY_COUNT,
+    keyName: (k) => (k < PIKO_NOTE_COUNT ? noteName(PIKO_FIRST_NOTE + k) : ['KICK', 'SNARE', 'HAT', 'TOM', 'DEMO', 'START', 'STOP', 'TEMPO+', 'TEMPO−'][k - PAD_KEY] ?? `KEY ${k}`),
     width: W,
     height: H,
     root,

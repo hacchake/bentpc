@@ -1,11 +1,11 @@
 // 3台目：SPIN-TOT DJ-28（魔改造 子供用 DJ セット）の画面
 import './dj.css';
 import { Knob, SteppedKnob, Toggle, momentary } from '../../core/controls';
-import { Board, CC_POWER, applyCtl, ccMap, ccToValue, type Ctl, type HostApi, type ToyUI } from '../../core/ui';
+import { Board, CC_POWER, noteName, applyCtl, ccMap, ccToValue, type Ctl, type HostApi, type ToyUI } from '../../core/ui';
 import type { FromToy } from '../../host/protocol';
 import { DISC_NAMES } from './dsp/sounds';
 import {
-  DJ_DISC_TOUCH, DJ_FIRST_NOTE, DJ_INDEX, DJ_NOTE_COUNT, DJ_PAD, DJ_PARAMS, DJ_PAUSE, DJ_PLAY, DJ_TEMPO_DOWN, DJ_TEMPO_UP, type DjParamId,
+  DJ_DISC_TOUCH, DJ_FIRST_NOTE, DJ_KEY_COUNT, DJ_INDEX, DJ_NOTE_COUNT, DJ_PAD, DJ_PARAMS, DJ_PAUSE, DJ_PLAY, DJ_TEMPO_DOWN, DJ_TEMPO_UP, type DjParamId,
 } from './params';
 
 const W = 1600;
@@ -352,6 +352,9 @@ export function mountDj(api: HostApi): ToyUI {
 
   return {
     title: 'SPIN-TOT DJ-28',
+    paramDefs: DJ_PARAMS,
+    keyCount: DJ_KEY_COUNT,
+    keyName: (k) => (k < DJ_NOTE_COUNT ? noteName(DJ_FIRST_NOTE + k) : ['PAD 1', 'PAD 2', 'PAD 3', 'PAD 4', 'PAD 5', 'PAD 6', 'PLAY', 'PAUSE', 'TEMPO+', 'TEMPO−', 'DISC'][k - DJ_PAD] ?? `KEY ${k}`),
     width: W,
     height: H,
     root,

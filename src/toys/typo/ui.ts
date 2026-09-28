@@ -2,10 +2,10 @@
 // 目の前の PC キーボードでそのまま弾ける。画面のキーは押されたキーが光り、各キーの役目が小さく書いてある。
 import './typo.css';
 import { Knob, momentary } from '../../core/controls';
-import { Board, CC_POWER, applyCtl, ccMap, ccToValue, type Ctl, type HostApi, type ToyUI } from '../../core/ui';
+import { Board, CC_POWER, noteName, applyCtl, ccMap, ccToValue, type Ctl, type HostApi, type ToyUI } from '../../core/ui';
 import type { FromToy } from '../../host/protocol';
 import {
-  LAYOUT, NAV, NUMPAD, RAW_NOTE, SCALE_STEPS, TYPO_INDEX, TYPO_KEY_INDEX, TYPO_PARAMS, type Role, type TypoParamId,
+  LAYOUT, NAV, NUMPAD, RAW_NOTE, TYPO_KEYS, SCALE_STEPS, TYPO_INDEX, TYPO_KEY_INDEX, TYPO_PARAMS, type Role, type TypoParamId,
 } from './params';
 import type { TypoDisplay } from './dsp/engine';
 
@@ -167,6 +167,9 @@ export function mountTypo(api: HostApi): ToyUI {
   const midiHeld = new Set<number>();
   return {
     title: 'TYPOTRON TT-109',
+    paramDefs: TYPO_PARAMS,
+    keyCount: TYPO_KEYS.length,
+    keyName: (k) => (k >= RAW_NOTE ? `MIDI ${noteName(k - RAW_NOTE)}` : TYPO_KEYS[k] ? `${TYPO_KEYS[k].label} ${TYPO_KEYS[k].role.r === 'note' ? '' : TYPO_KEYS[k].code}`.trim() : `KEY ${k}`),
     width: W,
     height: H,
     root,
