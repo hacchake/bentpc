@@ -1,6 +1,6 @@
 // 6台目 TELEKEY の自動テスト：取り込んだ音の通り道、24 種の音グリッチ、FREEZE、楽器キー 11 種
 import { TeleEngine } from '../src/toys/tele/dsp/engine';
-import { GLITCHES, TELE_KEYS, TELE_KEY_INDEX } from '../src/toys/tele/params';
+import { BURSTS, GLITCHES, TELE_KEYS, TELE_KEY_INDEX } from '../src/toys/tele/params';
 
 const SR = 48000;
 let fail = 0;
@@ -91,6 +91,60 @@ if (minD < 0.005) ng('似すぎたグリッチがある');
   const e = fresh();
   e.keyDown(K('ArrowUp')); e.keyDown(K('ArrowUp')); e.keyDown(K('ArrowUp'));
   if (diff(run(e, 1), dry) < 0.01) ng('↑ のピッチが効いていない');
+}
+// ---- フェーズ3：改造パーツ ----
+{
+  // GLITCH ボタン × BASE：25 種の一発グリッチがどれも音を変え、時間がたつと終わる
+  const outs3: Float32Array[] = [];
+  for (let b = 0; b < 5; b++) for (let n = 0; n < 5; n++) {
+    const e = fresh();
+    e.setParamById('base', b);
+    e.keyDown(K('F' + (n + 1)));
+    const o = run(e, 0.8);
+    outs3.push(o);
+    if (bad(o)) ng('一発グリッチ ' + b + '-' + n + ' で異常値');
+    if (diff(o, dry.subarray(0, o.length)) < 0.01) ng('一発グリッチ ' + b + '-' + n + ' が効いていない');
+    run(e, 1.5);
+    if (e.status().leds.burst) ng('一発グリッチ ' + b + '-' + n + ' が終わらない');
+  }
+  let md = 9;
+  let mp = '';
+  for (let i = 0; i < 25; i++) for (let j = i + 1; j < 25; j++) { const d = diff(outs3[i], outs3[j]); if (d < md) { md = d; mp = BURSTS[Math.floor(i / 5)][i % 5].name + ' と ' + BURSTS[Math.floor(j / 5)][j % 5].name; } }
+  console.log('一発グリッチ 25 種：一番似ている組', mp, '差', md.toFixed(4));
+  if (md < 0.003) ng('似すぎた一発グリッチがある');
+}
+{
+  // ノブ：FEEDBACK・DIST（2 種）・SPEED・LFO が効く
+  const knobs: [string, Record<string, number>][] = [
+    ['FEEDBACK', { feedback: 0.9 }], ['DIST CLIP', { dist: 0.8 }], ['DIST CRUSH', { dist: 0.8, distType: 1 }],
+    ['SPEED', { speed: 0.8 }], ['LFO', { lfoDepth: 1, lfoRate: 0.6 }],
+  ];
+  for (const [name, set] of knobs) {
+    const e = fresh();
+    for (const [id, v] of Object.entries(set)) e.setParamById(id as 'dist', v);
+    const o = run(e, 1);
+    if (bad(o)) ng(name + ' で異常値');
+    if (diff(o, dry) < 0.01) ng(name + ' が効いていない');
+  }
+  // DRY/WET = 0 ならグリッチを押しても元の音のまま
+  const e = fresh(); e.setParamById('mix', 0); e.keyDown(K('KeyW'));
+  if (diff(run(e, 1), dry) > 0.01) ng('DRY/WET 0 でもグリッチが混ざる');
+}
+{
+  // HOLD：離してもグリッチが残る → RELEASE で消える
+  const e = fresh();
+  e.keyDown(K('KeyW')); e.keyDown(K('Enter')); e.keyUp(K('Enter')); e.keyUp(K('KeyW'));
+  if (!(e.mask & 2)) ng('HOLD でつかめない');
+  e.keyDown(K('Backspace'));
+  if (e.mask) ng('RELEASE で消えない');
+}
+{
+  // キー混線：同じキーを何度も押すと、効くグリッチがばらける
+  const e = fresh(); e.setParamById('crosstalk', 1);
+  const seen = new Set<number>();
+  for (let i = 0; i < 30; i++) { e.keyDown(K('KeyT')); seen.add(e.mask); e.keyUp(K('KeyT')); }
+  console.log('混線：同じキーで出たグリッチの組み合わせ', seen.size, '通り');
+  if (seen.size < 3) ng('キー混線が効いていない');
 }
 // 全部押しても壊れない
 {

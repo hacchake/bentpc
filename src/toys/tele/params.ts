@@ -136,3 +136,47 @@ export const TELE_KEYS: { code: string; label: string; role: Role }[] = [...TELE
   code: k.code, label: k.label, role: k.role,
 }));
 export const TELE_KEY_INDEX = new Map(TELE_KEYS.map((k, i) => [k.code, i]));
+
+// ---- GLITCH ボタン×5 ＋ BASE 5 段 ＝ 25 種の一発グリッチ ----
+export const BASE_NAMES = ['TAPE', 'DIGITAL', 'SIGNAL', 'BEEP', 'MELTDOWN'] as const;
+export type BurstExtra = 'tapeStop' | 'rewind' | 'chipmunk' | 'flutter' | 'dropout' | 'repeat' | 'scatter' | 'silence'
+  | 'howl' | 'sweep' | 'snow' | 'zapRoll' | 'chord' | 'drumRoll' | 'swell' | 'chirps' | 'dive' | 'chaos' | 'none';
+export interface Burst { name: string; glitches: number[]; dur: number; extra: BurstExtra }
+/** [BASE][ボタン]。glitches は一緒に強制的に効かせる文字キーのグリッチ（映像と音の両方） */
+export const BURSTS: Burst[][] = [
+  [ // TAPE：テープが壊れる
+    { name: 'TAPE STOP', glitches: [13, 23], dur: 1.0, extra: 'tapeStop' },
+    { name: 'REWIND', glitches: [13, 0], dur: 0.8, extra: 'rewind' },
+    { name: 'CHIPMUNK', glitches: [17, 19], dur: 0.8, extra: 'chipmunk' },
+    { name: 'WOW FLUTTER', glitches: [18, 14], dur: 1.2, extra: 'flutter' },
+    { name: 'TAPE EATEN', glitches: [11, 1], dur: 1.0, extra: 'dropout' },
+  ],
+  [ // DIGITAL：データが壊れる
+    { name: 'BUFFER LOOP', glitches: [21, 0], dur: 0.9, extra: 'repeat' },
+    { name: '2-BIT', glitches: [5, 15, 1], dur: 0.8, extra: 'none' },
+    { name: 'LO-FI', glitches: [4, 4], dur: 0.9, extra: 'none' },
+    { name: 'SCRAMBLE', glitches: [2, 11], dur: 1.0, extra: 'scatter' },
+    { name: 'DROPOUT', glitches: [22, 12], dur: 0.8, extra: 'silence' },
+  ],
+  [ // SIGNAL：電波が壊れる
+    { name: 'RING SWEEP', glitches: [0, 3], dur: 1.0, extra: 'sweep' },
+    { name: 'SYNC LOST', glitches: [14, 13, 11], dur: 1.0, extra: 'snow' },
+    { name: 'HOWL', glitches: [10, 20], dur: 1.2, extra: 'howl' },
+    { name: 'FILTER DIVE', glitches: [19, 14], dur: 1.0, extra: 'sweep' },
+    { name: 'STATIC', glitches: [11], dur: 0.9, extra: 'snow' },
+  ],
+  [ // BEEP：内蔵ブザーが暴走
+    { name: 'ZAP ROLL', glitches: [22], dur: 0.9, extra: 'zapRoll' },
+    { name: 'CHORD BLAST', glitches: [6], dur: 0.7, extra: 'chord' },
+    { name: 'DRUM ROLL', glitches: [17], dur: 1.0, extra: 'drumRoll' },
+    { name: 'DRONE SWELL', glitches: [8], dur: 1.5, extra: 'swell' },
+    { name: 'CHIRPS', glitches: [18], dur: 1.0, extra: 'chirps' },
+  ],
+  [ // MELTDOWN：全部まとめて
+    { name: 'FREEZE DROP', glitches: [12, 16], dur: 1.2, extra: 'tapeStop' },
+    { name: 'BACKFIRE', glitches: [6, 10, 20], dur: 1.2, extra: 'rewind' },
+    { name: 'DIVE', glitches: [23, 9, 14], dur: 1.5, extra: 'dive' },
+    { name: 'SHATTER', glitches: [9, 2, 21], dur: 1.2, extra: 'scatter' },
+    { name: 'CHAOS', glitches: [], dur: 1.5, extra: 'chaos' },
+  ],
+];

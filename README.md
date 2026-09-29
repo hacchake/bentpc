@@ -10,7 +10,7 @@
 | 3 | **SPIN-TOT DJ-28** | 子供用 DJ セット。スクラッチ・パッド・ミニ鍵盤・リズム 28 種（隠し 7 種）・PITCH 粗/微・光センサー・STOP・DIST×2・FEEDBACK＋ソース切替 |
 | 4 | **VROOMBOX VR-5** | オリジナル設計。子供用ドライブ・ダッシュボード。点火の粒で作るエンジン音・FIRING ORDER×8＋CAM・REDLINE・SPARK・TURBO FB・RADIO BLEED・TUNE・PRESET HIJACK（MIDI でエンジンを弾ける） |
 | 5 | **TYPOTRON TT-109** | オリジナル設計。PC キーボードそのものが楽器。全キーに役目（4 段の音階・SUSTAIN・Shift でオクターブ・打った行を Enter でループ等）、キーボードの故障 GHOST/SCAN/BOUNCE/OVERFLOW、ツマミ 12 個 |
-| 6 | **TELEKEY TK-6** | オリジナル設計。ブラウン管モニター付きの魔改造キーボード。YouTube / タブ共有 / 動画ファイル / カメラの映像と音をキーボードで壊す。映像グリッチ24種（WebGL）＋音グリッチ24種・FREEZE・楽器キー11種（制作中：フェーズ2 完了） |
+| 6 | **TELEKEY TK-6** | オリジナル設計。ブラウン管モニター付きの魔改造キーボード。YouTube / タブ共有 / 動画ファイル / カメラの映像と音をキーボードで壊す。映像グリッチ24種（WebGL）＋音グリッチ24種・FREEZE・楽器キー11種・改造パーツ（ノブ8・トグル3・GLITCH×BASE の一発グリッチ25種・HOLD/RELEASE・LFO・キー混線）（制作中：フェーズ3 完了） |
 
 ## 使い方
 

@@ -48,6 +48,12 @@ uniform float seed;
 uniform float freeze;
 uniform float flash;
 uniform vec2 res;
+uniform float fbk;   // FEEDBACK ノブ
+uniform float dist;  // DIST ノブ
+uniform float dtype; // DIST TYPE（0 = CLIP：コントラスト / 1 = CRUSH：階調と画素を落とす）
+uniform float mixv;  // DRY / WET
+uniform float lfo;   // LFO（映像に向いているときだけ、-1..1 × 深さ）
+uniform float snow;  // 一発グリッチの砂嵐
 float h1(float x) { return fract(sin(x * 91.3458 + seed) * 47453.5453); }
 float h2(vec2 p) { return fract(sin(dot(p, vec2(12.9898, 78.233)) + seed) * 43758.5453); }
 float luma(vec3 c) { return dot(c, vec3(0.299, 0.587, 0.114)); }
@@ -56,6 +62,10 @@ void main() {
   vec2 q = uv;
   vec2 px = 1.0 / res;
   float tq = floor(time * 12.0); // ガタガタ変わる時間
+  // ---- LFO：画面全体がうねる ----
+  if (lfo != 0.0) q += vec2(sin(uv.y * 6.2831 + time * 2.0), cos(uv.x * 6.2831)) * 0.02 * lfo;
+  // DIST CRUSH：画素も粗くなる
+  if (dist > 0.0 && dtype > 0.5) { float s = 1.0 + floor(dist * 6.0); q = (floor(q * res / s) + 0.5) * s / res; }
   // ---- 座標をゆがめる ----
   if (g[13] > 0.0) q.y = fract(q.y + time * 0.6 * g[13]); // V-ROLL
   if (g[14] > 0.0) q.x += sin(q.y * 40.0 + time * 9.0) * 0.03 * g[14] + (h1(floor(q.y * 60.0) + tq) > 0.93 ? 0.12 * g[14] : 0.0); // H-SYNC
@@ -117,6 +127,15 @@ void main() {
     else if (r < 0.35 * g[11]) c = texture(cur, fract(uv + vec2(h2(b) - 0.5, 0.0))).rgb;
   }
   if (g[22] > 0.0) c = mix(c, vec3(step(0.5, fract(time * 12.0))), 0.7 * g[22]); // STROBE
+  // ---- 改造パーツ ----
+  if (fbk > 0.0) { vec3 f = texture(prev, 0.5 + (uv - 0.5) * 0.985).rgb; c = mix(c, max(c, f * 0.97), fbk); } // FEEDBACK
+  if (dist > 0.0) {
+    if (dtype < 0.5) c = clamp((c - 0.5) * (1.0 + dist * 5.0) + 0.5, 0.0, 1.0); // CLIP
+    else { float lv = mix(32.0, 3.0, dist); c = floor(c * lv + 0.5) / lv; } // CRUSH
+  }
+  if (lfo != 0.0) c = mix(c, c.gbr, abs(lfo) * 0.5);
+  if (snow > 0.0) { float n = h2(floor(uv * vec2(320.0, 240.0)) + time * 60.0); c = mix(c, vec3(n), 0.75 * snow); }
+  c = mix(texture(cur, uv).rgb, c, mixv); // DRY / WET
   c += flash;
   o = vec4(clamp(c, 0.0, 1.0), 1.0);
 }`;
@@ -193,6 +212,8 @@ export class VideoPipeline {
   freeze = false;
   flash = 0;
   seed = 0;
+  /** 改造パーツの値（エンジンから届く） */
+  knobs = { fbk: 0, dist: 0, dtype: 0, mixv: 1, lfo: 0, snow: 0 };
 
   constructor(private canvas: HTMLCanvasElement, readonly w = 640, readonly h = 480) {
     canvas.width = w;
@@ -281,9 +302,13 @@ export class VideoPipeline {
     if (this.copyNext) {
       // 今のフレームを、そのまま「止めたフレーム」へ写す
       this.copyNext = false;
-      this.draw(this.pGlitch, this.hold, { cur: this.b.tex, prev: this.prev.tex, hold: this.b.tex }, { ...base, g: this.zero, freeze: 0, flash: 0 });
+      this.draw(this.pGlitch, this.hold, { cur: this.b.tex, prev: this.prev.tex, hold: this.b.tex }, {
+        ...base, g: this.zero, freeze: 0, flash: 0, fbk: 0, dist: 0, dtype: 0, mixv: 1, lfo: 0, snow: 0,
+      });
     }
-    this.draw(this.pGlitch, this.a, { cur: this.b.tex, prev: this.prev.tex, hold: this.hold.tex }, { ...base, g: this.g, freeze: this.freeze ? 1 : 0 });
+    this.draw(this.pGlitch, this.a, { cur: this.b.tex, prev: this.prev.tex, hold: this.hold.tex }, {
+      ...base, g: this.g, freeze: this.freeze ? 1 : 0, ...this.knobs,
+    });
     this.draw(this.pCrt, null, { img: this.a.tex }, { time, power: this.power, res: [this.w, this.h] });
     // 今のフレームを「前のフレーム」として残す（フィードバック・データモッシュ用）
     [this.prev, this.a] = [this.a, this.prev];

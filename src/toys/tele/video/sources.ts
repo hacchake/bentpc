@@ -225,8 +225,17 @@ export class Sources {
     return this.baseRate;
   }
 
+  private knobRate = 1;
+
+  /** SPEED / PITCH ノブによる倍率 */
+  setKnobRate(r: number): void {
+    if (Math.abs(r - this.knobRate) < 0.01) return;
+    this.knobRate = r;
+    this.applyRate();
+  }
+
   private applyRate(): void {
-    const r = this.glitchRate || this.baseRate;
+    const r = Math.max(0.25, Math.min(2, this.glitchRate || this.baseRate * this.knobRate));
     if (this.kind === 'youtube' && this.yt) this.yt.setPlaybackRate(r);
     else if (this.kind === 'file') this.video.playbackRate = r;
   }

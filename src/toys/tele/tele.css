@@ -53,7 +53,7 @@
 }
 .tk-side.left { left: 30px; }
 .tk-side.right { left: 1350px; }
-.tk-guide { margin: 26px; padding: 16px; background: #fffdf3; color: #222; border-radius: 6px; font: 13px/1.6 sans-serif; box-shadow: 0 3px 8px rgba(0,0,0,.3); transform: rotate(-1deg); }
+.tk-guide { margin: 18px 22px; padding: 10px 14px; background: #fffdf3; color: #222; border-radius: 6px; font: 11px/1.5 sans-serif; box-shadow: 0 3px 8px rgba(0,0,0,.3); transform: rotate(-1deg); }
 .tk-guide b { font-size: 15px; }
 .tk-guide i { font-style: normal; font-weight: 700; color: #c0281f; }
 .tk-guide u { text-decoration-color: #c0281f; text-decoration-thickness: 2px; }
@@ -105,3 +105,14 @@
 @keyframes tk-noise { 0% { background-position: 0 0, 0 0, 0 0; } 33% { background-position: 0 1px, 0 -60px, 0 0; } 66% { background-position: 0 2px, 0 45px, 0 0; } }
 /* シーケンサーなど、エンジン側で効いているグリッチのキー */
 .tk-key.lit { box-shadow: 0 5px 0 #968e75, 0 0 12px 3px rgba(255,90,70,.8), inset 0 0 0 2px #ff5a4f; }
+
+/* 手書きのラベル（マジックで書いた感じ） */
+.toy-tele .tk-hand { font: 13px 'Permanent Marker', 'Comic Sans MS', cursive; color: #151515; transform: translate(-50%, -50%) rotate(-2deg); white-space: nowrap; }
+.toy-tele .tk-lbl.small { font-size: 8px; color: #333; }
+/* むき出しの配線 */
+.tk-wires { position: absolute; left: 0; top: 0; pointer-events: none; z-index: 2; }
+.tk-wires path { fill: none; stroke-width: 5; stroke-linecap: round; filter: drop-shadow(0 2px 2px rgba(0,0,0,.5)); }
+.tk-wires .w1 { stroke: #d21f1f; }
+.tk-wires .w2 { stroke: #1d1d1d; }
+.tk-wires .w3 { stroke: #e0b400; }
+.toy-tele .knob.big { width: 56px; height: 56px; }

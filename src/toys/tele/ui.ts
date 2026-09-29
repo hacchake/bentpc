@@ -3,9 +3,12 @@
 // ・音：エンジン（Worklet）で同じキーのグリッチ。いま効いているグリッチはエンジンからも届くので、
 //        シーケンサーで鳴らしたキーでも映像が一緒に壊れる
 import './tele.css';
+import { Knob, SteppedKnob, Toggle, momentary } from '../../core/controls';
 import { Board, CC_POWER, ccMap, ccToValue, type HostApi, type ToyUI } from '../../core/ui';
 import type { FromToy } from '../../host/protocol';
-import { GLITCHES, TELE_INDEX, TELE_KEYS, TELE_KEY_INDEX, TELE_LAYOUT, TELE_NAV, TELE_PARAMS, type Role } from './params';
+import {
+  BASE_NAMES, BURSTS, GLITCHES, TELE_INDEX, TELE_KEYS, TELE_KEY_INDEX, TELE_LAYOUT, TELE_NAV, TELE_PARAMS, type Role, type TeleParamId,
+} from './params';
 import { VideoPipeline } from './video/pipeline';
 import { Sources, type SourceKind } from './video/sources';
 
@@ -29,7 +32,14 @@ const HELP = `
   <tr><td>BS</td><td>RELEASE（効いているグリッチを全部止める）</td></tr>
   <tr><td>Home</td><td>再生 / 一時停止</td></tr>
   <tr><td>PgUp / PgDn</td><td>電源 ON / OFF</td></tr>
+  <tr><td>F1〜F5</td><td>GLITCH ボタン：今の BASE の一発グリッチ（左パネルに名前）</td></tr>
+  <tr><td>F6〜F10</td><td>BASE 1〜5（TAPE / DIGITAL / SIGNAL / BEEP / MELTDOWN）</td></tr>
+  <tr><td>Enter / BS</td><td>HOLD（今効いているグリッチをつかんで離しても続ける）/ RELEASE（全部解除）</td></tr>
+  <tr><td>F11 / F12 / Tab</td><td>LFO の行き先 / キー混線 / 歪みの種類</td></tr>
+  <tr><td>Esc</td><td>RESET（全部止めて、ピッチも元に戻す）</td></tr>
 </table>
+<p>右のパネル：GLITCH AMT（グリッチの強さ）・LFO（映像／音／両方をうねらせる）・FEEDBACK（映像も音も自分に返る）・DIST（CLIP／CRUSH）・SPEED/PITCH・DRY/WET・MASTER。
+CROSSTALK を ON にすると、キーが混線して隣のキーも効いたり、押すたびに別の効果になったりします。</p>
 <p>TAB モード：「TAB を取り込む」→ Chrome の画面で「タブ」を選び、YouTube などのタブを選択 →「タブの音声も共有する」にチェック →「共有」。
 取り込んだタブの音は、こちらで加工した音だけが聞こえるように自動で止まります。</p>
 <p>YOUTUBE モード：ブラウザの決まりで、埋め込み動画の中身（映像・音）は直接加工できません。
@@ -90,7 +100,13 @@ export function mountTele(api: HostApi): ToyUI {
       <p><i>YOUTUBE</i>：URL を貼って LOAD。中身は加工できないので、再生そのものを操作して壊します。</p>
       <p><i>FILE / CAM</i>：手持ちの動画ファイル（ドラッグ＆ドロップでも）、または Web カメラ。</p>
     </div></div>
-    <div class="tk-side right"><div class="tk-mods">MOD PANEL<br><small>改造パーツはフェーズ3で取り付け</small></div></div>
+    <div class="tk-side right"></div>
+    <svg class="tk-wires" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">
+      <path d="M 230 612 C 230 700, 330 660, 360 720" class="w1" />
+      <path d="M 380 612 C 390 680, 360 690, 372 760" class="w2" />
+      <path d="M 1560 612 C 1560 700, 1470 660, 1440 720" class="w3" />
+      <path d="M 1420 612 C 1410 690, 1440 690, 1430 780" class="w1" />
+    </svg>
     <div class="tk-monitor">
       <div class="tk-screen">
         <canvas data-id="gl"></canvas>
@@ -149,11 +165,21 @@ export function mountTele(api: HostApi): ToyUI {
   let prevFreeze = false;
   const activeMask = () => { let m = engineMask; localG.forEach((n) => { m |= 1 << n; }); return m; };
 
+  // 改造パーツの値（エンジンから届く。シーケンサーのツマミの動きにも付いていく）
+  const fxv = { fb: 0, dist: 0, dtype: 0, mix: 1, speed: 0.5, lfoR: 0.3, lfoD: 0, lfoT: 2, snow: 0, burst: 0 };
+  let lfoPh = 0;
+  let prevT = 0;
   const frame = (now: number) => {
     const t = now / 1000;
+    const dt = Math.min(0.1, t - prevT);
+    prevT = t;
     const m = powered ? activeMask() : 0;
     const fz = powered && (localFreeze || engineFreeze);
-    const level = 0.35 + 0.65 * amount;
+    // LFO（映像に向いているとき）：グリッチの強さと画面全体を揺らす
+    lfoPh = (lfoPh + dt * 0.05 * Math.pow(400, fxv.lfoR)) % 1;
+    const lfoVid = powered && fxv.lfoT !== 1 ? Math.sin(2 * Math.PI * lfoPh) * fxv.lfoD : 0;
+    leds.lfo?.classList.toggle('lit', fxv.lfoD > 0.02 && Math.sin(2 * Math.PI * lfoPh) > 0);
+    const level = Math.max(0.1, Math.min(1, (0.35 + 0.65 * amount) * (1 + 0.5 * lfoVid)));
     if (pipe) {
       for (let n = 0; n < 24; n++) pipe.g[n] = m & (1 << n) ? level : 0;
       // 押した瞬間の画を取っておく（FREEZE・FRAME HOLD）
@@ -161,6 +187,7 @@ export function mountTele(api: HostApi): ToyUI {
       pipe.freeze = fz;
       pipe.flash = flash;
       pipe.seed = (pipe.seed + 0.37) % 1000;
+      pipe.knobs = { fbk: fxv.fb, dist: fxv.dist, dtype: fxv.dtype, mixv: fxv.mix, lfo: lfoVid, snow: powered ? fxv.snow : 0 };
       if (root.offsetParent !== null) pipe.render(sources.frameSource, t, powered, powered && sources.kind === 'none');
     }
     flash *= 0.8;
@@ -304,6 +331,79 @@ export function mountTele(api: HostApi): ToyUI {
     if (i === TELE_INDEX.amount) amount = v;
     api.post({ type: 'param', index: i, value: v });
   };
+  const setP = (id: TeleParamId, v: number) => setParam(TELE_INDEX[id], v);
+  const def = (id: TeleParamId) => TELE_PARAMS[TELE_INDEX[id]];
+
+  // ================= 改造パーツ（左：GLITCH×5・BASE・HOLD/RELEASE） =================
+  const viaKey = (code: string) => ({ press: () => keyCtl.get(code)?.press(), release: () => keyCtl.get(code)?.release() });
+  b.tape('GLITCH', 230, 296, false, -2);
+  const burstLabels: HTMLElement[] = [];
+  [0, 1, 2, 3, 4].forEach((i) => {
+    const x = 90 + i * 70;
+    const k = viaKey(`F${i + 1}`);
+    momentary(b.place('dome big', x, 345), k.press, k.release);
+    b.label(String(i + 1), x, 318, 'tk-hand');
+    burstLabels.push(b.label('', x, 380, 'tk-lbl small'));
+  });
+  b.tape('BASE', 110, 420, false, 3);
+  const baseKnob = new SteppedKnob(b.knob('black big', 110, 482), 5, 0, (v) => setP('base', v), 240);
+  const ticks = b.place('ticks', 110, 482);
+  for (let i = 0; i < 5; i++) {
+    const a = ((-120 + i * 60) * Math.PI) / 180;
+    const s = document.createElement('span');
+    s.textContent = String(i + 1);
+    s.style.left = `${Math.sin(a) * 46}px`;
+    s.style.top = `${-Math.cos(a) * 46}px`;
+    ticks.appendChild(s);
+  }
+  const baseName = b.label('TAPE', 110, 548, 'tk-hand');
+  const showBase = (v: number) => {
+    baseName.textContent = BASE_NAMES[v];
+    burstLabels.forEach((el, i) => { el.textContent = BURSTS[v][i].name; });
+  };
+  showBase(0);
+  const holdK = viaKey('Enter'), relK = viaKey('Backspace');
+  momentary(b.place('dome big', 250, 482), holdK.press, holdK.release);
+  b.label('HOLD', 250, 516, 'tk-hand');
+  momentary(b.place('dome black big', 345, 482), relK.press, relK.release);
+  b.label('RELEASE', 345, 516, 'tk-hand');
+  leds.burst = b.place('led', 250, 570);
+  b.label('BURST', 250, 590, 'tk-lbl');
+  leds.hold = b.place('led yellow', 345, 570);
+  b.label('HOLD', 345, 590, 'tk-lbl');
+  for (const [x, y] of [[48, 58], [412, 58], [48, 600], [412, 600]]) b.place('screw', x, y);
+
+  // ================= 改造パーツ（右：ノブ 8・トグル 3・LED） =================
+  b.tape('MOD / DO NOT TOUCH', 1550, 70, false, 1);
+  const knobs: [TeleParamId, string][] = [
+    ['amount', 'GLITCH AMT'], ['lfoRate', 'LFO RATE'], ['lfoDepth', 'LFO DEPTH'], ['feedback', 'FEEDBACK'],
+    ['dist', 'DIST'], ['speed', 'SPEED/PITCH'], ['mix', 'DRY / WET'], ['volume', 'MASTER'],
+  ];
+  const knobCtl = new Map<TeleParamId, Knob>();
+  knobs.forEach(([id, name], i) => {
+    const x = 1420 + (i % 4) * 90, y = i < 4 ? 140 : 262;
+    knobCtl.set(id, new Knob(b.knob(i === 7 ? 'black big' : 'red big', x, y), def(id), (v) => setP(id, v)));
+    b.label(name, x, y + 44, 'tk-hand');
+  });
+  const distSw = new Toggle(b.place('toggle', 1430, 410), 2, 0, (v) => setP('distType', v));
+  b.label('CRUSH', 1430, 372, 'tk-lbl');
+  b.label('CLIP', 1430, 448, 'tk-lbl');
+  b.label('DIST TYPE', 1430, 470, 'tk-hand');
+  const lfoSw = new Toggle(b.place('toggle', 1560, 410), 3, 2, (v) => setP('lfoTarget', v));
+  b.label('VIDEO', 1600, 386, 'tk-lbl');
+  b.label('AUDIO', 1600, 410, 'tk-lbl');
+  b.label('BOTH', 1600, 434, 'tk-lbl');
+  b.label('LFO →', 1560, 470, 'tk-hand');
+  const xtSw = new Toggle(b.place('toggle', 1690, 410), 2, 0, (v) => setP('crosstalk', v));
+  b.label('ON', 1690, 372, 'tk-lbl');
+  b.label('CROSSTALK', 1690, 470, 'tk-hand');
+  leds.lfo = b.place('led yellow', 1430, 540);
+  b.label('LFO', 1430, 560, 'tk-lbl');
+  leds.xt = b.place('led', 1690, 540);
+  b.label('XTALK', 1690, 560, 'tk-lbl');
+  for (const [x, y] of [[1368, 58], [1732, 58], [1368, 600], [1732, 600]]) b.place('screw', x, y);
+  const ctlFor = (id: TeleParamId): { set(v: number, notify?: boolean): void } | undefined =>
+    knobCtl.get(id) ?? ({ base: baseKnob, distType: distSw, lfoTarget: lfoSw, crosstalk: xtSw } as Partial<Record<TeleParamId, { set(v: number, notify?: boolean): void }>>)[id];
   const instKeys = TELE_KEYS.map((k, i) => ({ k, i })).filter((x) => x.k.role.r === 'inst');
   const midiHeld = new Map<number, number>();
   return {
@@ -335,6 +435,20 @@ export function mountTele(api: HostApi): ToyUI {
       }
       // エンジン側で効いているグリッチキーも画面のキーを光らせる
       TELE_KEYS.forEach((k, i) => { if (k.role.r === 'glitch') capEls[i]?.classList.toggle('lit', (engineMask & (1 << k.role.n)) !== 0); });
+      // 改造パーツの値（キーボードやシーケンサーで変わったときも、ツマミの見た目を合わせる）
+      const f = st.fx;
+      if ((f.burst ?? 0) !== fxv.burst) { fxv.burst = f.burst ?? 0; flash = Math.max(flash, 0.35); }
+      Object.assign(fxv, { fb: f.fb ?? 0, dist: f.dist ?? 0, dtype: f.dtype ?? 0, mix: f.mix ?? 1, speed: f.speed ?? 0.5, lfoR: f.lfoR ?? 0.3, lfoD: f.lfoD ?? 0, lfoT: f.lfoT ?? 2, snow: f.snow ?? 0 });
+      amount = f.amount ?? amount;
+      sources.setKnobRate(Math.pow(2, ((f.speed ?? 0.5) - 0.5) * 2));
+      distSw.set(f.dtype ?? 0, false);
+      lfoSw.set(f.lfoT ?? 2, false);
+      xtSw.set(st.leds.xt ?? 0, false);
+      if ((f.base ?? 0) !== baseKnob.value) baseKnob.set(f.base ?? 0, false);
+      showBase(f.base ?? 0);
+      leds.burst.classList.toggle('lit', st.leds.burst > 0);
+      leds.hold.classList.toggle('lit', st.leds.hold > 0);
+      leds.xt.classList.toggle('lit', st.leds.xt > 0);
     },
     keyDown(e) {
       const k = keyCtl.get(e.code);
@@ -365,7 +479,12 @@ export function mountTele(api: HostApi): ToyUI {
       } else if (st === 0xb0) {
         if (d1 === CC_POWER) (d2 >= 64 ? powerOn() : powerOff());
         const i = cc.get(d1);
-        if (i !== undefined) setParam(i, ccToValue(TELE_PARAMS[i], d2));
+        if (i !== undefined) {
+          const v = ccToValue(TELE_PARAMS[i], d2);
+          const c = ctlFor(TELE_PARAMS[i].id);
+          if (c) c.set(v);
+          else setParam(i, v);
+        }
       }
     },
     powerOn,
