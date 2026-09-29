@@ -4,6 +4,7 @@ import { fromInt8, toChipSample, toInt8 } from '../toys/blippy/dsp/mic';
 import { TOY_ENGINES } from '../toys/engines';
 import type { FromEngine, ToEngine } from './protocol';
 import { Sequencer } from './sequencer';
+import { TestSignal } from '../core/testsignal';
 
 declare const sampleRate: number;
 declare function registerProcessor(name: string, ctor: unknown): void;
@@ -23,6 +24,9 @@ class ToyRackProcessor extends AudioWorkletProcessor {
   private click = new Float32Array(128);
   private vin = new Float32Array(128); // 取り込んだ動画の音（モノラル）
   private posCounter = 0;
+  private signal = new TestSignal(sampleRate);
+  private signalOn: boolean[] = this.toys.map(() => false);
+  private sigBuf = new Float32Array(128);
   private seq = new Sequencer(sampleRate, this.toys, {
     onTake: (take, data) => this.send({ type: 'seqTake', take, data }),
     onEnd: () => this.send({ type: 'seqEnd' }),
@@ -61,6 +65,7 @@ class ToyRackProcessor extends AudioWorkletProcessor {
           else if (this.micToy === m.toy && this.micKey === m.key) this.finishMic();
           break;
         case 'userSample': t.setUserSample?.(m.key, m.data ? fromInt8(m.data) : null); break;
+        case 'signal': this.signalOn[m.toy] = m.on; break;
       }
     };
   }
@@ -105,7 +110,14 @@ class ToyRackProcessor extends AudioWorkletProcessor {
     if (vi && vi.length) {
       for (const ch of vi) for (let i = 0; i < ch.length; i++) this.vin[i] += ch[i] / vi.length;
     }
-    this.seq.render(l, this.click, this.tmp, this.vin);
+    // テスト映像のときは、取り込んだ音の代わりにテスト信号を渡す（再生中は曲の拍に合わせる）
+    let input = this.vin;
+    if (this.signalOn.some((x) => x)) {
+      if (this.sigBuf.length !== l.length) this.sigBuf = new Float32Array(l.length);
+      this.signal.render(this.sigBuf, this.seq.playing ? this.seq.pos : null, this.seq.song.bpm);
+      input = this.sigBuf;
+    }
+    this.seq.render(l, this.click, this.tmp, input);
     for (let i = 0; i < l.length; i++) l[i] = Math.max(-1, Math.min(1, l[i]));
 
     if (this.recording) {

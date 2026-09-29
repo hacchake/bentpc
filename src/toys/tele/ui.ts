@@ -1,5 +1,5 @@
 // 6台目：TELEKEY TK-6（ブラウン管モニター付きの魔改造キーボード）の画面。
-// ・映像：WebGL でグリッチ 24 種（YouTube のときは再生の操作＋上に重ねる効果）
+// ・映像：WebGL でグリッチ 24 種。入力はタブ共有・動画ファイル・Web カメラ・テスト映像
 // ・音：エンジン（Worklet）で同じキーのグリッチ。いま効いているグリッチはエンジンからも届くので、
 //        シーケンサーで鳴らしたキーでも映像が一緒に壊れる
 import './tele.css';
@@ -21,12 +21,12 @@ const Y0 = 662;
 const HELP = `
 <h3>TELEKEY TK-6：映像＋音のグリッチ・マシン</h3>
 <table>
-  <tr><td>入力</td><td>モニターの下で YOUTUBE / TAB / FILE / CAM を選ぶ</td></tr>
+  <tr><td>入力</td><td>モニターの下で TAB / FILE / CAM / TEST を選ぶ（最初は Web カメラ。使えなければテスト映像）</td></tr>
   <tr><td>Q〜［ ・ A〜］</td><td>押している間だけ効くグリッチ（映像＋音が同時に壊れる。キーの下に映像／音の名前）</td></tr>
   <tr><td>Z〜＼</td><td>音を足す楽器キー（ビープ・ノイズ・ドラム・ドローンなど。音階つき）</td></tr>
   <tr><td>Space</td><td>FREEZE（押している間、今の映像と音をつかんで繰り返す）</td></tr>
   <tr><td>1〜0</td><td>キューポイント（最初は 10%〜90%・0%）。Shift＋数字で今の位置を登録</td></tr>
-  <tr><td>- ^ ¥</td><td>再生を遅く / 速く / 元の速さ（YouTube・ファイル）</td></tr>
+  <tr><td>- ^ ¥</td><td>再生を遅く / 速く / 元の速さ（ファイル・テスト映像）</td></tr>
   <tr><td>↑ ↓</td><td>音のピッチ ±半音（取り込んだ音）</td></tr>
   <tr><td>← →</td><td>5 秒戻る / 進む</td></tr>
   <tr><td>BS</td><td>RELEASE（効いているグリッチを全部止める）</td></tr>
@@ -40,12 +40,11 @@ const HELP = `
 </table>
 <p>右のパネル：GLITCH AMT（グリッチの強さ）・LFO（映像／音／両方をうねらせる）・FEEDBACK（映像も音も自分に返る）・DIST（CLIP／CRUSH）・SPEED/PITCH・DRY/WET・MASTER。
 CROSSTALK を ON にすると、キーが混線して隣のキーも効いたり、押すたびに別の効果になったりします。</p>
-<p>● REC VIDEO（モニター左上）：加工後の映像と音を録画して WebM で保存（TAB・FILE・CAM モード）。音だけなら上のバーの REC（WAV）。</p>
+<p>● REC VIDEO（モニター左上）：加工後の映像と音を録画して WebM で保存。音だけなら上のバーの REC（WAV）。</p>
 <p>HEAT の LED：やりすぎると機械が熱くなり、勝手にグリッチ・砂嵐・音の張り付きが起きます（固まりません）。手を離せば冷めます。Esc（RESET）ですぐ冷やせます。</p>
-<p>TAB モード：「TAB を取り込む」→ Chrome の画面で「タブ」を選び、YouTube などのタブを選択 →「タブの音声も共有する」にチェック →「共有」。
+<p>他人の著作物（動画・音楽）を加工・録画・公開するときは、権利者の許可を得てください。</p>
+<p>TAB モード：「TAB を取り込む」→ Chrome の画面で「タブ」を選び、動画を再生しているタブを選択 →「タブの音声も共有する」にチェック →「共有」。
 取り込んだタブの音は、こちらで加工した音だけが聞こえるように自動で止まります。</p>
-<p>YOUTUBE モード：ブラウザの決まりで、埋め込み動画の中身（映像・音）は直接加工できません。
-グリッチキーは、再生そのもの（連打・一時停止・速度・ジャンプ・ミュートの明滅）と、上に重ねる効果で壊します。楽器キーの音は足せます。</p>
 <p>MIDI（チャンネル6）：ノート 48〜 = 楽器キー、CC でノブ、CC119 で電源</p>`;
 
 interface Cap { code: string; label: string; role: Role; fnLabel?: string; x: number; y: number; w: number }
@@ -63,44 +62,16 @@ function caps(): Cap[] {
   return out;
 }
 
-/** YouTube モードでの壊し方：上に重ねる効果（CSS）と、再生の操作 */
-type YtAction = 'stutter' | 'pause' | 'slow' | 'fast' | 'jump' | 'mute';
-const YT: { css: (t: number) => { filter?: string; transform?: string; opacity?: number }; act?: YtAction }[] = [
-  { css: (t) => ({ filter: `saturate(3) hue-rotate(${(t * 400) % 360}deg)`, transform: `translateX(${Math.sin(t * 50) * 8}px)` }), act: 'stutter' }, // RGB SHIFT
-  { css: (t) => ({ transform: `skewX(${Math.sin(t * 23) * 12}deg)` }) }, // SCAN SHIFT
-  { css: () => ({ filter: 'blur(2px) contrast(2)' }), act: 'jump' }, // DATAMOSH
-  { css: () => ({ filter: 'contrast(3) brightness(1.3)' }) }, // PIXEL SORT
-  { css: () => ({ filter: 'blur(5px) contrast(5) saturate(2)' }) }, // MOSAIC
-  { css: () => ({ filter: 'contrast(4) saturate(2)' }) }, // POSTERIZE
-  { css: () => ({ filter: 'invert(1)' }) }, // INVERT
-  { css: () => ({ transform: 'scaleX(-1)' }) }, // MIRROR
-  { css: (t) => ({ transform: `rotate(${(t * 90) % 360}deg) scale(1.6)` }) }, // KALEIDO
-  { css: () => ({ filter: 'saturate(0.3)' }), act: 'slow' }, // SLIT SCAN
-  { css: (t) => ({ transform: `scale(${1.08 + 0.04 * Math.sin(t * 8)}) rotate(2deg)` }) }, // FEEDBACK
-  { css: () => ({ filter: 'contrast(2)' }), act: 'jump' }, // BLOCK NOISE
-  { css: () => ({}), act: 'pause' }, // FRAME HOLD
-  { css: (t) => ({ transform: `translateY(${((t * 300) % 480) - 240}px)` }) }, // V-ROLL
-  { css: (t) => ({ transform: `skewX(${Math.sin(t * 9) * 20}deg)` }) }, // H-SYNC
-  { css: () => ({ filter: 'grayscale(1) contrast(20)' }) }, // THRESHOLD
-  { css: () => ({ filter: 'grayscale(1) invert(1) contrast(6)' }) }, // EDGE
-  { css: (t) => ({ transform: `scale(${1.4 + 0.3 * Math.sin(t * 6)})` }) }, // ZOOM
-  { css: (t) => ({ transform: `rotate(${Math.sin(t * 1.3) * 25}deg) scale(1.3)` }) }, // TWIST
-  { css: () => ({ filter: 'saturate(6) blur(1px)' }) }, // CHROMA BLEED
-  { css: () => ({ filter: 'brightness(1.2)' }), act: 'fast' }, // ECHO TRAIL
-  { css: () => ({ transform: 'scale(0.5)' }) }, // SPLIT
-  { css: (t) => ({ opacity: Math.floor(t * 12) % 2 ? 1 : 0.1 }), act: 'mute' }, // STROBE
-  { css: (t) => ({ filter: 'blur(1.5px)', transform: `translateY(${(t * 40) % 30}px) scaleY(1.25)` }) }, // MELT
-];
-
 export function mountTele(api: HostApi): ToyUI {
   const root = document.createElement('div');
   root.className = 'toy-root toy-tele';
   root.innerHTML = `
     <div class="tk-side left"><div class="tk-guide">
       <b>入力ソースの使い方</b>
-      <p><i>TAB</i>（おすすめ）：YouTube などを別のタブで再生しておき、「TAB を取り込む」→「タブ」→ そのタブを選ぶ →<u>「タブの音声も共有する」をオン</u>→ 共有。映像も音も全部壊せます。</p>
-      <p><i>YOUTUBE</i>：URL を貼って LOAD。中身は加工できないので、再生そのものを操作して壊します。</p>
-      <p><i>FILE / CAM</i>：手持ちの動画ファイル（ドラッグ＆ドロップでも）、または Web カメラ。</p>
+      <p><i>CAM</i>：Web カメラ（最初はこれ。許可しなければ <i>TEST</i> のテスト映像になります）。</p>
+      <p><i>TAB</i>：動画を別のタブで再生しておき、「TAB を取り込む」→「タブ」→ そのタブを選ぶ →<u>「タブの音声も共有する」をオン</u>→ 共有。映像も音も全部壊せます。</p>
+      <p><i>FILE</i>：手持ちの動画ファイル（ドラッグ＆ドロップでも）。</p>
+      <p class="tk-rights">他人の動画・音楽を加工・録画・公開するときは、権利者の許可を得てください。</p>
     </div></div>
     <div class="tk-side right"></div>
     <svg class="tk-wires" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">
@@ -112,20 +83,16 @@ export function mountTele(api: HostApi): ToyUI {
     <div class="tk-monitor">
       <div class="tk-screen">
         <canvas data-id="gl"></canvas>
-        <div class="tk-yt" data-id="yt"></div>
-        <div class="tk-ytfx" data-id="ytfx"></div>
         <div class="tk-osd" data-id="osd">NO SIGNAL</div>
       </div>
       <div class="tk-brand">TELEKEY <b>TK-6</b></div>
       <div class="tk-vrec"><button data-id="vrec" title="加工後の映像と音を録画（WebM）">● REC VIDEO</button><span data-id="vtime"></span></div>
       <div class="tk-glass"></div>
       <div class="tk-src">
-        <button data-src="youtube">YOUTUBE</button>
-        <input data-id="url" type="text" placeholder="YouTube の URL を貼る" spellcheck="false">
-        <button data-id="load">LOAD</button>
         <button data-src="tab">TAB を取り込む</button>
         <button data-src="file">FILE</button>
         <button data-src="cam">CAM</button>
+        <button data-src="test">TEST</button>
         <button data-src="none" title="入力を外す">✕</button>
         <input data-id="file" type="file" accept="video/*" hidden>
       </div>
@@ -142,21 +109,21 @@ export function mountTele(api: HostApi): ToyUI {
   // ================= 映像 =================
   const osd = $('osd');
   const note = $('note');
-  const ytEl = $('yt');
-  const ytFx = $('ytfx');
   let pipe: VideoPipeline | null = null;
   try {
     pipe = new VideoPipeline($('gl') as HTMLCanvasElement);
   } catch {
     osd.textContent = 'WebGL2 が使えません';
   }
-  const sources = new Sources(ytEl, (src) => api.connectVideo(src));
+  const sources = new Sources((src) => api.connectVideo(src));
   const setNote = (t: string, warn = false) => { note.textContent = t; note.classList.toggle('warn', warn); };
   sources.onChange = (kind: SourceKind, label: string) => {
     root.dataset.src = kind;
     root.querySelectorAll('[data-src]').forEach((el) => el.classList.toggle('sel', (el as HTMLElement).dataset.src === kind));
-    setNote(kind === 'youtube' ? `${label} ／ YouTube モードは動画の中身を加工できません（再生の操作と重ねる効果で壊します）` : label, label.includes('音声なし'));
+    setNote(label, label.includes('音声なし'));
     cues.clear();
+    // テスト映像のときは、エンジンがテスト信号（音）を入力の代わりに使う
+    api.post({ type: 'signal', on: kind === 'test' });
   };
 
   // ---- グリッチの状態：自分で押したもの ∪ エンジンから届いたもの（シーケンサー再生など） ----
@@ -176,6 +143,7 @@ export function mountTele(api: HostApi): ToyUI {
   let heatPh = 0;
   const screen = root.querySelector('.tk-screen') as HTMLElement;
   let prevT = 0;
+  let started = false;
   const frame = (now: number) => {
     const t = now / 1000;
     const dt = Math.min(0.1, t - prevT);
@@ -201,36 +169,27 @@ export function mountTele(api: HostApi): ToyUI {
       pipe.flash = flash;
       pipe.seed = (pipe.seed + 0.37) % 1000;
       pipe.knobs = { fbk: fxv.fb, dist: fxv.dist, dtype: fxv.dtype, mixv: fxv.mix, lfo: lfoVid, snow: powered ? fxv.snow : 0 };
-      if (root.offsetParent !== null) pipe.render(sources.frameSource, t, powered, powered && sources.kind === 'none');
+      if (root.offsetParent !== null) {
+        if (sources.kind === 'test') sources.test.draw(now);
+        pipe.render(sources.frameSource, t, powered, powered && sources.kind === 'none');
+      }
     }
     flash *= 0.8;
-    // ---- YouTube：再生の操作と、重ねる効果 ----
-    if (sources.kind === 'youtube') {
-      const filters: string[] = [], transforms: string[] = [];
-      let opacity = 1;
-      for (let n = 0; n < 24; n++) {
-        const on = (m & (1 << n)) !== 0, was = (prevActive & (1 << n)) !== 0;
-        const fx = YT[n];
-        if (on) {
-          const c = fx.css(t);
-          if (c.filter) filters.push(c.filter);
-          if (c.transform) transforms.push(c.transform);
-          if (c.opacity !== undefined) opacity = Math.min(opacity, c.opacity);
-        }
-        if (fx.act && on && !was) sources.startAction(fx.act);
-        if (fx.act && !on && was) sources.stopAction(fx.act);
-      }
-      if (fz && !prevFreeze) sources.startAction('stutter');
-      if (!fz && prevFreeze) sources.stopAction('stutter');
-      ytEl.style.filter = filters.join(' ');
-      ytEl.style.transform = transforms.join(' ');
-      ytEl.style.opacity = String(opacity);
-      ytFx.classList.toggle('glitching', m !== 0 || fz);
-      ytFx.style.setProperty('--flash', String(flash));
-    }
     prevActive = m;
     prevFreeze = fz;
     osd.hidden = !powered || sources.kind !== 'none';
+    // 初めて画面に出たとき：Web カメラをデモとして開く（許可されなければテスト映像）
+    if (!started && root.offsetParent !== null) {
+      started = true;
+      if (sources.kind === 'none') {
+        // 許可を待つ間もテスト映像を映しておき、カメラが使えたら切り替える
+        sources.openTest();
+        setNote('Web カメラの許可を待っています（許可しなければテスト映像のまま）');
+        sources.openCam().catch(() => {
+          if (sources.kind === 'test') setNote('カメラが使えないので、テスト映像を映しています（CAM で再挑戦・TAB / FILE で別の入力）');
+        });
+      }
+    }
     requestAnimationFrame(frame);
   };
   requestAnimationFrame(frame);
@@ -245,18 +204,13 @@ export function mountTele(api: HostApi): ToyUI {
       setNote(/Permission|NotAllowed/i.test(msg) ? '取り込みがキャンセルされました（許可されませんでした）' : `開けませんでした：${msg}`, true);
     }
   };
-  const url = $('url') as HTMLInputElement;
   const fileIn = $('file') as HTMLInputElement;
-  const loadUrl = () => { if (url.value.trim()) void tryOpen(() => sources.openYouTube(url.value)); };
-  $('load').addEventListener('click', loadUrl);
-  url.addEventListener('keydown', (e) => { e.stopPropagation(); if (e.key === 'Enter') { loadUrl(); url.blur(); } });
-  url.addEventListener('keyup', (e) => e.stopPropagation());
   root.querySelectorAll<HTMLElement>('[data-src]').forEach((el) => el.addEventListener('click', () => {
     const s = el.dataset.src;
-    if (s === 'youtube') { url.focus(); if (url.value.trim()) loadUrl(); }
-    else if (s === 'tab') void tryOpen(() => sources.openTab());
+    if (s === 'tab') void tryOpen(() => sources.openTab());
     else if (s === 'file') fileIn.click();
     else if (s === 'cam') void tryOpen(() => sources.openCam());
+    else if (s === 'test') sources.openTest();
     else sources.close();
   }));
   fileIn.addEventListener('change', () => { const f = fileIn.files?.[0]; if (f) void tryOpen(() => sources.openFile(f)); fileIn.value = ''; });
@@ -277,10 +231,6 @@ export function mountTele(api: HostApi): ToyUI {
   const stopVideoRec = () => recorder?.state === 'recording' && recorder.stop();
   vrecBtn.addEventListener('click', async () => {
     if (recorder?.state === 'recording') { stopVideoRec(); return; }
-    if (sources.kind === 'youtube') {
-      setNote('YouTube モードの映像は録画できません（ブラウザの決まり）。TAB・FILE・CAM モードで録画してください。音だけなら上の REC で録れます', true);
-      return;
-    }
     const canvas = $('gl') as HTMLCanvasElement;
     const vs = canvas.captureStream(30);
     const as = await api.outputStream();

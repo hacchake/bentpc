@@ -9,7 +9,9 @@ export type ToyMsg =
   /** マイク入力をキーに録音する（on=true で開始、false で確定） */
   | { type: 'mic'; key: number; on: boolean }
   /** 保存しておいた自分の声を戻す（8kHz・8bit、null で消す） */
-  | { type: 'userSample'; key: number; data: Int8Array | null };
+  | { type: 'userSample'; key: number; data: Int8Array | null }
+  /** 映像入力の代わりにテスト信号（音）を使う（テスト映像のとき） */
+  | { type: 'signal'; on: boolean };
 
 export type ToEngine =
   | (ToyMsg & { toy: number })

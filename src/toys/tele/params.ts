@@ -4,7 +4,6 @@
 import type { ParamDef } from '../../core/params';
 
 export const LFO_TARGETS = ['VIDEO', 'AUDIO', 'BOTH'] as const;
-export const SOURCES = ['YOUTUBE', 'TAB', 'FILE / CAM'] as const;
 
 export const TELE_PARAMS = [
   { id: 'volume', name: 'MASTER VOL', kind: 'continuous', min: 0, max: 1, default: 0.75, midiCC: 7 },

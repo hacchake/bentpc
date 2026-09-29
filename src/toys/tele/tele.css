@@ -15,18 +15,7 @@
   box-shadow: 0 0 0 14px #2a2823, 0 0 0 18px #9a927c, inset 0 0 40px rgba(0,0,0,.9);
 }
 .tk-screen canvas { position: absolute; left: 10px; top: 7px; width: 640px; height: 480px; }
-.tk-yt { position: absolute; left: 10px; top: 7px; width: 640px; height: 480px; pointer-events: none; display: none; }
-.tk-yt iframe { width: 100%; height: 100%; border: 0; }
-.toy-tele[data-src='youtube'] .tk-yt { display: block; }
-/* YouTube のときに重ねる層（走査線・周辺減光）。フェーズ2でグリッチもここに重なる */
-.tk-ytfx { position: absolute; inset: 0; pointer-events: none; display: none;
-  background:
-    repeating-linear-gradient(180deg, rgba(0,0,0,.28) 0 1px, transparent 1px 3px),
-    radial-gradient(ellipse at center, transparent 55%, rgba(0,0,0,.65) 100%);
-}
-.toy-tele[data-src='youtube'] .tk-ytfx { display: block; }
-.toy-tele:not(.powered) .tk-yt { opacity: 0; }
-.tk-osd {
+.toy-tele:not(.powered) .tk-osd {
   position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
   color: #cfe; font-size: 34px; letter-spacing: 6px; text-shadow: 0 0 10px #7ff;
   background: rgba(0, 20, 40, .6); padding: 6px 18px;
@@ -94,14 +83,6 @@
 .tk-key.down .top { color: #333 !important; }
 .tk-key.down .fn { color: #b3261e !important; }
 
-/* YouTube モードでグリッチ中：ノイズの横線と明滅を重ねる */
-.tk-ytfx.glitching {
-  background:
-    repeating-linear-gradient(180deg, rgba(0,0,0,.35) 0 1px, transparent 1px 3px),
-    repeating-linear-gradient(180deg, transparent 0 37px, rgba(255,255,255,.18) 37px 39px, transparent 39px 83px),
-    radial-gradient(ellipse at center, rgba(255,255,255,calc(var(--flash, 0) * 1.5)) 0%, transparent 55%, rgba(0,0,0,.65) 100%);
-  animation: tk-noise .12s steps(3) infinite;
-}
 @keyframes tk-noise { 0% { background-position: 0 0, 0 0, 0 0; } 33% { background-position: 0 1px, 0 -60px, 0 0; } 66% { background-position: 0 2px, 0 45px, 0 0; } }
 /* シーケンサーなど、エンジン側で効いているグリッチのキー */
 .tk-key.lit { box-shadow: 0 5px 0 #968e75, 0 0 12px 3px rgba(255,90,70,.8), inset 0 0 0 2px #ff5a4f; }
@@ -151,3 +132,5 @@
   background: radial-gradient(circle at 40% 35%, #f4f4f4, #9a9a9a 60%, #666);
   box-shadow: 30px -4px 0 -2px #aaa, -40px 2px 0 -3px #999;
 }
+
+.tk-guide .tk-rights { color: #b3261e; font-weight: 700; }

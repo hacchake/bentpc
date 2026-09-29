@@ -284,16 +284,19 @@ export class VideoPipeline {
   }
 
   /** 1 フレーム描く。video が無ければ、snow = true のとき砂嵐、そうでなければ黒 */
-  render(video: HTMLVideoElement | null, time: number, powered: boolean, snow = false): void {
+  render(video: HTMLVideoElement | HTMLCanvasElement | null, time: number, powered: boolean, snow = false): void {
     const gl = this.gl;
     this.power += ((powered ? 1 : 0) - this.power) * 0.15;
     let has = 0;
     let scale = [1, 1];
-    if (video && video.readyState >= 2 && video.videoWidth) {
+    const isCanvas = video instanceof HTMLCanvasElement;
+    const vw = isCanvas ? video.width : (video?.videoWidth ?? 0);
+    const vh = isCanvas ? video.height : (video?.videoHeight ?? 0);
+    if (video && (isCanvas || video.readyState >= 2) && vw) {
       gl.bindTexture(gl.TEXTURE_2D, this.srcTex);
       gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, video);
       has = 1;
-      const va = video.videoWidth / video.videoHeight, sa = this.w / this.h;
+      const va = vw / vh, sa = this.w / this.h;
       scale = va > sa ? [1, sa / va] : [va / sa, 1];
     }
     if (!has && snow) this.draw(this.pSnow, this.b, {}, { time });

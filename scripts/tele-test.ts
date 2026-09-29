@@ -1,5 +1,6 @@
 // 6台目 TELEKEY の自動テスト：取り込んだ音の通り道、24 種の音グリッチ、FREEZE、楽器キー 11 種
 import { TeleEngine } from '../src/toys/tele/dsp/engine';
+import { TestSignal } from '../src/core/testsignal';
 import { BURSTS, GLITCHES, TELE_KEYS, TELE_KEY_INDEX } from '../src/toys/tele/params';
 
 const SR = 48000;
@@ -173,6 +174,20 @@ for (const keys of [['KeyQ'], ['KeyQ', 'KeyW'], ['KeyQ', 'KeyW', 'KeyE']]) {
   if (e.heat < 0.45) ng('一発グリッチの連打で熱くならない');
   e.keyDown(K('Escape'));
   if (e.heat !== 0) ng('RESET で熱が戻らない');
+}
+// テスト信号（テスト映像の音）：鳴る・同じ拍なら毎回同じ・TELEKEY を通る
+{
+  const s1 = new TestSignal(SR), s2 = new TestSignal(SR);
+  const a = new Float32Array(SR), b2 = new Float32Array(SR);
+  s1.render(a, 3, 120); s2.render(b2, 3, 120);
+  console.log('テスト信号 rms', rms(a).toFixed(4));
+  if (rms(a) < 0.03 || bad(a)) ng('テスト信号が鳴らない');
+  if (diff(a, b2) > 1e-9) ng('テスト信号が同じ拍で変わる');
+  const e = new TeleEngine(SR); e.powerOn();
+  const o = new Float32Array(128);
+  let sum = 0;
+  for (let i = 0; i < 375; i++) { const blk = new Float32Array(128); s1.render(blk, i * 128 / SR * 2, 120); e.process(o, blk); sum += rms(o); }
+  if (sum / 375 < 0.02) ng('テスト信号が TELEKEY を通らない');
 }
 // 全部押しても壊れない
 {
