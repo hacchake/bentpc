@@ -16,11 +16,18 @@ export const songSeconds = (song: Song, tail = 1) => (songBeats(song) * 60) / so
 /**
  * 曲を 1 回鳴らしたモノラルの波形を返す。onBlock は進み具合（0〜1）を知らせる（重い処理を分けたいとき用）
  */
-export function renderSong(song: Song, sr: number, opts: { toys?: number[]; tail?: number; onProgress?: (f: number) => void } = {}): Float32Array {
+export function renderSong(
+  song: Song,
+  sr: number,
+  opts: { toys?: number[]; tail?: number; onProgress?: (f: number) => void; userSamples?: { toy: number; key: number; data: Float32Array }[] } = {},
+): Float32Array {
   const ids = opts.toys ?? STUDIO_TOYS;
   const make = (seed?: number) => ids.map((id) => TOY_ENGINES[id](sr, seed === undefined ? undefined : hashSeed(seed, id) >>> 0));
   const sig = new TestSignal(sr);
-  const seq = new Sequencer(sr, make(), { onTake: () => {}, onEnd: () => {}, onRebuild: () => sig.reset() }, make);
+  const toys = make();
+  // 自分の声（トイPC の MY VOICE）も入れる
+  const voices = () => opts.userSamples?.forEach((u) => toys[u.toy]?.setUserSample?.(u.key, u.data));
+  const seq = new Sequencer(sr, toys, { onTake: () => {}, onEnd: () => {}, onRebuild: () => { sig.reset(); voices(); } }, make);
   const s = cloneSong(song);
   s.metronome = false;
   seq.setSong(s);

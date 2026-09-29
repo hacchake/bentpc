@@ -1,10 +1,23 @@
 // スタジオの曲データの元（空の曲）。デモ曲・自動作曲もここから作る。
 import type { Song } from '../core/song';
+import { PARAMS as BLIPPY_PARAMS } from '../toys/blippy/params';
+import { TELE_PARAMS } from '../toys/tele/params';
+import type { MidiToy } from './midi-export';
 
 /** スタジオで使うおもちゃ（src/toys/engines.ts の番号）：0 = BLIPPY BOOK 30、5 = TELEKEY TK-6 */
 export const STUDIO_TOYS = [0, 5];
 export const TOY_PC = 0; // 曲の中のおもちゃ番号（STUDIO_TOYS の並び）
 export const TELE = 1;
+
+/**
+ * MIDI の書き出しの決まり（将来の VST でも同じにする）：
+ * トイPC = チャンネル 1、ノート 36〜75 = 40 キー（ラックの MIDI 入力と同じ）
+ * TELEKEY = チャンネル 6、ノート 24〜95 = 72 キー（キー番号 + 24。グリッチキー・楽器キー・機能キーすべて）
+ */
+export const STUDIO_MIDI: MidiToy[] = [
+  { title: 'BLIPPY BOOK 30', channel: 0, noteOf: (k) => (k < 40 ? 36 + k : -1), paramDefs: BLIPPY_PARAMS },
+  { title: 'TELEKEY TK-6', channel: 5, noteOf: (k) => (k < 72 ? 24 + k : -1), paramDefs: TELE_PARAMS },
+];
 
 export function blankStudioSong(): Song {
   return {

@@ -9,6 +9,7 @@ import { AudioHost } from '../host/audio';
 import { TOY_UIS } from '../toys/uis';
 import { Arranger } from './arranger';
 import { demoSong } from './demo';
+import { exportMidi, exportWav, makeCompositor, safeName } from './export';
 import { STUDIO_TOYS, blankStudioSong } from './songs';
 
 const $ = (id: string) => document.getElementById(id) as HTMLElement;
@@ -87,12 +88,13 @@ audio.onMessage = (m) => {
     playing = m.playing;
     arr.setPos(m.beat, m.playing, m.recording);
   } else if (m.type === 'seqTake') arr.addTake(m.data);
-  else if (m.type === 'seqEnd') clearViews();
+  else if (m.type === 'seqEnd') { clearViews(); onSongEnd?.(); }
   else if (m.type === 'recChunk' || m.type === 'recDone') onRec?.(m);
   else if ('toy' in m) {
     toys[m.toy]?.onMessage(m);
     if (m.type === 'status') {
       const heat = m.status.fx.heat ?? 0;
+      heats[m.toy] = heat;
       (slots[m.toy].querySelector('.stress i') as HTMLElement).style.width = `${Math.min(100, heat * 100)}%`;
       arr.setStress(m.toy, heat);
     }
@@ -108,6 +110,7 @@ const shown = toys.map(() => new Map<number, number>());
 const crashed = toys.map(() => false);
 function resetViews(): void {
   toys.forEach((t, toy) => {
+    t.setTestClock?.(clock);
     t.paramDefs.forEach((p, i) => { if (p.kind !== 'momentary') t.showParam?.(i, p.default); });
     shown[toy].clear();
   });
@@ -120,6 +123,8 @@ function clearViews(): void {
   });
 }
 const clock = { beat: 0, bpm: 120, label: '' };
+const heats = toys.map(() => 0);
+let onSongEnd: (() => void) | null = null;
 function frame(now: number): void {
   const song: Song = arr.song;
   const beat = playing ? posBeat + ((now - posAt) / 1000) * (song.bpm / 60) : arr.playhead;
@@ -191,6 +196,61 @@ document.querySelectorAll<HTMLButtonElement>('#s-top button').forEach((b) => { b
 
 requestAnimationFrame(fit);
 new ResizeObserver(fit).observe($('arr-wrap'));
+// ================= 書き出し =================
+const wavBtn = arr.addButton('WAV', '曲を最初から最後まで WAV（音声）に書き出す（実際の時間より速く作ります）', async () => {
+  if (wavBtn.disabled) return;
+  wavBtn.disabled = true;
+  try {
+    await exportWav(arr.song, (f) => { wavBtn.textContent = `WAV ${Math.round(f * 100)}%`; });
+  } catch (e) {
+    alert(`WAV を書き出せませんでした：${(e as Error).message}`);
+  }
+  wavBtn.textContent = 'WAV';
+  wavBtn.disabled = false;
+});
+let vrec: MediaRecorder | null = null;
+const webmBtn = arr.addButton('WebM', '曲を最初から最後まで再生して、映像（TELEKEY のモニター＋トイPC の液晶）と音を WebM に録画する（曲の長さだけ時間がかかります）', async () => {
+  if (vrec) { audio.post({ type: 'transport', play: false }); vrec.stop(); return; }
+  await audio.start();
+  const comp = makeCompositor({
+    song: () => arr.song,
+    beat: () => clock.beat,
+    section: () => clock.label,
+    tele: toys[1].root.querySelector('canvas[data-id="gl"]') as HTMLCanvasElement,
+    lcd: toys[0].root.querySelector('canvas[data-id="lcd"]') as HTMLCanvasElement,
+    heat: (t) => heats[t],
+    crashed: (t) => crashed[t],
+  });
+  comp.draw();
+  const stream = new MediaStream([...comp.canvas.captureStream(30).getVideoTracks(), ...(await audio.outputStream()).getAudioTracks()]);
+  const type = ['video/webm;codecs=vp9,opus', 'video/webm;codecs=vp8,opus', 'video/webm'].find((t) => MediaRecorder.isTypeSupported(t)) ?? '';
+  const rec = new MediaRecorder(stream, type ? { mimeType: type, videoBitsPerSecond: 8_000_000 } : undefined);
+  const chunks: Blob[] = [];
+  rec.ondataavailable = (e) => { if (e.data.size) chunks.push(e.data); };
+  rec.onstop = () => {
+    vrec = null;
+    onSongEnd = null;
+    webmBtn.textContent = 'WebM';
+    webmBtn.classList.remove('on');
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob(chunks, { type: 'video/webm' }));
+    a.download = `${safeName(arr.song)}.webm`;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 20000);
+  };
+  const loop = () => { if (!vrec) return; comp.draw(); requestAnimationFrame(loop); };
+  vrec = rec;
+  rec.start(1000);
+  webmBtn.textContent = '■ 録画中（押すと止める）';
+  webmBtn.classList.add('on');
+  requestAnimationFrame(loop);
+  // 曲を頭から 1 回だけ鳴らす（ループしない）。終わったら少し余韻を録って止める
+  resetViews();
+  audio.post({ type: 'bounce' });
+  onSongEnd = () => setTimeout(() => vrec?.state === 'recording' && vrec.stop(), 1200);
+});
+arr.addButton('MIDI', '曲を MIDI ファイルに書き出す（トイPC = チャンネル 1、TELEKEY = チャンネル 6。将来の VST 用）', () => exportMidi(arr.song));
+
 // シーケンサーの高さ：上の縁をドラッグで変える
 {
   const wrap = $('arr-wrap');

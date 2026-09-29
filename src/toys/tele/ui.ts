@@ -531,6 +531,7 @@ export function mountTele(api: HostApi): ToyUI {
     setTestClock(clock) {
       started = true; // スタジオでは Web カメラを自動で開かない
       sources.test.external = clock;
+      sources.test.jump(0); // 呼び直すたびにキューで飛んだ分を戻す（頭から再生するとき）
       if (clock && sources.kind !== 'test') sources.openTest();
     },
   };
