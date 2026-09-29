@@ -146,6 +146,34 @@ if (minD < 0.005) ng('似すぎたグリッチがある');
   console.log('混線：同じキーで出たグリッチの組み合わせ', seen.size, '通り');
   if (seen.size < 3) ng('キー混線が効いていない');
 }
+// ---- フェーズ4：熱（やりすぎると暴発、離せば冷める。固まらない）----
+for (const keys of [['KeyQ'], ['KeyQ', 'KeyW'], ['KeyQ', 'KeyW', 'KeyE']]) {
+  const e = fresh();
+  keys.forEach((c) => e.keyDown(K(c)));
+  let first = -1, count = 0, prev = 0;
+  for (let s = 0; s < 40; s++) {
+    run(e, 0.5);
+    const sp = e.status().fx.spon;
+    if (sp && !prev) { count++; if (first < 0) first = s * 0.5; }
+    prev = sp;
+  }
+  keys.forEach((c) => e.keyUp(K(c)));
+  let cool = 0;
+  while (e.heat > 0.45 && cool < 30) { run(e, 0.5); cool += 0.5; }
+  run(e, 1);
+  console.log(`GLITCH ${keys.length} 個押しっぱなし 20 秒：暴発開始 ${first}s / 暴発 ${count} 回 / 離して ${cool}s で落ち着く`);
+  if (first < 0 && keys.length >= 2) ng('熱で暴発しない');
+  if (cool >= 30) ng('冷めない');
+  if (e.mask !== 0) ng('冷めた後もグリッチが残る（固まっている）');
+}
+{
+  const e = fresh();
+  for (let i = 0; i < 12; i++) { e.keyDown(K('F' + ((i % 5) + 1))); run(e, 0.1); }
+  console.log('一発グリッチ連打 12 回の熱', e.heat.toFixed(2));
+  if (e.heat < 0.45) ng('一発グリッチの連打で熱くならない');
+  e.keyDown(K('Escape'));
+  if (e.heat !== 0) ng('RESET で熱が戻らない');
+}
 // 全部押しても壊れない
 {
   const e = fresh();

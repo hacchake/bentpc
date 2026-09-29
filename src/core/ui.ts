@@ -15,6 +15,8 @@ export interface HostApi {
   enableMic(): Promise<boolean>;
   /** 取り込んだ動画の音をエンジンへ流す（6台目） */
   connectVideo(src: MediaStream | HTMLMediaElement | null): Promise<void>;
+  /** 出力の音（録画用） */
+  outputStream(): Promise<MediaStream>;
 }
 
 export interface ToyUI {

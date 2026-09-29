@@ -70,6 +70,10 @@ export class TeleEngine implements ToyEngine<{ text: string }> {
   private crushCnt = 0;
   private lfoPh = 0;
   private burstCd = 0;
+  // ---- 熱（ストレス）：やりすぎると勝手に暴れる。固まらず、手を離せば冷める ----
+  heat = 0;
+  private presses = 0; // この区間に押したグリッチキー・一発グリッチの数
+  private spon: { mask: number; snow: boolean; stick: boolean; mute: boolean; left: number } | null = null;
   // ---- 楽器 ----
   private inst: Inst[] = [];
   private hits = 0;
@@ -132,6 +136,7 @@ export class TeleEngine implements ToyEngine<{ text: string }> {
     const b = BURSTS[this.p('base')][n];
     this.burst = { ...b, left: b.dur * this.sampleRate, t: 0 };
     this.burstCount++;
+    this.presses += 5;
     this.chaosMask = 0;
     if (b.extra === 'chaos') for (let i = 0; i < 5; i++) this.chaosMask |= 1 << this.rng.int(24);
     if (b.extra === 'chord') [0, 4, 7].forEach((d) => this.hit(0, 48 + d));
@@ -164,6 +169,7 @@ export class TeleEngine implements ToyEngine<{ text: string }> {
       for (const n of this.burst.glitches) m |= 1 << n;
       m |= this.chaosMask;
     }
+    if (this.spon) m |= this.spon.mask;
     this.mask = m;
     // 読み方を決める「一番上」のグリッチが変わったら、読み出しの準備
     const top = this.topGlitch();
@@ -205,6 +211,7 @@ export class TeleEngine implements ToyEngine<{ text: string }> {
           if (this.rng.chance(0.45)) list.push((list[0] + (this.rng.chance(0.5) ? 1 : 23)) % 24);
         }
         this.pressed.set(key, list);
+        this.presses++;
         this.order = [...this.order.filter((x) => x !== key), key];
         this.updateMask();
         break;
@@ -224,6 +231,8 @@ export class TeleEngine implements ToyEngine<{ text: string }> {
           case 'hold': this.hold(); break;
           case 'release': this.releaseAll(); break;
           case 'reset':
+            this.heat = 0;
+            this.spon = null;
             this.releaseAll();
             this.pressed.clear();
             this.order = [];
@@ -250,6 +259,48 @@ export class TeleEngine implements ToyEngine<{ text: string }> {
     } else if (r.r === 'inst') {
       for (const v of this.inst) if (v.kind === r.n && v.note === 48 + r.note) v.held = false;
     } else if (r.r === 'fn' && r.f === 'freeze') this.freeze = false;
+  }
+
+  /**
+   * 熱を dt 秒ぶん進める。上がる：同時に効いているグリッチの数・連打・一発グリッチ・過激なノブ・混線。
+   * 0.45 を超えると、勝手にグリッチ／砂嵐／音の張り付き／無音が起きる（20〜200ms、すぐ戻る）。
+   */
+  private updateHeat(dt: number): void {
+    let n = 0;
+    this.pressed.forEach((l) => { n += l.length; });
+    for (let b = 0; b < 24; b++) if (this.latched & (1 << b)) n += 0.5;
+    const active = n > 0 || !!this.burst || this.freeze;
+    let rise = active ? 0.035 * Math.pow(Math.max(1, n), 1.5) : 0;
+    if (active) {
+      if (this.p('feedback') > 0.8) rise += 0.05;
+      if (this.p('dist') > 0.8) rise += 0.04;
+      if (this.p('amount') > 0.9) rise += 0.03;
+      if (this.p('crosstalk') > 0.5) rise *= 1.3;
+    }
+    const decay = active ? 0.02 : 0.1;
+    this.heat = Math.max(0, Math.min(1.2, this.heat + (rise - decay) * dt + this.presses * 0.012));
+    this.presses = 0;
+    if (!this.powered) this.heat = 0;
+
+    // ---- 暴発 ----
+    if (this.spon) {
+      this.spon.left -= dt;
+      if (this.spon.left <= 0) { this.spon = null; this.updateMask(); }
+    } else if (this.powered && this.heat > 0.45 && this.rng.next() < (this.heat - 0.45) * 6 * dt) {
+      const kind = this.rng.next();
+      let mask = 0;
+      const k = 1 + (this.heat > 0.9 ? this.rng.int(3) : 0);
+      for (let i = 0; i < k; i++) mask |= 1 << this.rng.int(24);
+      this.spon = {
+        mask: kind < 0.6 ? mask : 0,
+        snow: kind >= 0.6 && kind < 0.75,
+        stick: kind >= 0.75 && kind < 0.9,
+        mute: kind >= 0.9,
+        left: 0.02 + this.rng.next() * 0.18,
+      };
+      if (this.spon.stick) this.startSeg(Math.floor(this.sampleRate * 0.005));
+      this.updateMask();
+    }
   }
 
   /** 読み出し方を変えるグリッチの準備 */
@@ -298,7 +349,8 @@ export class TeleEngine implements ToyEngine<{ text: string }> {
       },
       fx: {
         mask: this.mask, freeze: this.freeze ? 1 : 0, hits: this.hits, hit: this.lastHit, seed: this.rng.getState(),
-        burst: this.burstCount, snow: this.burst?.extra === 'snow' ? 1 : 0,
+        burst: this.burstCount, snow: this.burst?.extra === 'snow' || this.spon?.snow ? 1 : 0,
+        heat: Math.round(this.heat * 100) / 100, spon: this.spon ? 1 : 0,
         // 映像側も同じノブの値で壊す（シーケンサーのツマミの動きにも付いていく）
         amount: r2(this.p('amount')), fb: r2(this.p('feedback')), dist: r2(this.p('dist')), dtype: this.p('distType'),
         mix: r2(this.p('mix')), speed: r2(this.p('speed')), lfoR: r2(this.p('lfoRate')), lfoD: r2(this.p('lfoDepth')), lfoT: this.p('lfoTarget'),
@@ -319,6 +371,8 @@ export class TeleEngine implements ToyEngine<{ text: string }> {
     const lfoAudio = P('lfoTarget') !== 0 ? P('lfoDepth') : 0;
     const speedSemis = (P('speed') - 0.5) * 24;
     let peak = 0;
+    this.updateHeat(out.length / sr);
+    const spon = this.spon;
 
     for (let i = 0; i < out.length; i++) {
       const x0 = input ? input[i] : 0;
@@ -357,7 +411,11 @@ export class TeleEngine implements ToyEngine<{ text: string }> {
       // ---- どこを読むか ----
       const pitchAll = this.pitchSemis + speedSemis + extraPitch + lfo * lfoAudio * 2;
       let x: number;
-      if (this.freeze || top === 0 || top === 12) {
+      if (spon?.stick && this.segLen) {
+        // 暴発：音が一音で張り付く（ごく短い断片）
+        x = this.buf[(this.segStart + this.segPos) % L];
+        this.segPos = (this.segPos + 1) % Math.min(this.segLen, 240);
+      } else if (this.freeze || top === 0 || top === 12) {
         // FREEZE・STUTTER・GRAIN HOLD：短い断片を繰り返す
         x = this.buf[(this.segStart + this.segPos) % L];
         this.segPos = (this.segPos + 1) % this.segLen;
@@ -425,6 +483,8 @@ export class TeleEngine implements ToyEngine<{ text: string }> {
       for (const v of this.inst) s += this.voice(v);
 
       // ---- DRY/WET・FEEDBACK・DIST ----
+      if (spon?.mute) x = 0;
+      if (spon?.snow) x = x * 0.4 + this.rng.bi() * 0.3;
       let y = this.mask || this.freeze || Math.abs(pitchAll) > 0.01 ? x0 + (x - x0) * mixK : x;
       y += s;
       if (fb > 0.001) {

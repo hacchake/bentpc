@@ -116,3 +116,38 @@
 .tk-wires .w2 { stroke: #1d1d1d; }
 .tk-wires .w3 { stroke: #e0b400; }
 .toy-tele .knob.big { width: 56px; height: 56px; }
+
+/* 録画ボタン */
+.tk-vrec { position: absolute; left: 60px; top: 5px; display: flex; gap: 8px; align-items: center; }
+.tk-vrec button {
+  height: 22px; padding: 0 10px; border-radius: 11px; border: 1px solid #8a826c;
+  background: linear-gradient(180deg, #f4efe0, #d8d0b8); color: #b3261e; font: 700 11px 'Share Tech Mono', monospace; cursor: pointer;
+}
+.tk-vrec button.on { background: #b3261e; color: #fff; animation: tk-blink 1s steps(2) infinite; }
+.tk-vrec span { font: 12px 'Share Tech Mono', monospace; color: #b3261e; }
+@keyframes tk-blink { 50% { opacity: .6; } }
+
+/* ブラウン管のガラスの映り込みと、光のにじみ */
+.tk-glass {
+  position: absolute; left: 110px; top: 34px; width: 660px; height: 495px; border-radius: 40px / 34px;
+  pointer-events: none;
+  background: linear-gradient(155deg, rgba(255,255,255,.14) 0%, rgba(255,255,255,.04) 22%, transparent 40%),
+    radial-gradient(ellipse at 70% 110%, rgba(255,255,255,.06), transparent 50%);
+}
+.toy-tele.powered .tk-screen { box-shadow: 0 0 0 14px #2a2823, 0 0 0 18px #9a927c, inset 0 0 40px rgba(0,0,0,.9), 0 0 60px 10px rgba(150, 220, 255, .12); }
+
+/* 熱の LED：熱いほど赤く強く光る */
+.led.heat.lit { background: radial-gradient(circle at 40% 35%, #fff, #ff3b1f 50%); box-shadow: 0 0 0 2px #bbb, 0 0 calc(8px + var(--hot, 0) * 20px) calc(2px + var(--hot, 0) * 6px) rgba(255, 60, 20, .85); }
+
+/* はんだ跡とテープ（改造の跡） */
+.tk-case::before, .tk-case::after {
+  content: ''; position: absolute; width: 90px; height: 22px; background: rgba(230, 210, 120, .75);
+  box-shadow: 0 1px 2px rgba(0,0,0,.3);
+}
+.tk-case::before { left: 28px; top: -8px; transform: rotate(-6deg); }
+.tk-case::after { right: 40px; top: -6px; transform: rotate(5deg); }
+.tk-side::after {
+  content: ''; position: absolute; left: 50%; bottom: 10px; width: 14px; height: 14px; border-radius: 50%;
+  background: radial-gradient(circle at 40% 35%, #f4f4f4, #9a9a9a 60%, #666);
+  box-shadow: 30px -4px 0 -2px #aaa, -40px 2px 0 -3px #999;
+}

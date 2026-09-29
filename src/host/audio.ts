@@ -47,6 +47,17 @@ export class AudioHost {
   }
 
   private videoSrc: AudioNode | null = null;
+  private outDest: MediaStreamAudioDestinationNode | null = null;
+
+  /** 出力（全部のおもちゃのミックス）を MediaStream として取り出す（録画用） */
+  async outputStream(): Promise<MediaStream> {
+    await this.start();
+    if (!this.outDest) {
+      this.outDest = this.ctx!.createMediaStreamDestination();
+      this.node!.connect(this.outDest);
+    }
+    return this.outDest.stream;
+  }
 
   /** 取り込んだ動画の音をエンジンの 2 つ目の入力へつなぐ（前のものは外す）。null で外すだけ */
   async connectVideo(src: MediaStream | HTMLMediaElement | null): Promise<void> {

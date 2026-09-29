@@ -40,6 +40,8 @@ const HELP = `
 </table>
 <p>右のパネル：GLITCH AMT（グリッチの強さ）・LFO（映像／音／両方をうねらせる）・FEEDBACK（映像も音も自分に返る）・DIST（CLIP／CRUSH）・SPEED/PITCH・DRY/WET・MASTER。
 CROSSTALK を ON にすると、キーが混線して隣のキーも効いたり、押すたびに別の効果になったりします。</p>
+<p>● REC VIDEO（モニター左上）：加工後の映像と音を録画して WebM で保存（TAB・FILE・CAM モード）。音だけなら上のバーの REC（WAV）。</p>
+<p>HEAT の LED：やりすぎると機械が熱くなり、勝手にグリッチ・砂嵐・音の張り付きが起きます（固まりません）。手を離せば冷めます。Esc（RESET）ですぐ冷やせます。</p>
 <p>TAB モード：「TAB を取り込む」→ Chrome の画面で「タブ」を選び、YouTube などのタブを選択 →「タブの音声も共有する」にチェック →「共有」。
 取り込んだタブの音は、こちらで加工した音だけが聞こえるように自動で止まります。</p>
 <p>YOUTUBE モード：ブラウザの決まりで、埋め込み動画の中身（映像・音）は直接加工できません。
@@ -115,6 +117,8 @@ export function mountTele(api: HostApi): ToyUI {
         <div class="tk-osd" data-id="osd">NO SIGNAL</div>
       </div>
       <div class="tk-brand">TELEKEY <b>TK-6</b></div>
+      <div class="tk-vrec"><button data-id="vrec" title="加工後の映像と音を録画（WebM）">● REC VIDEO</button><span data-id="vtime"></span></div>
+      <div class="tk-glass"></div>
       <div class="tk-src">
         <button data-src="youtube">YOUTUBE</button>
         <input data-id="url" type="text" placeholder="YouTube の URL を貼る" spellcheck="false">
@@ -168,6 +172,9 @@ export function mountTele(api: HostApi): ToyUI {
   // 改造パーツの値（エンジンから届く。シーケンサーのツマミの動きにも付いていく）
   const fxv = { fb: 0, dist: 0, dtype: 0, mix: 1, speed: 0.5, lfoR: 0.3, lfoD: 0, lfoT: 2, snow: 0, burst: 0 };
   let lfoPh = 0;
+  let heat = 0;
+  let heatPh = 0;
+  const screen = root.querySelector('.tk-screen') as HTMLElement;
   let prevT = 0;
   const frame = (now: number) => {
     const t = now / 1000;
@@ -179,6 +186,12 @@ export function mountTele(api: HostApi): ToyUI {
     lfoPh = (lfoPh + dt * 0.05 * Math.pow(400, fxv.lfoR)) % 1;
     const lfoVid = powered && fxv.lfoT !== 1 ? Math.sin(2 * Math.PI * lfoPh) * fxv.lfoD : 0;
     leds.lfo?.classList.toggle('lit', fxv.lfoD > 0.02 && Math.sin(2 * Math.PI * lfoPh) > 0);
+    // 熱：熱いほど LED が速く点滅し、画面が震える
+    heatPh = (heatPh + dt * (1 + heat * 14)) % 1;
+    leds.heat?.classList.toggle('lit', heat > 0.15 && heatPh < 0.5);
+    leds.heat?.style.setProperty('--hot', String(Math.min(1, heat)));
+    const shake = powered && heat > 0.6 ? (heat - 0.6) * 6 : 0;
+    screen.style.transform = shake ? `translate(${(Math.random() - 0.5) * shake}px, ${(Math.random() - 0.5) * shake}px)` : '';
     const level = Math.max(0.1, Math.min(1, (0.35 + 0.65 * amount) * (1 + 0.5 * lfoVid)));
     if (pipe) {
       for (let n = 0; n < 24; n++) pipe.g[n] = m & (1 << n) ? level : 0;
@@ -252,6 +265,51 @@ export function mountTele(api: HostApi): ToyUI {
     e.preventDefault();
     const f = e.dataTransfer?.files?.[0];
     if (f && f.type.startsWith('video/')) void tryOpen(() => sources.openFile(f));
+  });
+
+  // ================= 録画：モニターの映像（WebGL）＋全体の音を WebM に =================
+  const vrecBtn = $('vrec');
+  const vtime = $('vtime');
+  let recorder: MediaRecorder | null = null;
+  let recChunks: Blob[] = [];
+  let recStart = 0;
+  let recTimer = 0;
+  const stopVideoRec = () => recorder?.state === 'recording' && recorder.stop();
+  vrecBtn.addEventListener('click', async () => {
+    if (recorder?.state === 'recording') { stopVideoRec(); return; }
+    if (sources.kind === 'youtube') {
+      setNote('YouTube モードの映像は録画できません（ブラウザの決まり）。TAB・FILE・CAM モードで録画してください。音だけなら上の REC で録れます', true);
+      return;
+    }
+    const canvas = $('gl') as HTMLCanvasElement;
+    const vs = canvas.captureStream(30);
+    const as = await api.outputStream();
+    const stream = new MediaStream([...vs.getVideoTracks(), ...as.getAudioTracks()]);
+    const type = ['video/webm;codecs=vp9,opus', 'video/webm;codecs=vp8,opus', 'video/webm'].find((t) => MediaRecorder.isTypeSupported(t)) ?? '';
+    recorder = new MediaRecorder(stream, type ? { mimeType: type, videoBitsPerSecond: 6_000_000 } : undefined);
+    recChunks = [];
+    recorder.ondataavailable = (e) => { if (e.data.size) recChunks.push(e.data); };
+    recorder.onstop = () => {
+      clearInterval(recTimer);
+      vrecBtn.classList.remove('on');
+      vtime.textContent = '';
+      const blob = new Blob(recChunks, { type: 'video/webm' });
+      const d = new Date();
+      const p2 = (n: number) => String(n).padStart(2, '0');
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `telekey-${d.getFullYear()}${p2(d.getMonth() + 1)}${p2(d.getDate())}-${p2(d.getHours())}${p2(d.getMinutes())}${p2(d.getSeconds())}.webm`;
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(a.href), 10000);
+      setNote('録画を保存しました（WebM）');
+    };
+    recorder.start(1000);
+    recStart = performance.now();
+    vrecBtn.classList.add('on');
+    recTimer = window.setInterval(() => {
+      const sec = Math.floor((performance.now() - recStart) / 1000);
+      vtime.textContent = `${String(Math.floor(sec / 60)).padStart(2, '0')}:${String(sec % 60).padStart(2, '0')}`;
+    }, 250);
   });
 
   // ================= 電源・LED（改造パネルはフェーズ3） =================
@@ -399,6 +457,8 @@ export function mountTele(api: HostApi): ToyUI {
   b.label('CROSSTALK', 1690, 470, 'tk-hand');
   leds.lfo = b.place('led yellow', 1430, 540);
   b.label('LFO', 1430, 560, 'tk-lbl');
+  leds.heat = b.place('led heat', 1560, 540);
+  b.label('HEAT', 1560, 560, 'tk-lbl');
   leds.xt = b.place('led', 1690, 540);
   b.label('XTALK', 1690, 560, 'tk-lbl');
   for (const [x, y] of [[1368, 58], [1732, 58], [1368, 600], [1732, 600]]) b.place('screw', x, y);
@@ -449,6 +509,7 @@ export function mountTele(api: HostApi): ToyUI {
       leds.burst.classList.toggle('lit', st.leds.burst > 0);
       leds.hold.classList.toggle('lit', st.leds.hold > 0);
       leds.xt.classList.toggle('lit', st.leds.xt > 0);
+      heat = f.heat ?? 0;
     },
     keyDown(e) {
       const k = keyCtl.get(e.code);

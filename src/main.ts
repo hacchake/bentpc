@@ -29,6 +29,7 @@ const toys: ToyUI[] = TOY_UIS.map((make, toy) =>
     start: () => audio.start(),
     enableMic: () => audio.enableMic(),
     connectVideo: (src) => audio.connectVideo(src),
+    outputStream: () => audio.outputStream(),
   }),
 );
 const tabEls = toys.map((t, i) => {
