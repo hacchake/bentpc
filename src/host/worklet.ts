@@ -5,6 +5,7 @@ import { TOY_ENGINES } from '../toys/engines';
 import type { FromEngine, ToEngine } from './protocol';
 import { Sequencer } from './sequencer';
 import { TestSignal } from '../core/testsignal';
+import { hashSeed } from '../core/rng';
 
 declare const sampleRate: number;
 declare function registerProcessor(name: string, ctor: unknown): void;
@@ -15,22 +16,24 @@ declare class AudioWorkletProcessor {
 const REC_CHUNK = 8192;
 const MIC_MAX_SEC = 4;
 
+/** processorOptions：toys = 使うおもちゃの番号（省略時は全部。スタジオは [0, 5] など） */
+interface RackOptions { toys?: number[] }
+
 class ToyRackProcessor extends AudioWorkletProcessor {
-  private toys: ToyEngine[] = TOY_ENGINES.map((make) => make(sampleRate));
-  private sentVersion: number[] = this.toys.map(() => -1);
-  private lastStatus: string[] = this.toys.map(() => '');
+  private ids: number[];
+  private toys: ToyEngine[];
+  private sentVersion: number[];
+  private lastStatus: string[];
+  private userSamples: Map<number, Float32Array | null>[]; // 作り直したときに戻すため
   private statusCounter = 0;
   private tmp = new Float32Array(128);
   private click = new Float32Array(128);
   private vin = new Float32Array(128); // 取り込んだ動画の音（モノラル）
   private posCounter = 0;
   private signal = new TestSignal(sampleRate);
-  private signalOn: boolean[] = this.toys.map(() => false);
+  private signalOn: boolean[];
   private sigBuf = new Float32Array(128);
-  private seq = new Sequencer(sampleRate, this.toys, {
-    onTake: (take, data) => this.send({ type: 'seqTake', take, data }),
-    onEnd: () => this.send({ type: 'seqEnd' }),
-  });
+  private seq: Sequencer;
   // 録音
   private recording = false;
   private recBuf = new Float32Array(REC_CHUNK);
@@ -41,8 +44,25 @@ class ToyRackProcessor extends AudioWorkletProcessor {
   private micBuf = new Float32Array(sampleRate * MIC_MAX_SEC);
   private micPos = 0;
 
-  constructor() {
+  constructor(options?: { processorOptions?: RackOptions }) {
     super();
+    this.ids = options?.processorOptions?.toys ?? TOY_ENGINES.map((_, i) => i);
+    const make = (seed?: number) => this.ids.map((id) => TOY_ENGINES[id](sampleRate, seed === undefined ? undefined : (hashSeed(seed, id) >>> 0)));
+    this.toys = make();
+    this.sentVersion = this.toys.map(() => -1);
+    this.lastStatus = this.toys.map(() => '');
+    this.signalOn = this.toys.map(() => false);
+    this.userSamples = this.toys.map(() => new Map());
+    this.seq = new Sequencer(sampleRate, this.toys, {
+      onTake: (take, data) => this.send({ type: 'seqTake', take, data }),
+      onEnd: () => this.send({ type: 'seqEnd' }),
+      onRebuild: () => {
+        this.sentVersion.fill(-1);
+        this.lastStatus.fill('');
+        this.signal.reset();
+        this.userSamples.forEach((m, toy) => m.forEach((buf, key) => this.toys[toy].setUserSample?.(key, buf)));
+      },
+    }, make);
     this.port.onmessage = (e: MessageEvent<ToEngine>) => {
       const m = e.data;
       if (m.type === 'song') { this.seq.setSong(m.song); return; }
@@ -64,7 +84,12 @@ class ToyRackProcessor extends AudioWorkletProcessor {
           if (m.on) { this.micToy = m.toy; this.micKey = m.key; this.micPos = 0; }
           else if (this.micToy === m.toy && this.micKey === m.key) this.finishMic();
           break;
-        case 'userSample': t.setUserSample?.(m.key, m.data ? fromInt8(m.data) : null); break;
+        case 'userSample': {
+          const buf = m.data ? fromInt8(m.data) : null;
+          this.userSamples[m.toy].set(m.key, buf);
+          t.setUserSample?.(m.key, buf);
+          break;
+        }
         case 'signal': this.signalOn[m.toy] = m.on; break;
       }
     };
@@ -86,6 +111,7 @@ class ToyRackProcessor extends AudioWorkletProcessor {
     this.micToy = this.micKey = -1;
     const s = toChipSample(this.micBuf.subarray(0, this.micPos), sampleRate);
     this.toys[toy]?.setUserSample?.(key, s);
+    this.userSamples[toy]?.set(key, s);
     this.send({ type: 'userSample', toy, key, data: s ? toInt8(s) : null });
   }
 

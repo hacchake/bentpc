@@ -66,6 +66,7 @@ export function mountBlippy(api: HostApi): ToyUI {
   const setParam = (id: ParamId, v: number) => api.post({ type: 'param', index: PARAM_INDEX[id], value: v });
   const def = (id: ParamId) => PARAMS[PARAM_INDEX[id]];
   const ctl: Partial<Record<ParamId, Ctl>> = {};
+  const btnEl: Partial<Record<ParamId, HTMLElement>> = {}; // 押しボタンの部品（光らせる用）
   const base = $('base');
   const b = new Board(base);
   const leds: Record<string, HTMLElement> = {};
@@ -78,8 +79,9 @@ export function mountBlippy(api: HostApi): ToyUI {
   let fx: LcdFx = { combos: 0, heat: 0, seed: 0, misread: -1 };
   let frameNo = 0;
   const prevFrame = new Uint8Array(LCD_W * LCD_H);
+  let frozen = false;
   const frame = (now: number) => {
-    if (root.isConnected && root.offsetParent !== null) {
+    if (root.isConnected && root.offsetParent !== null && !frozen) {
       const d = display.screen === 'off' || display.screen === 'boot' ? display : misreadOverride(display, fx);
       drawDisplay(bm, d, now / 1000, (now - displayAt) / 1000);
       if (display.screen !== 'off') applyFx(bm, fx, frameNo++, prevFrame);
@@ -189,7 +191,8 @@ export function mountBlippy(api: HostApi): ToyUI {
   b.label('VOLUME', 62, 248);
 
   b.tape('RESET', 26, 316, true);
-  const resetBtn = momentary(b.place('dome chrome', 70, 316), () => setParam('reset', 1), () => setParam('reset', 0));
+  btnEl.reset = b.place('dome chrome', 70, 316);
+  const resetBtn = momentary(btnEl.reset, () => setParam('reset', 1), () => setParam('reset', 0));
   ctl.reset = resetBtn;
 
   b.tape('STRETCH', 26, 470, true, -1);
@@ -209,7 +212,8 @@ export function mountBlippy(api: HostApi): ToyUI {
     const y = 90 + i * 76;
     b.label(String(i + 1), 724, y - 6);
     const id = `glitch${i + 1}` as ParamId;
-    const m = momentary(b.place('dome big', 756, y), () => setParam(id, 1), () => setParam(id, 0));
+    btnEl[id] = b.place('dome big', 756, y);
+    const m = momentary(btnEl[id]!, () => setParam(id, 1), () => setParam(id, 0));
     ctl[id] = m;
     return m;
   });
@@ -222,10 +226,12 @@ export function mountBlippy(api: HostApi): ToyUI {
   b.label('HOLD', 86, 690);
   b.label('PLAY', 86, 708);
   b.label('MUTE', 86, 726);
-  const holdBtn = momentary(b.place('dome', 150, 704), () => setParam('loopHold', 1), () => setParam('loopHold', 0));
+  btnEl.loopHold = b.place('dome', 150, 704);
+  const holdBtn = momentary(btnEl.loopHold, () => setParam('loopHold', 1), () => setParam('loopHold', 0));
   ctl.loopHold = holdBtn;
   b.label('HOLD', 150, 726);
-  const relBtn = momentary(b.place('dome black', 206, 704), () => setParam('loopRelease', 1), () => setParam('loopRelease', 0));
+  btnEl.loopRelease = b.place('dome black', 206, 704);
+  const relBtn = momentary(btnEl.loopRelease, () => setParam('loopRelease', 1), () => setParam('loopRelease', 0));
   ctl.loopRelease = relBtn;
   b.label('RELEASE', 206, 726);
   ctl.lfoRate = new Knob(b.knob('red', 146, 768), def('lfoRate'), (v) => setParam('lfoRate', v));
@@ -380,5 +386,19 @@ export function mountBlippy(api: HostApi): ToyUI {
     },
     powerOn: () => void powerOn(),
     powerOff,
+    showKey(key, on) {
+      const el = key >= 1000 ? btnEl[PARAMS[key - 1000]?.id as ParamId] : keyEls[key];
+      el?.classList.toggle('down', on);
+    },
+    showParam(index, v) {
+      const p = PARAMS[index];
+      const c = p && ctl[p.id];
+      if (c && 'set' in c) c.set(v, false);
+      if (p?.id === 'mode') syncMode();
+    },
+    freezeView(on) {
+      frozen = on;
+    },
+    keyKind: () => 'play',
   };
 }

@@ -97,3 +97,5 @@ html, body {
   .tab { padding: 0 9px; font-size: 12px; }
   .bar-btn { padding: 0 9px; }
 }
+
+a.bar-btn { text-decoration: none; }

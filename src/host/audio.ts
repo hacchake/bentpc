@@ -11,6 +11,9 @@ export class AudioHost {
   private starting: Promise<void> | null = null;
   private mic: MediaStreamAudioSourceNode | null = null;
 
+  /** toys：使うおもちゃの番号（スタジオ用。省略時は全部） */
+  constructor(private options: { toys?: number[] } = {}) {}
+
   /** 最初のユーザー操作で呼ぶ（ブラウザの自動再生制限のため） */
   start(): Promise<void> {
     if (this.starting) return this.starting.then(() => this.ctx?.resume());
@@ -18,7 +21,7 @@ export class AudioHost {
       const ctx = new AudioContext({ latencyHint: 'interactive' });
       await ctx.audioWorklet.addModule(workletUrl);
       // 入力 0 = マイク（1台目の自分の声）、入力 1 = 取り込んだ動画の音（6台目）
-      const node = new AudioWorkletNode(ctx, 'toy-rack', { numberOfInputs: 2, numberOfOutputs: 1, outputChannelCount: [2] });
+      const node = new AudioWorkletNode(ctx, 'toy-rack', { numberOfInputs: 2, numberOfOutputs: 1, outputChannelCount: [2], processorOptions: this.options });
       node.port.onmessage = (e: MessageEvent<FromEngine>) => this.onMessage(e.data);
       node.connect(ctx.destination);
       this.ctx = ctx;

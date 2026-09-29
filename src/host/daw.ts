@@ -6,7 +6,7 @@
 // ・元に戻す／やり直し、曲の保存・読み込み、BOUNCE（WAV 書き出し）
 import './daw.css';
 import { clampSong, cloneSong, emptySong, mergeTake, songBeats, type SeqNote, type Song, type takeFromRaw } from '../core/song';
-import type { ToyUI } from '../core/ui';
+import { seqKeyName, type ToyUI } from '../core/ui';
 
 const STORE = 'bentpc.song.v1';
 const ROW_H = 18;
@@ -609,7 +609,7 @@ export class Daw {
       const y = i * ROW_H - this.scrollY;
       if (y + ROW_H < 0 || y > h) return;
       g.fillStyle = '#cfc8da';
-      g.fillText(toy.keyName(k).slice(0, 15), 6, y + ROW_H / 2);
+      g.fillText(seqKeyName(toy, k).slice(0, 15), 6, y + ROW_H / 2);
     });
     if (!rows.length) {
       g.fillStyle = '#8a8396';

@@ -1,6 +1,7 @@
 // おもちゃの画面（UI）の共通の形と、部品を置くための道具。
 import type { ParamDef } from './params';
 import type { FromToy, ToyMsg } from '../host/protocol';
+import { SYS_NAMES } from './song';
 
 const NOTE_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
 /** MIDI ノート番号 → 音名（60 = C4） */
@@ -38,6 +39,24 @@ export interface ToyUI {
   midi(status: number, d1: number, d2: number): void;
   powerOn(): void;
   powerOff(): void;
+  // ---- スタジオ（シーケンサーの再生を画面に映す）用。無くても動く ----
+  /** キーやボタンを光らせる（音は出さない）。key は音符のキー番号（1000〜 はボタン） */
+  showKey?(key: number, on: boolean): void;
+  /** ノブやスイッチを動かして見せる（音には送らない） */
+  showParam?(index: number, v: number): void;
+  /** 画面を止める（クラッシュ中） */
+  freezeView?(on: boolean): void;
+  /** キーの種類：演奏するキーか、機能のボタンか（シーケンサーの行の分け方） */
+  keyKind?(key: number): 'play' | 'button';
+  /** テスト映像の時計（スタジオの再生位置とセクション名）。渡すとテスト映像に切り替える */
+  setTestClock?(clock: { beat: number; bpm: number; label: string } | null): void;
+}
+
+/** 音符のキー番号の表示名（ボタン・システム操作も） */
+export function seqKeyName(ui: Pick<ToyUI, 'keyName' | 'paramDefs'>, key: number): string {
+  if (key >= 2000) return SYS_NAMES[key] ?? `SYS ${key}`;
+  if (key >= 1000) return ui.paramDefs[key - 1000]?.name ?? `BTN ${key - 1000}`;
+  return ui.keyName(key);
 }
 
 export type ToyUIFactory = (api: HostApi) => ToyUI;

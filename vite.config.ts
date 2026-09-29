@@ -28,8 +28,14 @@ export default URL.createObjectURL(new Blob([code], { type: 'application/javascr
   };
 }
 
-export default defineConfig({
+// 単一 HTML にするため、ページごとに作る：ふつうは index.html（ラック）、--mode studio で studio.html（スタジオ）
+export default defineConfig(({ mode }) => ({
   plugins: [workletPlugin(), viteSingleFile()],
   server: { port: 5178 },
-  build: { outDir: 'dist', assetsInlineLimit: 100000000 },
-});
+  build: {
+    outDir: 'dist',
+    emptyOutDir: mode !== 'studio',
+    assetsInlineLimit: 100000000,
+    rollupOptions: { input: mode === 'studio' ? 'studio.html' : 'index.html' },
+  },
+}));

@@ -1,0 +1,95 @@
+/* スタジオ：2 台を並べ、下にシーケンサー */
+#s-top {
+  position: fixed; left: 0; right: 0; top: 0; height: 44px;
+  display: flex; align-items: center; gap: 10px; padding: 0 12px;
+  background: #16131a; border-bottom: 1px solid #000; z-index: 10;
+  font: 12px 'Share Tech Mono', monospace; color: #bbb;
+}
+#s-top .app { font: 700 14px 'Share Tech Mono', monospace; letter-spacing: 2px; color: #ff5a4f; }
+#s-top a, #s-top button {
+  height: 30px; padding: 0 12px; border-radius: 15px; border: none; background: #2c2732; color: #eee;
+  font: 700 12px 'Share Tech Mono', monospace; cursor: pointer; display: flex; align-items: center; text-decoration: none;
+}
+#s-top .sp { flex: 1; }
+#s-top .title { color: #ffe066; font-size: 14px; }
+
+#deck {
+  position: fixed; left: 0; right: 0; top: 44px;
+  display: flex; gap: 8px; padding: 8px;
+}
+.slot {
+  position: relative; overflow: hidden; border-radius: 10px;
+  background: rgba(0,0,0,.25); border: 2px solid #2c2732; min-width: 0;
+}
+.slot.active { border-color: #7dff6a; box-shadow: 0 0 0 1px #7dff6a inset; }
+.slot-head {
+  position: absolute; left: 0; right: 0; top: 0; height: 24px; z-index: 3;
+  display: flex; align-items: center; gap: 8px; padding: 0 8px;
+  background: rgba(20, 18, 23, .85); font: 11px 'Share Tech Mono', monospace; color: #ccc;
+}
+.slot-head b { color: #fff; }
+.slot-head .kb { color: #7dff6a; display: none; }
+.slot.active .slot-head .kb { display: inline; }
+.slot-head .stress { flex: 0 0 90px; height: 8px; border-radius: 4px; background: #2c2732; overflow: hidden; margin-left: auto; }
+.slot-head .stress i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, #ffd23d, #ff3b1f); }
+.slot-body { position: absolute; left: 0; right: 0; top: 24px; bottom: 0; }
+.slot-body .toy-root { transform-origin: 0 0; }
+
+/* クラッシュ中の表示 */
+.crash {
+  position: absolute; inset: 24px 0 0 0; z-index: 4; display: none; pointer-events: none;
+  background:
+    repeating-linear-gradient(0deg, rgba(0,0,0,.35) 0 2px, transparent 2px 5px),
+    linear-gradient(180deg, rgba(0, 20, 170, .55), rgba(0, 0, 60, .7));
+  color: #fff; font: 700 16px 'Share Tech Mono', monospace; text-align: center;
+  align-items: center; justify-content: center; flex-direction: column; gap: 6px;
+  animation: crash-jit .12s steps(2) infinite;
+}
+.slot.crashed .crash { display: flex; }
+.slot.crashed .slot-body { filter: saturate(.3) contrast(1.6); }
+@keyframes crash-jit { 50% { transform: translate(2px, -1px); } }
+
+/* シーケンサー */
+#arr-wrap { position: fixed; left: 0; right: 0; bottom: 0; height: 47vh; min-height: 300px; z-index: 9; border-top: 2px solid #ff5a4f; }
+.arr {
+  position: absolute; inset: 0; display: flex; flex-direction: column;
+  background: #16131a; color: #ddd; font: 12px 'Share Tech Mono', 'Consolas', monospace;
+}
+.arr-bar {
+  display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+  padding: 5px 8px; background: #1f1b25; border-bottom: 1px solid #000;
+}
+.arr-bar button, .arr-bar select, .arr-bar input[type=number] {
+  height: 26px; padding: 0 8px; border: 1px solid #3a3440; border-radius: 6px;
+  background: #2c2732; color: #eee; font: inherit; cursor: pointer;
+}
+.arr-bar input[type=number] { width: 62px; cursor: text; }
+.arr-bar input[data-id=seed] { width: 96px; }
+.arr-bar button:hover { background: #3a3342; }
+.arr-bar button.on { background: #2c6b2a; border-color: #5dd35a; }
+.arr-bar button.rec { color: #ff6b5f; }
+.arr-bar button.rec.on { background: #8a1510; color: #fff; border-color: #ff5a4f; animation: arr-blink 1s steps(2) infinite; }
+@keyframes arr-blink { 50% { opacity: .65; } }
+.arr-bar label { display: flex; align-items: center; gap: 4px; color: #aaa; }
+.arr-bar label.chk input { accent-color: #ff5a4f; }
+.arr-bar .pos { min-width: 150px; color: #9dff7a; font-size: 14px; white-space: nowrap; }
+.arr-bar .sp { flex: 1; }
+.arr-bar [data-id=extra] { display: contents; }
+.arr-body { position: relative; flex: 1; display: flex; flex-direction: column; min-height: 0; }
+.arr-ruler { display: block; width: 100%; height: 44px; flex: none; cursor: pointer; }
+.arr-main { display: block; width: 100%; flex: 1; min-height: 0; }
+.arr-hint { flex: none; padding: 3px 8px; color: #6d6678; font-size: 10px; background: #141217; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.arr-menu {
+  position: absolute; z-index: 5; width: 240px; background: #221e28; color: #eee;
+  border: 1px solid #7dff6a; font: 12px 'Share Tech Mono', monospace;
+}
+
+#s-help {
+  position: fixed; right: 14px; top: 52px; z-index: 11; max-width: 440px; max-height: calc(100vh - 70px); overflow: auto;
+  background: #fffdf4; color: #222; border-radius: 12px; padding: 12px 16px; font-size: 13px; box-shadow: 0 10px 30px rgba(0,0,0,.5);
+}
+#s-help h3 { margin: 0 0 6px; font-size: 15px; }
+#s-help td { padding: 2px 8px 2px 0; vertical-align: top; }
+#s-help td:first-child { font-weight: 700; white-space: nowrap; }
+
+.arr-grip { position: absolute; left: 0; right: 0; top: -6px; height: 10px; cursor: ns-resize; z-index: 10; }

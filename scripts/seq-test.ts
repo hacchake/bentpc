@@ -1,5 +1,7 @@
 // シーケンサーの自動テスト：録音 → 曲に入る → 再生で同じ音が鳴る → 編集が音に反映される → オーバーダブ
-import { cloneSong, emptySong, type Song } from '../src/core/song';
+import { BTN, SYS_CRASH, SYS_POWER_ON, cloneSong, emptySong, type Song } from '../src/core/song';
+import { hashSeed } from '../src/core/rng';
+import { TestSignal } from '../src/core/testsignal';
 import type { ToyEngine } from '../src/core/toy';
 import { Sequencer } from '../src/host/sequencer';
 import { TOY_ENGINES } from '../src/toys/engines';
@@ -94,6 +96,81 @@ bn.seq.bounce = true;
 bn.seq.play(0);
 bn.run(2.3);
 if (!bn.ended() || bn.seq.playing) ng('BOUNCE が終わらない');
+
+// ================= スタジオ用の機能 =================
+{
+  const IDS = [0, 5]; // BLIPPY と TELEKEY
+  const make = (seed?: number) => IDS.map((id) => TOY_ENGINES[id](SR, seed === undefined ? undefined : hashSeed(seed, id) >>> 0));
+  const studio = (song: Song) => {
+    const toys = make();
+    let ended = 0;
+    const sig = new TestSignal(SR);
+    const seq = new Sequencer(SR, toys, { onTake: () => {}, onEnd: () => { ended++; }, onRebuild: () => sig.reset() }, make);
+    seq.setSong(cloneSong(song));
+    const out = new Float32Array(128), click = new Float32Array(128), tmp = new Float32Array(128), inp = new Float32Array(128);
+    const run = (sec: number) => {
+      const res = new Float32Array(Math.floor((SR * sec) / 128) * 128);
+      for (let i = 0; i < res.length / 128; i++) { sig.render(inp, seq.playing ? seq.pos : null, song.bpm); seq.render(out, click, tmp, inp); res.set(out, i * 128); }
+      return res;
+    };
+    return { seq, run, toys, ended: () => ended };
+  };
+  const song: Song = {
+    version: 1, bpm: 120, bars: 4, metronome: false, seed: 42, ramp: true, loop: { on: false, start: 0, end: 16 },
+    tracks: [
+      { toy: 0, mute: false, notes: [0, 1, 2, 3].map((k, i) => ({ key: k, start: i * 0.5, len: 0.4, take: 0 })), autos: [{ index: 1, t: 0, v: 3, take: 0 }] },
+      { toy: 0, mute: false, notes: [{ key: BTN + 3, start: 1, len: 1, take: 0 }], autos: [{ index: 16, t: 0, v: 0, take: 0 }, { index: 16, t: 4, v: 0.9, take: 0 }] },
+      { toy: 1, mute: false, notes: [53, 54, 55, 56, 28].map((k, i) => ({ key: k, start: i * 0.5, len: 0.3, take: 0 })), autos: [] },
+    ],
+  };
+  // 頭から再生すると毎回まったく同じ音（おもちゃを新品にする）。途中で別の音を鳴らしてあっても同じ
+  const s1 = studio(song); s1.toys[0].powerOn(); s1.toys[0].keyDown(7); s1.run(0.3); s1.seq.play(0); const r1 = s1.run(4);
+  const s2 = studio(song); s2.seq.play(0); const r2 = s2.run(4);
+  console.log('スタジオ：2 回の再生の差', diff(r1, r2).toExponential(2), 'rms', rms(r1).toFixed(4));
+  if (rms(r1) < 0.01) ng('スタジオの曲が鳴らない');
+  if (diff(r1, r2) > 1e-7) ng('同じ曲・同じシードなのに音が変わる');
+  const other = cloneSong(song); other.seed = 43;
+  const s3 = studio(other); s3.seq.play(0); if (diff(s3.run(4), r1) < 1e-4) console.log('（シードを変えても音が同じ：この曲では乱数を使う場面が少ない）');
+  // ループなし：最後まで来たら止まる
+  s2.run(4.2);
+  if (s2.seq.playing || s2.ended() !== 1) ng('ループなしで最後に止まらない');
+  // ループ範囲：2〜3 拍目を回り続ける
+  const lp = cloneSong(song); lp.loop = { on: true, start: 2, end: 3 };
+  const s4 = studio(lp); s4.seq.play(0);
+  let maxPos = 0; for (let i = 0; i < 20; i++) { s4.run(0.25); if (s4.seq.pos > maxPos) maxPos = s4.seq.pos; }
+  if (!s4.seq.playing || maxPos > 3.01 || s4.seq.pos < 2) ng('ループ範囲で回らない');
+  // ボタンの音符（GLITCH 1）が効く
+  const nb = cloneSong(song); nb.tracks[1].notes = [];
+  const s5 = studio(nb); s5.seq.play(0); if (diff(s5.run(4), r1) < 0.002) ng('ボタンの音符（GLITCH）が効いていない');
+  // ノブの点の間がなめらか：途中の値
+  const s6 = studio(song); s6.seq.play(0); s6.run(1.0); // 2 拍目
+  const dist = s6.toys[0].params[16];
+  console.log('DIST の途中の値（2 拍目・0→0.9 の半分なら 0.45）', dist.toFixed(3));
+  if (Math.abs(dist - 0.45) > 0.03) ng('ノブの点の間がなめらかにつながらない');
+  // クラッシュ：音が張り付いたあと無音 → 終わりで再起動して鳴る
+  const cr = cloneSong(song);
+  cr.bars = 8;
+  cr.tracks[0].notes = [{ key: 0, start: 0, len: 0.4, take: 0 }, { key: SYS_CRASH, start: 1, len: 4, take: 0 }, { key: 2, start: 6, len: 0.4, take: 0 }];
+  cr.tracks[2].notes = [{ key: 53, start: 0.5, len: 0.3, take: 0 }, { key: 53, start: 2, len: 0.3, take: 0 }, { key: SYS_CRASH, start: 1, len: 4, take: 0 }, { key: 53, start: 6, len: 0.3, take: 0 }];
+  const s7 = studio(cr); s7.seq.play(0);
+  s7.run(0.5); // 0〜1 拍
+  const stuck = s7.run(0.2); // 1〜1.4 拍：張り付き
+  s7.run(0.3);
+  const quiet = s7.run(1.2); // 2〜4.4 拍：無音
+  s7.run(0.45);
+  const back = s7.run(1.2); // 5.3〜7.7 拍：再起動音・その後の音
+  console.log('クラッシュ：張り付き', rms(stuck).toFixed(4), '無音', rms(quiet).toFixed(5), '再起動後', rms(back).toFixed(4));
+  if (rms(quiet) > 0.001) ng('クラッシュ中に音が止まらない');
+  if (rms(back) < 0.01) ng('クラッシュの後に再起動しない');
+  if (s7.seq.crashed(0) || s7.seq.crashed(1)) ng('クラッシュが終わらない');
+  // POWER ON の音符：それまでは鳴らない
+  const pw = cloneSong(song); pw.tracks[0].notes.push({ key: SYS_POWER_ON, start: 2, len: 0.5, take: 0 }); pw.tracks[0].notes.sort((a, b) => a.start - b.start);
+  pw.tracks[2].notes = [{ key: SYS_POWER_ON, start: 2, len: 0.5, take: 0 }];
+  const s8 = studio(pw); s8.seq.play(0);
+  const before = s8.run(0.9), after = s8.run(1.5);
+  console.log('POWER ON の前', rms(before).toFixed(5), '後', rms(after).toFixed(4));
+  if (rms(before) > 0.002 || rms(after) < 0.01) ng('POWER ON の音符が効いていない');
+}
 
 console.log(fail ? `失敗 ${fail} 件` : 'すべて OK');
 process.exit(fail ? 1 : 0);

@@ -22,15 +22,54 @@ export interface SeqTrack {
   mute: boolean;
   notes: SeqNote[];
   autos: SeqAuto[];
+  /** どのおもちゃを鳴らすか（省略時はトラックの並び順 = おもちゃ番号）。1 台に複数のトラックを持てる */
+  toy?: number;
+  /** トラックの名前（「ビート」「メロディ」など） */
+  name?: string;
+  /** 鍵：自動作曲で作り直しても残す */
+  lock?: boolean;
+  /** 手で弾いた録音をこのトラックに入れる（おもちゃごとに 1 つ） */
+  rec?: boolean;
+  /** 中身がなくても表示する行（"k:キー番号" / "p:パラメーター番号"） */
+  show?: string[];
 }
+
+/** 曲の区切り（イントロ・サビなど）。start は拍 */
+export interface Section {
+  name: string;
+  start: number;
+}
+
+// ---- 音符の「キー番号」の特別な範囲 ----
+/** 1000 + パラメーター番号：押している間だけ 1 になるボタン（GLITCH・RESET など momentary のパラメーター） */
+export const BTN = 1000;
+/** 2000〜：システム操作 */
+export const SYS_CRASH = 2000; // 音符の長さの間クラッシュ（音が張り付いて止まる）→ 終わりで RESET・再起動
+export const SYS_POWER_ON = 2001; // 電源 ON（起動音）
+export const SYS_POWER_OFF = 2002; // 電源 OFF
+export const SYS_NAMES: Record<number, string> = { [SYS_CRASH]: 'CRASH→再起動', [SYS_POWER_ON]: 'POWER ON', [SYS_POWER_OFF]: 'POWER OFF' };
 
 export interface Song {
   version: 1;
   bpm: number;
   bars: number; // 4/4 拍子の小節数 = ループの長さ
   metronome: boolean;
-  tracks: SeqTrack[]; // おもちゃ 1 台 = 1 トラック（並び順 = おもちゃ番号）
+  tracks: SeqTrack[]; // 基本はおもちゃ 1 台 = 1 トラック（並び順 = おもちゃ番号）。toy を書けば 1 台に何本でも
+  // ---- スタジオ用（無ければ従来どおり） ----
+  title?: string;
+  /** 乱数のシード。あると「頭から再生」のたびにおもちゃを新品に作り直す（同じ曲なら毎回同じ音） */
+  seed?: number;
+  /** ループ範囲（拍）。無ければ曲全体をループ。on=false なら最後まで鳴らして止まる */
+  loop?: { on: boolean; start: number; end: number };
+  sections?: Section[];
+  /** ノブ（連続値）の点と点の間をなめらかにつなぐ */
+  ramp?: boolean;
+  /** テスト信号のコード進行（MIDI ノート番号の組、1 小節ずつ） */
+  chords?: number[][];
 }
+
+/** トラック i が鳴らすおもちゃの番号 */
+export const trackToy = (s: Song, i: number) => s.tracks[i]?.toy ?? i;
 
 /** 録音中に集めた生の操作 */
 export type RawEvent =
@@ -89,13 +128,36 @@ export function takeFromRaw(raw: RawEvent[], take: number, end: number): { toy: 
 /** 録ったテイクを曲に足す（オーバーダブ） */
 export function mergeTake(song: Song, take: ReturnType<typeof takeFromRaw>): void {
   for (const t of take) {
-    const tr = song.tracks[t.toy];
+    const tr = song.tracks[recTrack(song, t.toy)];
     if (!tr) continue;
     tr.notes.push(...t.notes);
     tr.autos.push(...t.autos);
     tr.notes.sort((a, b) => a.start - b.start);
     tr.autos.sort((a, b) => a.t - b.t);
   }
+}
+
+/** おもちゃ toy の録音を入れるトラック（rec の付いたもの → そのおもちゃの最初のトラック） */
+export function recTrack(song: Song, toy: number): number {
+  const mine = song.tracks.map((_, i) => i).filter((i) => trackToy(song, i) === toy);
+  return mine.find((i) => song.tracks[i].rec) ?? mine[0] ?? toy;
+}
+
+/**
+ * パラメーターの値を拍 beat の位置で求める（点が無ければ undefined）。
+ * ramp なら点と点の間を直線でつなぐ（連続値のノブだけ）。autos は t の順に並んでいること
+ */
+export function autoValueAt(autos: SeqAuto[], index: number, beat: number, ramp: boolean): number | undefined {
+  let prev: SeqAuto | undefined;
+  for (const a of autos) {
+    if (a.index !== index) continue;
+    if (a.t > beat) {
+      if (prev && ramp) return prev.v + ((a.v - prev.v) * (beat - prev.t)) / Math.max(1e-9, a.t - prev.t);
+      return prev?.v;
+    }
+    prev = a;
+  }
+  return prev?.v;
 }
 
 /** 曲の長さに収まるように整える（はみ出た音は切る） */

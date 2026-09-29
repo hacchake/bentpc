@@ -30,4 +30,6 @@ export interface ToyEngine<Display = unknown> {
   status(): ToyStatus;
   /** マイクで録った音をキーに割り当てる（対応しているおもちゃだけ） */
   setUserSample?(key: number, buf: Float32Array | null): void;
+  /** 全部止めて元に戻す（シーケンサーのクラッシュからの復帰で使う） */
+  reset?(): void;
 }

@@ -144,6 +144,7 @@ export function mountTele(api: HostApi): ToyUI {
   const screen = root.querySelector('.tk-screen') as HTMLElement;
   let prevT = 0;
   let started = false;
+  let viewFrozen = false;
   const frame = (now: number) => {
     const t = now / 1000;
     const dt = Math.min(0.1, t - prevT);
@@ -165,7 +166,7 @@ export function mountTele(api: HostApi): ToyUI {
       for (let n = 0; n < 24; n++) pipe.g[n] = m & (1 << n) ? level : 0;
       // 押した瞬間の画を取っておく（FREEZE・FRAME HOLD）
       if ((fz && !prevFreeze) || (m & ~prevActive & (1 << 12))) pipe.grabHold();
-      pipe.freeze = fz;
+      pipe.freeze = fz || viewFrozen;
       pipe.flash = flash;
       pipe.seed = (pipe.seed + 0.37) % 1000;
       pipe.knobs = { fbk: fxv.fb, dist: fxv.dist, dtype: fxv.dtype, mixv: fxv.mix, lfo: lfoVid, snow: powered ? fxv.snow : 0 };
@@ -500,5 +501,28 @@ export function mountTele(api: HostApi): ToyUI {
     },
     powerOn,
     powerOff,
+    showKey(key, on) {
+      if (key < 1000) capEls[key]?.classList.toggle('down', on);
+    },
+    showParam(index, v) {
+      const p = TELE_PARAMS[index];
+      if (!p) return;
+      if (p.id === 'amount') amount = v;
+      ctlFor(p.id)?.set(v, false);
+      if (p.id === 'base') showBase(Math.round(v));
+    },
+    freezeView(on) {
+      if (on && !viewFrozen) pipe?.grabHold();
+      viewFrozen = on;
+    },
+    keyKind(key) {
+      const r = TELE_KEYS[key]?.role.r;
+      return r === 'glitch' || r === 'inst' ? 'play' : 'button';
+    },
+    setTestClock(clock) {
+      started = true; // スタジオでは Web カメラを自動で開かない
+      sources.test.external = clock;
+      if (clock && sources.kind !== 'test') sources.openTest();
+    },
   };
 }

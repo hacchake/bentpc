@@ -77,6 +77,7 @@ export class TeleEngine implements ToyEngine<{ text: string }> {
   // ---- 楽器 ----
   private inst: Inst[] = [];
   private hits = 0;
+  private boot = -1;
   private lastHit = -1;
   // ---- 出力段 ----
   private vol = 0;
@@ -116,7 +117,30 @@ export class TeleEngine implements ToyEngine<{ text: string }> {
   }
 
   powerOn(): void {
+    if (!this.powered) this.boot = 0; // 起動音（ブラウン管の「ボン」＋ピッ）
     this.powered = true;
+  }
+
+  /** 全部止めて元に戻す（Esc・シーケンサーのクラッシュからの復帰） */
+  reset(): void {
+    this.heat = 0;
+    this.spon = null;
+    this.releaseAll();
+    this.pressed.clear();
+    this.order = [];
+    this.pitchSemis = 0;
+    this.inst = [];
+    this.updateMask();
+  }
+
+  /** 起動音を 1 サンプル */
+  private bootSample(): number {
+    const t = this.boot++ / this.sampleRate;
+    if (t > 0.8) { this.boot = -1; return 0; }
+    const thump = Math.sin(2 * Math.PI * (40 + 30 * Math.exp(-t * 12)) * t) * Math.exp(-t * 7) * 0.55;
+    const hum = Math.sin(2 * Math.PI * 100 * t + Math.sin(2 * Math.PI * 7 * t) * 3) * Math.exp(-t * 4) * 0.12;
+    const beep = t > 0.42 && t < 0.52 ? Math.sin(2 * Math.PI * 1320 * t) * 0.18 : 0;
+    return thump + hum + beep;
   }
 
   powerOff(): void {
@@ -230,16 +254,7 @@ export class TeleEngine implements ToyEngine<{ text: string }> {
           case 'speedReset': this.pitchSemis = 0; break;
           case 'hold': this.hold(); break;
           case 'release': this.releaseAll(); break;
-          case 'reset':
-            this.heat = 0;
-            this.spon = null;
-            this.releaseAll();
-            this.pressed.clear();
-            this.order = [];
-            this.pitchSemis = 0;
-            this.inst = [];
-            this.updateMask();
-            break;
+          case 'reset': this.reset(); break;
           case 'crosstalk': this.setParamById('crosstalk', this.p('crosstalk') > 0.5 ? 0 : 1); break;
           case 'lfoTarget': this.setParamById('lfoTarget', (this.p('lfoTarget') + 1) % 3); break;
           case 'distType': this.setParamById('distType', this.p('distType') > 0.5 ? 0 : 1); break;
@@ -500,6 +515,7 @@ export class TeleEngine implements ToyEngine<{ text: string }> {
           y = this.crushHeld;
         }
       }
+      if (this.boot >= 0) y += this.bootSample();
       this.gate += ((this.powered ? 1 : 0) - this.gate) * 0.005;
       this.vol += (volTarget - this.vol) * 0.002;
       const z = y - this.dcX + 0.995 * this.dcY;
