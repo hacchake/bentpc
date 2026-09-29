@@ -31,6 +31,8 @@ export default URL.createObjectURL(new Blob([code], { type: 'application/javascr
 // 単一 HTML にするため、ページごとに作る：ふつうは index.html（ラック）、--mode studio で studio.html（スタジオ）
 export default defineConfig(({ mode }) => ({
   plugins: [workletPlugin(), viteSingleFile()],
+  // GitHub Pages（https://hacchake.github.io/bentpc/）で公開するための置き場所
+  base: '/bentpc/',
   server: { port: 5178 },
   build: {
     outDir: 'dist',

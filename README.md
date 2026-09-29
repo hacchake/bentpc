@@ -14,10 +14,12 @@
 
 ## 使い方
 
+- 公開ページ：https://hacchake.github.io/bentpc/ （スタジオは https://hacchake.github.io/bentpc/studio.html ）。main に push すると GitHub Actions（`.github/workflows/deploy.yml`）が自動でビルドして公開する
+
 - すぐ遊ぶ：`dist/index.html` をダブルクリック（`npm run build` で作り直せる）
 - スタジオ（2 台を並べて曲を作る）：`dist/studio.html`、またはラック右上の **STUDIO**
 - カメラやタブ共有がうまく動かないとき：`ブラウザで開く.bat` をダブルクリック（小さなサーバーで http://localhost:4173 を開く）
-- 開発：`npm run dev` → http://localhost:5178
+- 開発：`npm run dev` → http://localhost:5178/bentpc/
 - 自動テスト：`npm test`（全おもちゃの全キー・全パーツを検査。`out/` に WAV を書き出す）
 - 処理速度の目安：`npx tsx scripts/bench.ts`
 
