@@ -8,7 +8,8 @@ import type { ToyUI } from '../core/ui';
 import { AudioHost } from '../host/audio';
 import { TOY_UIS } from '../toys/uis';
 import { Arranger } from './arranger';
-import { blankStudioSong, STUDIO_TOYS } from './songs';
+import { demoSong } from './demo';
+import { STUDIO_TOYS, blankStudioSong } from './songs';
 
 const $ = (id: string) => document.getElementById(id) as HTMLElement;
 const audio = new AudioHost({ toys: STUDIO_TOYS });
@@ -70,8 +71,10 @@ const arr = new Arranger({
   },
   record: async (on, take) => { await audio.start(); audio.post({ type: 'seqRec', on, take }); },
   onSong: (s) => { $('songTitle').textContent = s.title ?? ''; },
-}, blankStudioSong);
+}, demoSong);
 $('arr-wrap').appendChild(arr.el);
+arr.addButton('デモ曲', 'デモ曲「POWER ON / POWER OFF」を読み込む（今の曲は「元に戻す」で戻せます）', () => { arr.setSong(demoSong()); });
+arr.addButton('新しい曲', '空の曲にする（「元に戻す」で戻せます）', () => { arr.setSong(blankStudioSong()); });
 arr.sendInitial();
 
 // ---- エンジンからのメッセージ ----

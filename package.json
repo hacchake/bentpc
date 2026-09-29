@@ -9,7 +9,7 @@
     "build": "vite build && vite build --mode studio",
     "serve": "npm run build && vite preview --port 4173 --open",
     "typecheck": "tsc --noEmit",
-    "test": "tsx scripts/engine-test.ts && tsx scripts/mods-test.ts && tsx scripts/heat-test.ts && tsx scripts/mic-test.ts && tsx scripts/piko-test.ts && tsx scripts/dj-test.ts && tsx scripts/vroom-test.ts && tsx scripts/typo-test.ts && tsx scripts/seq-test.ts && tsx scripts/tele-test.ts"
+    "test": "tsx scripts/engine-test.ts && tsx scripts/mods-test.ts && tsx scripts/heat-test.ts && tsx scripts/mic-test.ts && tsx scripts/piko-test.ts && tsx scripts/dj-test.ts && tsx scripts/vroom-test.ts && tsx scripts/typo-test.ts && tsx scripts/seq-test.ts && tsx scripts/tele-test.ts && tsx scripts/demo-test.ts"
   },
   "devDependencies": {
     "@types/node": "^26.6.3",

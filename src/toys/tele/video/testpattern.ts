@@ -16,6 +16,8 @@ export class TestPattern {
   /** 外から与える時計（スタジオの再生位置）。null なら自分の時計で動く */
   external: { beat: number; bpm: number; label: string } | null = null;
   private last = 0;
+  /** キューで飛んだ分（拍）。外の時計に足す */
+  private offset = 0;
 
   constructor() {
     this.canvas = document.createElement('canvas');
@@ -27,6 +29,7 @@ export class TestPattern {
   /** 0〜1 の位置へ（キューポイント）：60 秒の番組の中を飛ぶ */
   jump(f: number): void {
     this.time = f * SCENE_SEC * 4 * 2;
+    this.offset = f * 64;
   }
 
   /** 1 フレーム描く（now はミリ秒） */
@@ -36,7 +39,7 @@ export class TestPattern {
     if (!this.paused) this.time += dt * this.rate;
     const ex = this.external;
     // 拍：外の時計があればそれ、なければ 120BPM 相当
-    const beat = ex ? ex.beat : this.time * 2;
+    const beat = ex ? ex.beat + this.offset : this.time * 2;
     const sec = ex ? (ex.beat * 60) / ex.bpm : this.time;
     const scene = Math.floor(beat / 16) % 4; // 4 小節ごとに場面が変わる
     const pulse = Math.exp(-(beat % 1) * 5); // 拍の頭で 1 → すぐ減る

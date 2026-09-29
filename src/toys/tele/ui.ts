@@ -502,7 +502,16 @@ export function mountTele(api: HostApi): ToyUI {
     powerOn,
     powerOff,
     showKey(key, on) {
-      if (key < 1000) capEls[key]?.classList.toggle('down', on);
+      if (key >= 1000) return;
+      capEls[key]?.classList.toggle('down', on);
+      // シーケンサーが押したキューや再生操作も、映像に効かせる
+      const r = TELE_KEYS[key]?.role;
+      if (!on || !r || !powered) return;
+      if (r.r === 'cue') sources.seekFraction(r.n / 10);
+      else if (r.r === 'inst') flash = Math.max(flash, 0.1);
+      else if (r.r === 'fn' && r.f === 'playPause') sources.playPause();
+      else if (r.r === 'fn' && r.f === 'seekBack') sources.seekBy(-5);
+      else if (r.r === 'fn' && r.f === 'seekFwd') sources.seekBy(5);
     },
     showParam(index, v) {
       const p = TELE_PARAMS[index];
