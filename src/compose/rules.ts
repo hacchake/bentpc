@@ -4,7 +4,8 @@
 // 3. 鍵の付いたトラックは残す。セクションだけ作り直すときは、その範囲だけ差し替える
 import { trackToy, type SeqTrack, type Song } from '../core/song';
 import { planSong, rngFor } from './plan';
-import { STYLES } from './styles';
+import { swingTime } from './harmony';
+import { styleOf } from './styles';
 import { composeBlippy } from './toys/blippy';
 import { composeDj } from './toys/dj';
 import { composePiko } from './toys/piko';
@@ -55,6 +56,8 @@ export class RuleComposer implements Composer {
     const arranged = [...arrangeEnsemble(plan, req.toys, generated)];
     generated.length = 0;
     generated.push(...arranged);
+    // スイング（ジャズ・レゲエ・ヒップホップなど）：裏の音を少し遅らせて跳ねさせる（ボタン・電源・クラッシュは動かさない）
+    if (plan.style.swing) for (const g of generated) g.notes = g.notes.map((n) => (n.key < 2000 ? { ...n, start: swingTime(plan, n.start) } : n));
 
     // 元の曲のトラック（おもちゃ番号をはっきり書いておく。並べ替えてもずれないように）
     const baseTracks: SeqTrack[] = base ? base.tracks.map((tr, i) => ({ ...tr, toy: trackToy(base, i) })) : [];
@@ -80,7 +83,7 @@ export class RuleComposer implements Composer {
       const fresh = generated.filter((g) => !kept.some((k) => k.part === g.part && k.toy === g.toy));
       tracks = [...kept, ...fresh].sort((p, q) => p.toy! - q.toy!);
     }
-    const style = STYLES[settings.style];
+    const style = styleOf(settings.style);
     return {
       version: 1,
       title: `${style.name} #${settings.seed}`,

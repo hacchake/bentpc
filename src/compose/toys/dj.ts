@@ -21,7 +21,12 @@ const key = (midi: number) => {
   return m - 60;
 };
 /** 楽器：0 LEAD 1 BASS 2 ORGAN 3 STRINGS 4 BELL 5 PIPE 6 BRASS 7 SYNTH 8 CHOIR 9 NOISE */
-const LEADS: Record<string, number[]> = { plain: [4, 5, 2], beat: [0, 7, 6], ambient: [3, 8, 4], noise: [9, 7, 0], collapse: [6, 0, 8] };
+const LEADS: Record<string, number[]> = {
+  plain: [4, 5, 2], beat: [0, 7, 6], ambient: [3, 8, 4], noise: [9, 7, 0], collapse: [6, 0, 8],
+  enka: [3, 5], ondo: [5, 4], douyou: [4, 5], march: [6, 5], chip: [0, 7], punk: [7, 0], lofi: [2, 4],
+  reggae: [2, 0], dub: [2, 8], ska: [6, 2], bossa: [5, 3], funk: [7, 6], jazz: [2, 6],
+  house: [2, 7], techno: [7, 0], dnb: [7, 3], jungle: [7, 8], trap: [4, 7], gabber: [9, 7], idm: [4, 9, 8], breakcore: [9, 0, 6],
+};
 /** DJ のエンジン番号（シードの作り方をエンジンと同じにする） */
 const ENGINE_ID = 2;
 
@@ -58,7 +63,7 @@ export function composeDj(ctx: PartContext): Part[] {
     const rx = ctx.rng('mods', sec.index);
     const s0 = sec.start, sEnd = s0 + sec.bars * 4;
     const heat = sec.chaos * plan.style.glitch;
-    keys.set(P.instrument, Math.max(0, s0 - 0.05), sec.energy < 0.45 ? 1 : rk.pick(LEADS[style]));
+    keys.set(P.instrument, Math.max(0, s0 - 0.05), sec.energy < 0.45 ? 1 : rk.pick(LEADS[style] ?? [0, 7]));
 
     // ---- keys：静かなセクションはベース、にぎやかなセクションはメロディ ----
     if (sec.energy < 0.45 || sec.kind === 'break') {
@@ -69,7 +74,7 @@ export function composeDj(ctx: PartContext): Part[] {
     }
 
     // ---- rhythm：盛り上がるセクションで回す。4 小節ごとに頭から ----
-    const want = sec.energy >= 0.4 && style !== 'ambient';
+    const want = sec.energy >= 0.4 && plan.style.drums !== 'none' && plan.style.drums !== 'sparse';
     if (want) {
       for (let b = 0; b < sec.bars; b += 4) {
         const t = s0 + b * 4;

@@ -2,7 +2,7 @@
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { SYS_CRASH, songBeats, type Song } from '../src/core/song';
 import { defaultComposer } from '../src/compose/rules';
-import { LENGTHS, STYLES, STYLE_IDS } from '../src/compose/styles';
+import { LENGTHS, styleOf, STYLE_IDS } from '../src/compose/styles';
 import type { ComposeSettings } from '../src/compose/types';
 import { renderSong } from '../src/studio/render';
 
@@ -14,7 +14,7 @@ const C = defaultComposer();
 const TOYS = [{ toy: 0, kind: 'blippy' as const }];
 const make = (o: Partial<ComposeSettings> = {}, base?: Song, section?: number) => {
   const st = o.style ?? 'beat';
-  return C.compose({ settings: { seed: 1234, style: st, chaos: 0.5, lengthSec: 60, bpm: STYLES[st].bpm, ...o }, toys: TOYS, base, section });
+  return C.compose({ settings: { seed: 1234, style: st, chaos: 0.5, lengthSec: 60, bpm: styleOf(st).bpm, ...o }, toys: TOYS, base, section });
 };
 function wav(a: Float32Array): Buffer {
   const buf = Buffer.alloc(44 + a.length * 2);
@@ -72,8 +72,9 @@ for (const style of STYLE_IDS) {
   const levels = (s.sections ?? []).map((x, i, arr) => rms(a.subarray(at(x.start), at(i + 1 < arr.length ? arr[i + 1].start : songBeats(s)))));
   const crash = s.tracks.flatMap((t) => t.notes).find((n) => n.key === SYS_CRASH);
   let crashRms = -1;
-  if (crash) crashRms = rms(a.subarray(at(crash.start + 1.2), at(crash.start + crash.len - 0.2)));
-  console.log(`${STYLES[style].name.padEnd(6, '　')} ${s.bars} 小節 BPM ${s.bpm}  セクションの音量 ${levels.map((l) => l.toFixed(2)).join(' ')}${crash ? `  クラッシュ中 ${crashRms.toFixed(4)}` : ''}`);
+  // クラッシュ音の余韻（0.7 秒ほど）が消えてから測る（速いスタイルでは 1.2 拍では足りない）
+  if (crash) crashRms = rms(a.subarray(at(crash.start + Math.max(1.2, (0.8 * s.bpm) / 60)), at(crash.start + crash.len - 0.2)));
+  console.log(`${styleOf(style).name.padEnd(6, '　')} ${s.bars} 小節 BPM ${s.bpm}  セクションの音量 ${levels.map((l) => l.toFixed(2)).join(' ')}${crash ? `  クラッシュ中 ${crashRms.toFixed(4)}` : ''}`);
   if (levels.some((l) => l < 0.01)) ng(`${style} に鳴らないセクションがある`);
   if (crash && crashRms > 0.003) ng(`${style} のクラッシュ中が無音でない`);
   if ((style === 'collapse' || style === 'beat' || style === 'noise') && !crash) ng(`${style}（壊れ度 0.9）にクラッシュが無い`);
@@ -86,7 +87,7 @@ for (const style of STYLE_IDS) {
   for (const [i, kind] of KINDS.entries()) {
     const levels: string[] = [];
     for (const style of STYLE_IDS) {
-      const st = { seed: 4321, style, chaos: 0.7, lengthSec: 30, bpm: STYLES[style].bpm };
+      const st = { seed: 4321, style, chaos: 0.7, lengthSec: 30, bpm: styleOf(style).bpm };
       const s = C.compose({ settings: st, toys: [{ toy: i, kind }] });
       if (JSON.stringify(s) !== JSON.stringify(C.compose({ settings: st, toys: [{ toy: i, kind }] }))) ng(`${kind} ${style}：同じ設定なのに違う曲`);
       if (!s.tracks.length || count(s) < 8) { ng(`${kind} ${style}：音符が少ない（${count(s)}）`); continue; }
@@ -95,7 +96,7 @@ for (const style of STYLE_IDS) {
       if (style === 'beat' || style === 'ambient') {
         const a = renderSong(s, SR, { toys: ALL });
         const l = rms(a);
-        levels.push(`${STYLES[style].name} ${l.toFixed(3)}`);
+        levels.push(`${styleOf(style).name} ${l.toFixed(3)}`);
         if (l < 0.01 || a.some((x) => !Number.isFinite(x))) ng(`${kind} ${style} が鳴らない（${l.toFixed(4)}）`);
         writeFileSync(`out/compose-${kind}-${style}.wav`, wav(a));
       }

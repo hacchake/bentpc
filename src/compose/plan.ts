@@ -1,7 +1,7 @@
 // 曲の設計図：まず構成（セクションと長さ）・盛り上がりと壊れ度のカーブ・コード進行・クラッシュの場所を決める。
 // 中身（音符）は、この設計図を見て各おもちゃの作曲係が作る。
 import { Rng, hashSeed } from '../core/rng';
-import { STYLES, type SectionKind, type StyleDef } from './styles';
+import { styleOf, type SectionKind, type StyleDef } from './styles';
 import type { ComposeSettings } from './types';
 
 export interface PlannedSection {
@@ -43,7 +43,7 @@ export const PROGRESSIONS = [
 export const rngFor = (seed: number, ...name: (string | number)[]) => new Rng(hashSeed(seed, ...name));
 
 export function planSong(settings: ComposeSettings): Plan {
-  const style = STYLES[settings.style];
+  const style = styleOf(settings.style);
   const bpm = Math.round(Math.max(40, Math.min(240, settings.bpm)));
   const total = Math.max(8, Math.round((settings.lengthSec * bpm) / 240 / 2) * 2);
   // 短い曲では、優先度の低いセクションを省く
@@ -72,7 +72,7 @@ export function planSong(settings: ComposeSettings): Plan {
   const barsTotal = start / 4;
   // コード進行
   const r = rngFor(settings.seed, 'plan');
-  const prog = r.pick(PROGRESSIONS);
+  const prog = r.pick(style.progs.length ? style.progs : PROGRESSIONS);
   const chords = Array.from({ length: barsTotal }, (_, b) => prog[Math.floor(b / style.chordBars) % prog.length]);
   // クラッシュ：崩壊セクション、または壊れ度がしきい値を超えたらブレイクで
   let crashSection = sections.findIndex((s) => s.kind === 'collapse');

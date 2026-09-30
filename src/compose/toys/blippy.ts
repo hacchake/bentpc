@@ -7,9 +7,9 @@
 import { BTN, SYS_CRASH, SYS_POWER_ON, type SeqTrack } from '../../core/song';
 import type { Rng } from '../../core/rng';
 import type { Plan, PlannedSection } from '../plan';
-import type { StyleId } from '../types';
+import type { Texture } from '../styles';
 import { PartWriter } from '../writer';
-import { crashSpan } from '../harmony';
+import { crashSpan, drumBar, snapToScale } from '../harmony';
 
 // ================= おもちゃの番号 =================
 const P = { volume: 0, mode: 1, base: 8, lfoRate: 11, lfoDepth: 12, stretch: 13, stretchHold: 14, stretchRel: 15, dist: 16, distType: 17 };
@@ -50,16 +50,13 @@ const RHYTHMS = {
   dense: [[1, 1, 2, 1, 1, 2, 2, 2, 2, 2], [2, 1, 1, 2, 2, 1, 1, 2, 2, 2], [1, 1, 1, 1, 2, 2, 1, 1, 1, 1, 2, 2]],
 };
 
-type Texture = 'say' | 'callmel' | 'spell' | 'drum' | 'chars' | 'sfx' | 'quiz' | 'long';
 
-/** スタイル × セクションの種類 → 中身の作り方 */
-const TEXTURES: Record<StyleId, Partial<Record<string, Texture>> & { default: Texture }> = {
-  plain: { intro: 'say', verse: 'callmel', chorus: 'spell', outro: 'say', default: 'callmel' },
-  beat: { intro: 'drum', verse: 'drum', build: 'drum', chorus: 'chars', break: 'say', outro: 'spell', default: 'drum' },
-  ambient: { intro: 'say', drift: 'long', swell: 'long', outro: 'say', default: 'long' },
-  noise: { intro: 'sfx', noise: 'sfx', chorus: 'chars', break: 'quiz', outro: 'sfx', default: 'sfx' },
-  collapse: { intro: 'say', verse: 'callmel', build: 'drum', chorus: 'chars', collapse: 'quiz', default: 'callmel' },
-};
+/** 4 本のドラムの型 → 1 音ずつの線（キック > スネア > ハット。休みの半分はドレミの隙間） */
+function monoLine(d: { kick: string; snare: string; hat: string }): string {
+  let out = '';
+  for (let i = 0; i < 16; i++) out += d.kick[i] === 'x' ? 'k' : d.snare[i] === 'x' ? 's' : d.hat[i] === 'x' ? 'h' : i % 4 === 2 ? 'm' : '.';
+  return out;
+}
 
 export interface BlippyContext {
   plan: Plan;
@@ -120,7 +117,7 @@ export function composeBlippy(ctx: BlippyContext): (SeqTrack & { part: string })
     const rm = ctx.rng('melody', sec.index);
     const rx = ctx.rng('mods', sec.index);
     const rs = ctx.rng('slots', sec.index); // keys と melody の分担（両方のパートで同じ）
-    const tex: Texture = TEXTURES[plan.style.id][sec.kind] ?? TEXTURES[plan.style.id].default;
+    const tex: Texture = plan.style.blippy[sec.kind] ?? plan.style.blippy.default;
     const s0 = sec.start, steps = sec.bars * 16;
     const at = (i: number) => s0 + i * 0.25;
     // ---- スロット：16 分音符ごとに k（keys）/ m（melody）/ 空き ----
@@ -139,8 +136,10 @@ export function composeBlippy(ctx: BlippyContext): (SeqTrack & { part: string })
       case 'drum': {
         const lines = sec.energy < 0.4 ? DRUM_LINES.light : sec.energy > 0.8 ? DRUM_LINES.dense : DRUM_LINES.main;
         const base = rs.pick(lines);
+        const fromKit = !['plain', 'beat', 'noise'].includes(plan.style.drums);
         for (let b = 0; b < sec.bars; b++) {
-          const line = b % 4 === 3 && sec.bars >= 4 ? rs.pick(DRUM_LINES.fill) : b % 2 === 1 && rs.chance(0.4) ? rs.pick(lines) : base;
+          const kit = fromKit ? drumBar(plan, sec, b, rs) : null;
+          const line = kit ? monoLine(kit) : b % 4 === 3 && sec.bars >= 4 ? rs.pick(DRUM_LINES.fill) : b % 2 === 1 && rs.chance(0.4) ? rs.pick(lines) : base;
           for (let i = 0; i < 16; i++) {
             const c = line[i];
             drumLine[b * 16 + i] = c;
@@ -234,10 +233,18 @@ export function composeBlippy(ctx: BlippyContext): (SeqTrack & { part: string })
         if (pitch < 1) pitch = 2 - pitch;
         if (pitch > 10) pitch = 20 - pitch;
         if ((i / 4) % 1 === 0) pitch = nearest(chordTones(bar), pitch); // 拍の頭はコードの音
-        pitch = Math.max(1, Math.min(10, pitch));
+        pitch = Math.max(1, Math.min(10, snapToScale(plan, pitch - 1) + 1)); // スタイルの音階へ（ドレミの 1 = 段 0）
         if (slot[i] !== 'm') return;
         if (!long && rm.chance(0.12 * (1 - sec.energy))) return; // ときどき休む
-        mel.note(DO(pitch), at(i), Math.max(0.2, (len16 / 4) * 0.8));
+        const nlen = Math.max(0.2, (len16 / 4) * 0.8);
+        if (plan.style.ornament === 'kobushi' && nlen >= 1.2 && pitch < 10) {
+          // こぶし：上の音をちょんちょんと回してから伸ばす
+          const up = Math.min(10, snapToScale(plan, pitch) + 1);
+          mel.note(DO(up), at(i), 0.12);
+          mel.note(DO(pitch), at(i) + 0.13, 0.12);
+          mel.note(DO(up), at(i) + 0.26, 0.1);
+          mel.note(DO(pitch), at(i) + 0.38, nlen - 0.38);
+        } else mel.note(DO(pitch), at(i), nlen);
         lastPitch = pitch;
         // アンビエント：鳴らした音を LOOP HOLD でつかんで、長くうねらせる
         if (long && len16 >= 16) {

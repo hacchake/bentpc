@@ -38,3 +38,17 @@
 .cp-btn.disabled { opacity: .45; pointer-events: none; }
 .cp-sec select { width: 260px; height: 30px; border-radius: 6px; border: 2px solid #0b2413; background: #f4efe0; color: #111; font: 13px sans-serif; }
 .cp-ticks span { font: 700 12px 'Fredoka', sans-serif; color: #fff; white-space: nowrap; }
+.compose-panel .cp-lbl.small { font-size: 13px; letter-spacing: 1px; }
+.compose-panel .cp-desc { width: 290px; min-height: 30px; line-height: 1.3; color: #ffe8a0; }
+.cp-style select {
+  width: 214px; height: 40px; border-radius: 6px; border: 3px solid #0b2413; background: #9fd18a; color: #0b2413;
+  font: 700 17px 'Fredoka', sans-serif; text-align: center; box-shadow: inset 0 3px 6px rgba(0,0,0,.35); cursor: pointer;
+}
+.cp-btn.cp-arrow { padding: 6px 10px; font-size: 15px; }
+.cp-chips { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; width: 310px; }
+.cp-chip {
+  padding: 4px 9px; border-radius: 999px; border: 2px solid #0b2413; background: #2b5a3a; color: #bfe6c3;
+  font: 700 12px 'Fredoka', sans-serif; cursor: pointer; white-space: nowrap;
+}
+.cp-chip.on { background: #ffe066; color: #1b1b1b; box-shadow: 0 0 8px rgba(255,224,102,.6); }
+.cp-chip.fixed { cursor: default; outline: 2px dashed rgba(255,255,255,.5); outline-offset: 1px; }

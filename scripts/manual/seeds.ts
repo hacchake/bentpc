@@ -6,7 +6,7 @@ import { writeFileSync } from 'node:fs';
 import { Rng } from '../../src/core/rng';
 import { songBeats } from '../../src/core/song';
 import { defaultComposer } from '../../src/compose/rules';
-import { STYLES, STYLE_IDS } from '../../src/compose/styles';
+import { styleOf, STYLE_IDS } from '../../src/compose/styles';
 import type { ComposeSettings, ComposeToy, StyleId } from '../../src/compose/types';
 import { settingsToQuery } from '../../src/compose/share';
 import { renderSong } from '../../src/studio/render';
@@ -34,31 +34,31 @@ function score(settings: ComposeSettings, toys: ComposeToy[], engineIds: number[
 const picks: { where: 'studio' | 'rack'; style: StyleId; name: string; seed: number; chaos: number; url: string; contrast: number; mean: number }[] = [];
 const r = new Rng(20260930);
 for (const style of STYLE_IDS) {
-  const st = STYLES[style];
+  const st = styleOf(style);
   // スタジオ（トイPC ＋ TELEKEY）
   const cands: { seed: number; sc: number; contrast: number; mean: number }[] = [];
-  for (let i = 0; i < 10; i++) {
+  for (let i = 0; i < 4; i++) {
     const seed = 1 + r.int(999998);
-    const settings = { seed, style, chaos: CHAOS[style], lengthSec: 60, bpm: st.bpm };
+    const settings = { seed, style, chaos: (CHAOS[style] ?? 0.5), lengthSec: 60, bpm: st.bpm };
     const m = score(settings, [{ toy: 0, kind: 'blippy' }, { toy: 1, kind: 'tele' }], [0, 5]);
     cands.push({ seed, ...m });
   }
   cands.sort((a, b) => b.sc - a.sc);
   for (const c of cands.slice(0, 2)) {
-    const settings = { seed: c.seed, style, chaos: CHAOS[style], lengthSec: 60, bpm: st.bpm };
-    picks.push({ where: 'studio', style, name: st.name, seed: c.seed, chaos: CHAOS[style], url: `${SITE}studio.html?${settingsToQuery(settings, { toys: '0,5' })}`, contrast: c.contrast, mean: c.mean });
+    const settings = { seed: c.seed, style, chaos: (CHAOS[style] ?? 0.5), lengthSec: 60, bpm: st.bpm };
+    picks.push({ where: 'studio', style, name: st.name, seed: c.seed, chaos: (CHAOS[style] ?? 0.5), url: `${SITE}studio.html?${settingsToQuery(settings, { toys: '0,5' })}`, contrast: c.contrast, mean: c.mean });
   }
   // ラック（トイPC だけ）
   const solo: { seed: number; sc: number; contrast: number; mean: number }[] = [];
-  for (let i = 0; i < 6; i++) {
+  for (let i = 0; i < 3; i++) {
     const seed = 1 + r.int(999998);
-    const settings = { seed, style, chaos: CHAOS[style], lengthSec: 60, bpm: st.bpm };
+    const settings = { seed, style, chaos: (CHAOS[style] ?? 0.5), lengthSec: 60, bpm: st.bpm };
     solo.push({ seed, ...score(settings, [{ toy: 0, kind: 'blippy' }], [0, 1, 2, 3, 4, 5]) });
   }
   solo.sort((a, b) => b.sc - a.sc);
   const b0 = solo[0];
-  const s0 = { seed: b0.seed, style, chaos: CHAOS[style], lengthSec: 60, bpm: st.bpm };
-  picks.push({ where: 'rack', style, name: st.name, seed: b0.seed, chaos: CHAOS[style], url: `${SITE}?${settingsToQuery(s0, { toy: '1' })}`, contrast: b0.contrast, mean: b0.mean });
+  const s0 = { seed: b0.seed, style, chaos: (CHAOS[style] ?? 0.5), lengthSec: 60, bpm: st.bpm };
+  picks.push({ where: 'rack', style, name: st.name, seed: b0.seed, chaos: (CHAOS[style] ?? 0.5), url: `${SITE}?${settingsToQuery(s0, { toy: '1' })}`, contrast: b0.contrast, mean: b0.mean });
   console.log(`${st.name}：スタジオ ${cands.slice(0, 2).map((c) => c.seed).join(', ')} ／ トイPC ${b0.seed}`);
 }
 writeFileSync('public/manual/img/seeds.json', JSON.stringify(picks, null, 1));

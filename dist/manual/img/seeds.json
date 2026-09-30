@@ -6,147 +6,777 @@
   "seed": 712970,
   "chaos": 0.3,
   "url": "https://hacchake.github.io/bentpc/studio.html?toys=0,5&seed=712970&style=plain&chaos=30&len=60&bpm=108",
-  "contrast": 1.4386046794372824,
-  "mean": 0.18721210415766754
+  "contrast": 1.4349551793928121,
+  "mean": 0.1867105959041146
  },
  {
   "where": "studio",
   "style": "plain",
   "name": "素朴",
-  "seed": 813925,
+  "seed": 902957,
   "chaos": 0.3,
-  "url": "https://hacchake.github.io/bentpc/studio.html?toys=0,5&seed=813925&style=plain&chaos=30&len=60&bpm=108",
-  "contrast": 1.4558965284038468,
-  "mean": 0.1830445924055095
+  "url": "https://hacchake.github.io/bentpc/studio.html?toys=0,5&seed=902957&style=plain&chaos=30&len=60&bpm=108",
+  "contrast": 1.4396137543474985,
+  "mean": 0.17282337709183626
  },
  {
   "where": "rack",
   "style": "plain",
   "name": "素朴",
-  "seed": 712397,
+  "seed": 893490,
   "chaos": 0.3,
-  "url": "https://hacchake.github.io/bentpc/?toy=1&seed=712397&style=plain&chaos=30&len=60&bpm=108",
-  "contrast": 1.581990490414933,
-  "mean": 0.15310669561468707
+  "url": "https://hacchake.github.io/bentpc/?toy=1&seed=893490&style=plain&chaos=30&len=60&bpm=108",
+  "contrast": 1.3805372259596036,
+  "mean": 0.16442091297788478
  },
  {
   "where": "studio",
   "style": "beat",
   "name": "ビート",
-  "seed": 525413,
+  "seed": 159941,
   "chaos": 0.6,
-  "url": "https://hacchake.github.io/bentpc/studio.html?toys=0,5&seed=525413&style=beat&chaos=60&len=60&bpm=124",
-  "contrast": 3.2184081535001674,
-  "mean": 0.3047762703229346
+  "url": "https://hacchake.github.io/bentpc/studio.html?toys=0,5&seed=159941&style=beat&chaos=60&len=60&bpm=124",
+  "contrast": 3.1435164988062936,
+  "mean": 0.29939162230737604
  },
  {
   "where": "studio",
   "style": "beat",
   "name": "ビート",
-  "seed": 888558,
+  "seed": 306848,
   "chaos": 0.6,
-  "url": "https://hacchake.github.io/bentpc/studio.html?toys=0,5&seed=888558&style=beat&chaos=60&len=60&bpm=124",
-  "contrast": 3.204124954813243,
-  "mean": 0.3068178707740505
+  "url": "https://hacchake.github.io/bentpc/studio.html?toys=0,5&seed=306848&style=beat&chaos=60&len=60&bpm=124",
+  "contrast": 3.130132265439204,
+  "mean": 0.30863695560724524
  },
  {
   "where": "rack",
   "style": "beat",
   "name": "ビート",
-  "seed": 402280,
+  "seed": 257361,
   "chaos": 0.6,
-  "url": "https://hacchake.github.io/bentpc/?toy=1&seed=402280&style=beat&chaos=60&len=60&bpm=124",
+  "url": "https://hacchake.github.io/bentpc/?toy=1&seed=257361&style=beat&chaos=60&len=60&bpm=124",
   "contrast": 4,
-  "mean": 0.2584569606936029
+  "mean": 0.26126958174362624
  },
  {
   "where": "studio",
   "style": "ambient",
   "name": "アンビエント",
-  "seed": 528196,
+  "seed": 634954,
   "chaos": 0.35,
-  "url": "https://hacchake.github.io/bentpc/studio.html?toys=0,5&seed=528196&style=ambient&chaos=35&len=60&bpm=80",
+  "url": "https://hacchake.github.io/bentpc/studio.html?toys=0,5&seed=634954&style=ambient&chaos=35&len=60&bpm=80",
   "contrast": 4,
-  "mean": 0.2442289534328943
+  "mean": 0.23330337403869186
  },
  {
   "where": "studio",
   "style": "ambient",
   "name": "アンビエント",
-  "seed": 338383,
+  "seed": 768829,
   "chaos": 0.35,
-  "url": "https://hacchake.github.io/bentpc/studio.html?toys=0,5&seed=338383&style=ambient&chaos=35&len=60&bpm=80",
-  "contrast": 4,
-  "mean": 0.25487813633436346
+  "url": "https://hacchake.github.io/bentpc/studio.html?toys=0,5&seed=768829&style=ambient&chaos=35&len=60&bpm=80",
+  "contrast": 3.9193577400933335,
+  "mean": 0.2582087871942903
  },
  {
   "where": "rack",
   "style": "ambient",
   "name": "アンビエント",
+  "seed": 717443,
+  "chaos": 0.35,
+  "url": "https://hacchake.github.io/bentpc/?toy=1&seed=717443&style=ambient&chaos=35&len=60&bpm=80",
+  "contrast": 4,
+  "mean": 0.28928182717234635
+ },
+ {
+  "where": "studio",
+  "style": "noise",
+  "name": "ノイズ",
+  "seed": 472087,
+  "chaos": 0.8,
+  "url": "https://hacchake.github.io/bentpc/studio.html?toys=0,5&seed=472087&style=noise&chaos=80&len=60&bpm=132",
+  "contrast": 2.591040147914899,
+  "mean": 0.25055845550520084
+ },
+ {
+  "where": "studio",
+  "style": "noise",
+  "name": "ノイズ",
+  "seed": 479799,
+  "chaos": 0.8,
+  "url": "https://hacchake.github.io/bentpc/studio.html?toys=0,5&seed=479799&style=noise&chaos=80&len=60&bpm=132",
+  "contrast": 2.5104792154130813,
+  "mean": 0.28812436097119465
+ },
+ {
+  "where": "rack",
+  "style": "noise",
+  "name": "ノイズ",
+  "seed": 141323,
+  "chaos": 0.8,
+  "url": "https://hacchake.github.io/bentpc/?toy=1&seed=141323&style=noise&chaos=80&len=60&bpm=132",
+  "contrast": 1.9755052872824608,
+  "mean": 0.2756645206564005
+ },
+ {
+  "where": "studio",
+  "style": "collapse",
+  "name": "崩壊",
+  "seed": 623142,
+  "chaos": 0.8,
+  "url": "https://hacchake.github.io/bentpc/studio.html?toys=0,5&seed=623142&style=collapse&chaos=80&len=60&bpm=116",
+  "contrast": 2.608937057033945,
+  "mean": 0.27118955762617014
+ },
+ {
+  "where": "studio",
+  "style": "collapse",
+  "name": "崩壊",
+  "seed": 392221,
+  "chaos": 0.8,
+  "url": "https://hacchake.github.io/bentpc/studio.html?toys=0,5&seed=392221&style=collapse&chaos=80&len=60&bpm=116",
+  "contrast": 2.6220570580777087,
+  "mean": 0.3189605809159881
+ },
+ {
+  "where": "rack",
+  "style": "collapse",
+  "name": "崩壊",
+  "seed": 866949,
+  "chaos": 0.8,
+  "url": "https://hacchake.github.io/bentpc/?toy=1&seed=866949&style=collapse&chaos=80&len=60&bpm=116",
+  "contrast": 2.210818481713438,
+  "mean": 0.278921928632036
+ },
+ {
+  "where": "studio",
+  "style": "douyou",
+  "name": "童謡",
+  "seed": 953085,
+  "chaos": 0.5,
+  "url": "https://hacchake.github.io/bentpc/studio.html?toys=0,5&seed=953085&style=douyou&chaos=50&len=60&bpm=96",
+  "contrast": 1.7901961695992998,
+  "mean": 0.15096963630943053
+ },
+ {
+  "where": "studio",
+  "style": "douyou",
+  "name": "童謡",
+  "seed": 260012,
+  "chaos": 0.5,
+  "url": "https://hacchake.github.io/bentpc/studio.html?toys=0,5&seed=260012&style=douyou&chaos=50&len=60&bpm=96",
+  "contrast": 1.6050329137148784,
+  "mean": 0.1396626565363064
+ },
+ {
+  "where": "rack",
+  "style": "douyou",
+  "name": "童謡",
+  "seed": 557647,
+  "chaos": 0.5,
+  "url": "https://hacchake.github.io/bentpc/?toy=1&seed=557647&style=douyou&chaos=50&len=60&bpm=96",
+  "contrast": 1.92467408628531,
+  "mean": 0.1429542656159605
+ },
+ {
+  "where": "studio",
+  "style": "march",
+  "name": "マーチ",
+  "seed": 224234,
+  "chaos": 0.5,
+  "url": "https://hacchake.github.io/bentpc/studio.html?toys=0,5&seed=224234&style=march&chaos=50&len=60&bpm=116",
+  "contrast": 1.9422521184108208,
+  "mean": 0.24275428519815806
+ },
+ {
+  "where": "studio",
+  "style": "march",
+  "name": "マーチ",
   "seed": 759961,
-  "chaos": 0.35,
-  "url": "https://hacchake.github.io/bentpc/?toy=1&seed=759961&style=ambient&chaos=35&len=60&bpm=80",
+  "chaos": 0.5,
+  "url": "https://hacchake.github.io/bentpc/studio.html?toys=0,5&seed=759961&style=march&chaos=50&len=60&bpm=116",
+  "contrast": 1.8592611530239662,
+  "mean": 0.23617678019904761
+ },
+ {
+  "where": "rack",
+  "style": "march",
+  "name": "マーチ",
+  "seed": 899268,
+  "chaos": 0.5,
+  "url": "https://hacchake.github.io/bentpc/?toy=1&seed=899268&style=march&chaos=50&len=60&bpm=116",
+  "contrast": 1.8303909163477328,
+  "mean": 0.1917772236898942
+ },
+ {
+  "where": "studio",
+  "style": "chip",
+  "name": "チップチューン",
+  "seed": 255520,
+  "chaos": 0.5,
+  "url": "https://hacchake.github.io/bentpc/studio.html?toys=0,5&seed=255520&style=chip&chaos=50&len=60&bpm=150",
+  "contrast": 1.8785515811825653,
+  "mean": 0.2544674097397989
+ },
+ {
+  "where": "studio",
+  "style": "chip",
+  "name": "チップチューン",
+  "seed": 13970,
+  "chaos": 0.5,
+  "url": "https://hacchake.github.io/bentpc/studio.html?toys=0,5&seed=13970&style=chip&chaos=50&len=60&bpm=150",
+  "contrast": 1.8356976848435842,
+  "mean": 0.26050990466934254
+ },
+ {
+  "where": "rack",
+  "style": "chip",
+  "name": "チップチューン",
+  "seed": 62048,
+  "chaos": 0.5,
+  "url": "https://hacchake.github.io/bentpc/?toy=1&seed=62048&style=chip&chaos=50&len=60&bpm=150",
+  "contrast": 2.8735148200685328,
+  "mean": 0.22190976837588045
+ },
+ {
+  "where": "studio",
+  "style": "punk",
+  "name": "パンク",
+  "seed": 461303,
+  "chaos": 0.5,
+  "url": "https://hacchake.github.io/bentpc/studio.html?toys=0,5&seed=461303&style=punk&chaos=50&len=60&bpm=184",
+  "contrast": 2.277286175574965,
+  "mean": 0.33341960062065357
+ },
+ {
+  "where": "studio",
+  "style": "punk",
+  "name": "パンク",
+  "seed": 946285,
+  "chaos": 0.5,
+  "url": "https://hacchake.github.io/bentpc/studio.html?toys=0,5&seed=946285&style=punk&chaos=50&len=60&bpm=184",
+  "contrast": 2.1251235302479006,
+  "mean": 0.3108863794298454
+ },
+ {
+  "where": "rack",
+  "style": "punk",
+  "name": "パンク",
+  "seed": 401747,
+  "chaos": 0.5,
+  "url": "https://hacchake.github.io/bentpc/?toy=1&seed=401747&style=punk&chaos=50&len=60&bpm=184",
+  "contrast": 2.1468688761320784,
+  "mean": 0.2528362702812486
+ },
+ {
+  "where": "studio",
+  "style": "lofi",
+  "name": "ローファイ",
+  "seed": 35278,
+  "chaos": 0.5,
+  "url": "https://hacchake.github.io/bentpc/studio.html?toys=0,5&seed=35278&style=lofi&chaos=50&len=60&bpm=80",
+  "contrast": 3.691481116058123,
+  "mean": 0.2915454364949394
+ },
+ {
+  "where": "studio",
+  "style": "lofi",
+  "name": "ローファイ",
+  "seed": 486878,
+  "chaos": 0.5,
+  "url": "https://hacchake.github.io/bentpc/studio.html?toys=0,5&seed=486878&style=lofi&chaos=50&len=60&bpm=80",
+  "contrast": 3.2142625500467155,
+  "mean": 0.2627789563224106
+ },
+ {
+  "where": "rack",
+  "style": "lofi",
+  "name": "ローファイ",
+  "seed": 173588,
+  "chaos": 0.5,
+  "url": "https://hacchake.github.io/bentpc/?toy=1&seed=173588&style=lofi&chaos=50&len=60&bpm=80",
   "contrast": 4,
-  "mean": 0.2840784777418777
+  "mean": 0.28225591274017187
  },
  {
   "where": "studio",
-  "style": "noise",
-  "name": "ノイズ",
-  "seed": 305659,
-  "chaos": 0.8,
-  "url": "https://hacchake.github.io/bentpc/studio.html?toys=0,5&seed=305659&style=noise&chaos=80&len=60&bpm=132",
-  "contrast": 2.706421118451712,
-  "mean": 0.2881846541752667
+  "style": "house",
+  "name": "ハウス",
+  "seed": 580772,
+  "chaos": 0.5,
+  "url": "https://hacchake.github.io/bentpc/studio.html?toys=0,5&seed=580772&style=house&chaos=50&len=60&bpm=124",
+  "contrast": 2.7786497946025417,
+  "mean": 0.28592996134976095
  },
  {
   "where": "studio",
-  "style": "noise",
-  "name": "ノイズ",
-  "seed": 451903,
-  "chaos": 0.8,
-  "url": "https://hacchake.github.io/bentpc/studio.html?toys=0,5&seed=451903&style=noise&chaos=80&len=60&bpm=132",
-  "contrast": 2.4830073203874368,
-  "mean": 0.2773619132535507
+  "style": "house",
+  "name": "ハウス",
+  "seed": 491756,
+  "chaos": 0.5,
+  "url": "https://hacchake.github.io/bentpc/studio.html?toys=0,5&seed=491756&style=house&chaos=50&len=60&bpm=124",
+  "contrast": 2.2375086497888077,
+  "mean": 0.31026085475158194
  },
  {
   "where": "rack",
-  "style": "noise",
-  "name": "ノイズ",
-  "seed": 964924,
-  "chaos": 0.8,
-  "url": "https://hacchake.github.io/bentpc/?toy=1&seed=964924&style=noise&chaos=80&len=60&bpm=132",
-  "contrast": 1.8212297720045214,
-  "mean": 0.23970198659599118
+  "style": "house",
+  "name": "ハウス",
+  "seed": 501122,
+  "chaos": 0.5,
+  "url": "https://hacchake.github.io/bentpc/?toy=1&seed=501122&style=house&chaos=50&len=60&bpm=124",
+  "contrast": 3.8640478388469126,
+  "mean": 0.25656780121990785
  },
  {
   "where": "studio",
-  "style": "collapse",
-  "name": "崩壊",
-  "seed": 307569,
-  "chaos": 0.8,
-  "url": "https://hacchake.github.io/bentpc/studio.html?toys=0,5&seed=307569&style=collapse&chaos=80&len=60&bpm=116",
-  "contrast": 2.464005354794745,
-  "mean": 0.27534444930535257
+  "style": "techno",
+  "name": "テクノ",
+  "seed": 504383,
+  "chaos": 0.5,
+  "url": "https://hacchake.github.io/bentpc/studio.html?toys=0,5&seed=504383&style=techno&chaos=50&len=60&bpm=132",
+  "contrast": 2.613881463764195,
+  "mean": 0.317861062991037
  },
  {
   "where": "studio",
-  "style": "collapse",
-  "name": "崩壊",
-  "seed": 583170,
-  "chaos": 0.8,
-  "url": "https://hacchake.github.io/bentpc/studio.html?toys=0,5&seed=583170&style=collapse&chaos=80&len=60&bpm=116",
-  "contrast": 2.447122755288515,
-  "mean": 0.2867134224620576
+  "style": "techno",
+  "name": "テクノ",
+  "seed": 432568,
+  "chaos": 0.5,
+  "url": "https://hacchake.github.io/bentpc/studio.html?toys=0,5&seed=432568&style=techno&chaos=50&len=60&bpm=132",
+  "contrast": 2.5222187671700715,
+  "mean": 0.30363945524209374
  },
  {
   "where": "rack",
-  "style": "collapse",
-  "name": "崩壊",
-  "seed": 923014,
-  "chaos": 0.8,
-  "url": "https://hacchake.github.io/bentpc/?toy=1&seed=923014&style=collapse&chaos=80&len=60&bpm=116",
-  "contrast": 3.4158774274991517,
-  "mean": 0.2830321390477612
+  "style": "techno",
+  "name": "テクノ",
+  "seed": 122148,
+  "chaos": 0.5,
+  "url": "https://hacchake.github.io/bentpc/?toy=1&seed=122148&style=techno&chaos=50&len=60&bpm=132",
+  "contrast": 4,
+  "mean": 0.28966106256428414
+ },
+ {
+  "where": "studio",
+  "style": "dnb",
+  "name": "ドラムンベース",
+  "seed": 550232,
+  "chaos": 0.5,
+  "url": "https://hacchake.github.io/bentpc/studio.html?toys=0,5&seed=550232&style=dnb&chaos=50&len=60&bpm=174",
+  "contrast": 2.7008625400079995,
+  "mean": 0.30475635313944516
+ },
+ {
+  "where": "studio",
+  "style": "dnb",
+  "name": "ドラムンベース",
+  "seed": 473028,
+  "chaos": 0.5,
+  "url": "https://hacchake.github.io/bentpc/studio.html?toys=0,5&seed=473028&style=dnb&chaos=50&len=60&bpm=174",
+  "contrast": 2.7125948250809486,
+  "mean": 0.31589122467639025
+ },
+ {
+  "where": "rack",
+  "style": "dnb",
+  "name": "ドラムンベース",
+  "seed": 255759,
+  "chaos": 0.5,
+  "url": "https://hacchake.github.io/bentpc/?toy=1&seed=255759&style=dnb&chaos=50&len=60&bpm=174",
+  "contrast": 4,
+  "mean": 0.2866235644956042
+ },
+ {
+  "where": "studio",
+  "style": "jungle",
+  "name": "ジャングル",
+  "seed": 73187,
+  "chaos": 0.5,
+  "url": "https://hacchake.github.io/bentpc/studio.html?toys=0,5&seed=73187&style=jungle&chaos=50&len=60&bpm=166",
+  "contrast": 1.9988436765227477,
+  "mean": 0.3069528807417066
+ },
+ {
+  "where": "studio",
+  "style": "jungle",
+  "name": "ジャングル",
+  "seed": 684952,
+  "chaos": 0.5,
+  "url": "https://hacchake.github.io/bentpc/studio.html?toys=0,5&seed=684952&style=jungle&chaos=50&len=60&bpm=166",
+  "contrast": 2.102075164027565,
+  "mean": 0.32876315300724135
+ },
+ {
+  "where": "rack",
+  "style": "jungle",
+  "name": "ジャングル",
+  "seed": 26301,
+  "chaos": 0.5,
+  "url": "https://hacchake.github.io/bentpc/?toy=1&seed=26301&style=jungle&chaos=50&len=60&bpm=166",
+  "contrast": 2.7528259693317083,
+  "mean": 0.2684619649139996
+ },
+ {
+  "where": "studio",
+  "style": "trap",
+  "name": "トラップ",
+  "seed": 209518,
+  "chaos": 0.5,
+  "url": "https://hacchake.github.io/bentpc/studio.html?toys=0,5&seed=209518&style=trap&chaos=50&len=60&bpm=140",
+  "contrast": 2.6702471324273023,
+  "mean": 0.25773392390686306
+ },
+ {
+  "where": "studio",
+  "style": "trap",
+  "name": "トラップ",
+  "seed": 393274,
+  "chaos": 0.5,
+  "url": "https://hacchake.github.io/bentpc/studio.html?toys=0,5&seed=393274&style=trap&chaos=50&len=60&bpm=140",
+  "contrast": 2.6091675503639595,
+  "mean": 0.2485224474807363
+ },
+ {
+  "where": "rack",
+  "style": "trap",
+  "name": "トラップ",
+  "seed": 759121,
+  "chaos": 0.5,
+  "url": "https://hacchake.github.io/bentpc/?toy=1&seed=759121&style=trap&chaos=50&len=60&bpm=140",
+  "contrast": 3.580945651251024,
+  "mean": 0.18957388763588626
+ },
+ {
+  "where": "studio",
+  "style": "gabber",
+  "name": "ガバ",
+  "seed": 739488,
+  "chaos": 0.5,
+  "url": "https://hacchake.github.io/bentpc/studio.html?toys=0,5&seed=739488&style=gabber&chaos=50&len=60&bpm=185",
+  "contrast": 2.3304271012032047,
+  "mean": 0.34964256634074764
+ },
+ {
+  "where": "studio",
+  "style": "gabber",
+  "name": "ガバ",
+  "seed": 432894,
+  "chaos": 0.5,
+  "url": "https://hacchake.github.io/bentpc/studio.html?toys=0,5&seed=432894&style=gabber&chaos=50&len=60&bpm=185",
+  "contrast": 2.2291574670590935,
+  "mean": 0.3487596066133961
+ },
+ {
+  "where": "rack",
+  "style": "gabber",
+  "name": "ガバ",
+  "seed": 567720,
+  "chaos": 0.5,
+  "url": "https://hacchake.github.io/bentpc/?toy=1&seed=567720&style=gabber&chaos=50&len=60&bpm=185",
+  "contrast": 2.5869851169378757,
+  "mean": 0.27768720466681757
+ },
+ {
+  "where": "studio",
+  "style": "reggae",
+  "name": "レゲエ",
+  "seed": 928075,
+  "chaos": 0.5,
+  "url": "https://hacchake.github.io/bentpc/studio.html?toys=0,5&seed=928075&style=reggae&chaos=50&len=60&bpm=76",
+  "contrast": 2.528676108021355,
+  "mean": 0.1937262769214134
+ },
+ {
+  "where": "studio",
+  "style": "reggae",
+  "name": "レゲエ",
+  "seed": 158293,
+  "chaos": 0.5,
+  "url": "https://hacchake.github.io/bentpc/studio.html?toys=0,5&seed=158293&style=reggae&chaos=50&len=60&bpm=76",
+  "contrast": 2.5063470381210755,
+  "mean": 0.17938852885087345
+ },
+ {
+  "where": "rack",
+  "style": "reggae",
+  "name": "レゲエ",
+  "seed": 192208,
+  "chaos": 0.5,
+  "url": "https://hacchake.github.io/bentpc/?toy=1&seed=192208&style=reggae&chaos=50&len=60&bpm=76",
+  "contrast": 4,
+  "mean": 0.187854466354663
+ },
+ {
+  "where": "studio",
+  "style": "dub",
+  "name": "ダブ",
+  "seed": 609459,
+  "chaos": 0.5,
+  "url": "https://hacchake.github.io/bentpc/studio.html?toys=0,5&seed=609459&style=dub&chaos=50&len=60&bpm=72",
+  "contrast": 4,
+  "mean": 0.32194483061857754
+ },
+ {
+  "where": "studio",
+  "style": "dub",
+  "name": "ダブ",
+  "seed": 859821,
+  "chaos": 0.5,
+  "url": "https://hacchake.github.io/bentpc/studio.html?toys=0,5&seed=859821&style=dub&chaos=50&len=60&bpm=72",
+  "contrast": 4,
+  "mean": 0.3428563637147473
+ },
+ {
+  "where": "rack",
+  "style": "dub",
+  "name": "ダブ",
+  "seed": 275773,
+  "chaos": 0.5,
+  "url": "https://hacchake.github.io/bentpc/?toy=1&seed=275773&style=dub&chaos=50&len=60&bpm=72",
+  "contrast": 4,
+  "mean": 0.36105384366603904
+ },
+ {
+  "where": "studio",
+  "style": "ska",
+  "name": "スカ",
+  "seed": 688045,
+  "chaos": 0.5,
+  "url": "https://hacchake.github.io/bentpc/studio.html?toys=0,5&seed=688045&style=ska&chaos=50&len=60&bpm=164",
+  "contrast": 2.0816048875113244,
+  "mean": 0.2634922961657913
+ },
+ {
+  "where": "studio",
+  "style": "ska",
+  "name": "スカ",
+  "seed": 274836,
+  "chaos": 0.5,
+  "url": "https://hacchake.github.io/bentpc/studio.html?toys=0,5&seed=274836&style=ska&chaos=50&len=60&bpm=164",
+  "contrast": 1.9435760827018271,
+  "mean": 0.25312233731105
+ },
+ {
+  "where": "rack",
+  "style": "ska",
+  "name": "スカ",
+  "seed": 319483,
+  "chaos": 0.5,
+  "url": "https://hacchake.github.io/bentpc/?toy=1&seed=319483&style=ska&chaos=50&len=60&bpm=164",
+  "contrast": 1.5925395487598122,
+  "mean": 0.20940160950625608
+ },
+ {
+  "where": "studio",
+  "style": "bossa",
+  "name": "ボサノバ",
+  "seed": 900145,
+  "chaos": 0.5,
+  "url": "https://hacchake.github.io/bentpc/studio.html?toys=0,5&seed=900145&style=bossa&chaos=50&len=60&bpm=128",
+  "contrast": 1.9359686573491255,
+  "mean": 0.22083892202532837
+ },
+ {
+  "where": "studio",
+  "style": "bossa",
+  "name": "ボサノバ",
+  "seed": 163022,
+  "chaos": 0.5,
+  "url": "https://hacchake.github.io/bentpc/studio.html?toys=0,5&seed=163022&style=bossa&chaos=50&len=60&bpm=128",
+  "contrast": 1.9604917125836894,
+  "mean": 0.22688217438584984
+ },
+ {
+  "where": "rack",
+  "style": "bossa",
+  "name": "ボサノバ",
+  "seed": 653406,
+  "chaos": 0.5,
+  "url": "https://hacchake.github.io/bentpc/?toy=1&seed=653406&style=bossa&chaos=50&len=60&bpm=128",
+  "contrast": 2.047944031923351,
+  "mean": 0.17933836514391052
+ },
+ {
+  "where": "studio",
+  "style": "funk",
+  "name": "ファンク",
+  "seed": 804134,
+  "chaos": 0.5,
+  "url": "https://hacchake.github.io/bentpc/studio.html?toys=0,5&seed=804134&style=funk&chaos=50&len=60&bpm=104",
+  "contrast": 1.9965726819644882,
+  "mean": 0.232227101531712
+ },
+ {
+  "where": "studio",
+  "style": "funk",
+  "name": "ファンク",
+  "seed": 892426,
+  "chaos": 0.5,
+  "url": "https://hacchake.github.io/bentpc/studio.html?toys=0,5&seed=892426&style=funk&chaos=50&len=60&bpm=104",
+  "contrast": 2.038260634497562,
+  "mean": 0.2457432059868839
+ },
+ {
+  "where": "rack",
+  "style": "funk",
+  "name": "ファンク",
+  "seed": 694490,
+  "chaos": 0.5,
+  "url": "https://hacchake.github.io/bentpc/?toy=1&seed=694490&style=funk&chaos=50&len=60&bpm=104",
+  "contrast": 2.2904846678195177,
+  "mean": 0.19372250158297802
+ },
+ {
+  "where": "studio",
+  "style": "jazz",
+  "name": "ジャズ",
+  "seed": 378585,
+  "chaos": 0.5,
+  "url": "https://hacchake.github.io/bentpc/studio.html?toys=0,5&seed=378585&style=jazz&chaos=50&len=60&bpm=150",
+  "contrast": 1.9397153470750987,
+  "mean": 0.2662038827562598
+ },
+ {
+  "where": "studio",
+  "style": "jazz",
+  "name": "ジャズ",
+  "seed": 874712,
+  "chaos": 0.5,
+  "url": "https://hacchake.github.io/bentpc/studio.html?toys=0,5&seed=874712&style=jazz&chaos=50&len=60&bpm=150",
+  "contrast": 1.77422836123434,
+  "mean": 0.2516626476317127
+ },
+ {
+  "where": "rack",
+  "style": "jazz",
+  "name": "ジャズ",
+  "seed": 412106,
+  "chaos": 0.5,
+  "url": "https://hacchake.github.io/bentpc/?toy=1&seed=412106&style=jazz&chaos=50&len=60&bpm=150",
+  "contrast": 2.092627707877256,
+  "mean": 0.26021540437131635
+ },
+ {
+  "where": "studio",
+  "style": "enka",
+  "name": "演歌",
+  "seed": 210164,
+  "chaos": 0.5,
+  "url": "https://hacchake.github.io/bentpc/studio.html?toys=0,5&seed=210164&style=enka&chaos=50&len=60&bpm=72",
+  "contrast": 2.0976430607695837,
+  "mean": 0.21075062507777234
+ },
+ {
+  "where": "studio",
+  "style": "enka",
+  "name": "演歌",
+  "seed": 646345,
+  "chaos": 0.5,
+  "url": "https://hacchake.github.io/bentpc/studio.html?toys=0,5&seed=646345&style=enka&chaos=50&len=60&bpm=72",
+  "contrast": 1.8090076298861937,
+  "mean": 0.2080147119442996
+ },
+ {
+  "where": "rack",
+  "style": "enka",
+  "name": "演歌",
+  "seed": 473540,
+  "chaos": 0.5,
+  "url": "https://hacchake.github.io/bentpc/?toy=1&seed=473540&style=enka&chaos=50&len=60&bpm=72",
+  "contrast": 3.5581345490709384,
+  "mean": 0.1969101519098313
+ },
+ {
+  "where": "studio",
+  "style": "ondo",
+  "name": "音頭",
+  "seed": 626218,
+  "chaos": 0.5,
+  "url": "https://hacchake.github.io/bentpc/studio.html?toys=0,5&seed=626218&style=ondo&chaos=50&len=60&bpm=120",
+  "contrast": 2.7566152587437207,
+  "mean": 0.30274597489077587
+ },
+ {
+  "where": "studio",
+  "style": "ondo",
+  "name": "音頭",
+  "seed": 778305,
+  "chaos": 0.5,
+  "url": "https://hacchake.github.io/bentpc/studio.html?toys=0,5&seed=778305&style=ondo&chaos=50&len=60&bpm=120",
+  "contrast": 2.30421546956578,
+  "mean": 0.281461008818284
+ },
+ {
+  "where": "rack",
+  "style": "ondo",
+  "name": "音頭",
+  "seed": 953460,
+  "chaos": 0.5,
+  "url": "https://hacchake.github.io/bentpc/?toy=1&seed=953460&style=ondo&chaos=50&len=60&bpm=120",
+  "contrast": 2.44877677876403,
+  "mean": 0.2475164804293344
+ },
+ {
+  "where": "studio",
+  "style": "idm",
+  "name": "IDM",
+  "seed": 918858,
+  "chaos": 0.5,
+  "url": "https://hacchake.github.io/bentpc/studio.html?toys=0,5&seed=918858&style=idm&chaos=50&len=60&bpm=120",
+  "contrast": 1.7257866369500308,
+  "mean": 0.3841216175220151
+ },
+ {
+  "where": "studio",
+  "style": "idm",
+  "name": "IDM",
+  "seed": 820102,
+  "chaos": 0.5,
+  "url": "https://hacchake.github.io/bentpc/studio.html?toys=0,5&seed=820102&style=idm&chaos=50&len=60&bpm=120",
+  "contrast": 1.700960771339655,
+  "mean": 0.37695746741884695
+ },
+ {
+  "where": "rack",
+  "style": "idm",
+  "name": "IDM",
+  "seed": 520035,
+  "chaos": 0.5,
+  "url": "https://hacchake.github.io/bentpc/?toy=1&seed=520035&style=idm&chaos=50&len=60&bpm=120",
+  "contrast": 1.885564252306208,
+  "mean": 0.3025587257278805
+ },
+ {
+  "where": "studio",
+  "style": "breakcore",
+  "name": "ブレイクコア",
+  "seed": 424259,
+  "chaos": 0.5,
+  "url": "https://hacchake.github.io/bentpc/studio.html?toys=0,5&seed=424259&style=breakcore&chaos=50&len=60&bpm=190",
+  "contrast": 2.5190531547224246,
+  "mean": 0.3736297773172828
+ },
+ {
+  "where": "studio",
+  "style": "breakcore",
+  "name": "ブレイクコア",
+  "seed": 22289,
+  "chaos": 0.5,
+  "url": "https://hacchake.github.io/bentpc/studio.html?toys=0,5&seed=22289&style=breakcore&chaos=50&len=60&bpm=190",
+  "contrast": 1.6658217623433964,
+  "mean": 0.36384500288424104
+ },
+ {
+  "where": "rack",
+  "style": "breakcore",
+  "name": "ブレイクコア",
+  "seed": 832519,
+  "chaos": 0.5,
+  "url": "https://hacchake.github.io/bentpc/?toy=1&seed=832519&style=breakcore&chaos=50&len=60&bpm=190",
+  "contrast": 1.8424065942488066,
+  "mean": 0.2562240728612313
  }
 ]

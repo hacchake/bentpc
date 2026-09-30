@@ -4,7 +4,7 @@
 //   fx    … 電源・クラッシュ・キーボードの故障（GHOST・SCAN・BOUNCE・OVERFLOW）・STUTTER / CORRUPT キー・WAVE・
 //           DRIVE / CRUSH / ECHO / DECAY / TONE のノブ
 import { TYPO_INDEX, TYPO_KEYS } from '../../toys/typo/params';
-import { chordDegs, drumBar, lerp, makeMotif, realize, steps } from '../harmony';
+import { compHits, drumBar, lerp, makeMotif, realize, steps } from '../harmony';
 import { powerAndCrash, type Part, type PartContext } from '../context';
 import { PartWriter } from '../writer';
 
@@ -51,19 +51,12 @@ export function composeTypo(ctx: PartContext): Part[] {
     if (sec.kind !== 'intro' || style === 'plain') {
       for (const n of realize(plan, sec, motifs.get(sec.kind)!, [7, 16], { stretch: style === 'ambient' ? 2 : 1 })) notes.note(noteKey(n.deg), n.t, n.len);
     }
-    const chordEvery = style === 'ambient' ? 2 : 1;
-    for (let b = 0; b < sec.bars; b += chordEvery) {
-      if (sec.energy < 0.25 && b % 2) continue;
-      const t0 = s0 + b * 4;
-      const degs = chordDegs(plan, Math.floor(t0 / 4));
-      const len = style === 'ambient' ? 7 : sec.energy > 0.7 ? 0.4 : 1.5;
-      for (const d of degs) notes.note(noteKey(d), t0, len);
-      if (sec.energy > 0.7 && style !== 'ambient') for (const d of degs) notes.note(noteKey(d), t0 + 2.5, 0.4);
-    }
+    // 伴奏：スタイルの弾き方（裏打ち・アルペジオ・ブロックなど）で、下の段の和音
+    for (const h of compHits(plan, sec)) for (const d of h.degs) notes.note(noteKey(d), h.t, h.len);
 
     // ---- drums ----
     for (let b = 0; b < sec.bars; b++) {
-      const d = drumBar(style, sec, b, rd);
+      const d = drumBar(plan, sec, b, rd);
       if (!d) continue;
       const t0 = s0 + b * 4;
       steps(d.kick, t0, (t) => drums.note(drumKey(D.kick), t, 0.15));

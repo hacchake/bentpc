@@ -54,7 +54,7 @@ export function composeTele(ctx: PartContext): Part[] {
 
     // ---- beat ----
     for (let b = 0; b < sec.bars; b++) {
-      const d = drumBar(style, sec, b, rb);
+      const d = drumBar(plan, sec, b, rb);
       if (!d) continue;
       const t0 = s0 + b * 4;
       steps(d.kick, t0, (t) => beat.note(KICK, t, 0.2));

@@ -7,7 +7,7 @@ import { FUNCTION_KEY_LABELS, LETTER_KEYS, MODE_NAMES, NUMBER_KEY_LABELS } from 
 import { WORDS } from '../../src/toys/blippy/dsp/phonemes';
 import { DRUM_NAMES, SFX_NAMES } from '../../src/toys/blippy/dsp/soundbank';
 import { BASE_NAMES, BURSTS, GLITCHES, TELE_LAYOUT, TELE_NAV } from '../../src/toys/tele/params';
-import { STYLES, STYLE_IDS } from '../../src/compose/styles';
+import { styleOf, STYLE_IDS } from '../../src/compose/styles';
 import { TOYS, type PartDef } from './parts';
 import { COMPOSER_PARTS, SEQ_PARTS } from './extra-parts';
 import { BLIPPY_GLITCH, BURST_WHAT, COMBOS, GLOSSARY, QA, TRICKS } from './content';
@@ -94,10 +94,10 @@ function teleGlitchTable(): string {
 
 // ================= 9 章：スタイルの表 =================
 function styleTable(): string {
-  return `<table class="grid"><tr><th>STYLE</th><th>テンポ</th><th>構成（2 分のとき）</th><th>グリッチ</th><th>クラッシュ</th></tr>${STYLE_IDS.map((id) => {
-    const s = STYLES[id];
+  return `<table class="grid"><tr><th>STYLE</th><th>どんな曲</th><th>テンポ</th><th>グリッチ</th><th>クラッシュ</th></tr>${STYLE_IDS.map((id) => {
+    const s = styleOf(id);
     const crash = s.crashAt <= 0 ? '必ず（最後に崩壊）' : s.crashAt > 1 ? 'なし' : `壊れ度 ${Math.round(s.crashAt * 100)}% 以上でブレイクに`;
-    return `<tr><td><b>${s.name}</b></td><td class="c">${s.bpm}（${s.bpmRange[0]}〜${s.bpmRange[1]}）</td><td>${s.sections.map((x) => x.name).join(' → ')}</td><td class="c">${stars(Math.max(1, Math.min(5, Math.round(s.glitch * 3.5))))}</td><td>${crash}</td></tr>`;
+    return `<tr><td><small>${s.group}</small><br><b>${s.name}</b></td><td>${s.desc}</td><td class="c">${s.bpm}（${s.bpmRange[0]}〜${s.bpmRange[1]}）</td><td class="c">${stars(Math.max(1, Math.min(5, Math.round(s.glitch * 3.5))))}</td><td>${crash}</td></tr>`;
   }).join('')}</table>`;
 }
 
@@ -214,15 +214,16 @@ const body = [
     ${figure('composer.jpg', 'composer', COMPOSER_PARTS, '自動作曲ユニット（AUTO COMPOSER）', 'narrow-shot')}
     <h3>スタイル別の特徴</h3>${styleTable()}
     ${point('鍵マークの使い方', '<p>シーケンサーのトラック名の横の 🔓 を押すと 🔒 になる。鍵を掛けたトラックは、自動作曲で作り直しても<b>そのまま残る</b>。たとえば「ビートは気に入ったから残して、メロディだけ作り直す」ができる。「このセクションだけ作り直す」は、選んだセクション（サビなど）以外を 1 音も変えずに作り直す。</p>')}
-    <h3>スタジオで合同の曲を作る</h3>
+    <h3>何台かで 1 つの曲を作る</h3>
+    <p>自動作曲ユニットの<b>「参加するおもちゃ」</b>を押して光らせると、そのおもちゃも同じ曲に入る（ラックでは、パネルの付いたおもちゃはいつも参加）。ラックでは表示していないおもちゃも裏で鳴るので、上のタブで切り替えながら聞ける。</p>
     <figure class="shot"><div class="frame"><img src="img/studio3.jpg" alt=""></div><figcaption>「おもちゃを選ぶ」でトイPC・PIKOTONE・TYPOTRON を並べたところ</figcaption></figure>
-    <p>スタジオの右端の自動作曲ユニットは、並べた全部のおもちゃで 1 曲を作る。<b>ビートは 1 台だけが刻み</b>、Aメロでは<b>2 小節ずつ交代で掛け合い</b>、クラッシュは<b>全員同時</b>、ブレイクでは<b>1 台だけが残る</b>。</p>
+    <p>スタジオの右端の自動作曲ユニットは、並べたおもちゃ（最初は全部）で 1 曲を作る。<b>ビートは 1 台だけが刻み</b>、Aメロでは<b>2 小節ずつ交代で掛け合い</b>、クラッシュは<b>全員同時</b>、ブレイクでは<b>1 台だけが残る</b>。</p>
     ${bubble('改造おじさん', '「🔗 URL をコピー」で、その曲の URL を友だちに送れる。開いた人のブラウザで、同じおもちゃの並び・同じ曲がもう一度作られるんだ。')}`, 'seq'),
 
   chapter('おすすめシード値コレクション', 'このシードを聞いてみろ！', `
     <p>自動作曲でできた曲の中から、盛り上がりがはっきりしていて、音割れの少ないものを選んだ。リンクを開くと同じ曲が作られる（「▶」で再生）。</p>
     ${seedList()}
-    <p class="note">「盛り上がり」は、いちばん静かなセクションといちばんにぎやかなセクションの音量の差のめやす。選び方：各スタイル 10 個の候補を実際に鳴らして、音量の差・ちょうど良い大きさ・音割れの少なさで点数をつけた。</p>`, 'seeds'),
+    <p class="note">「盛り上がり」は、いちばん静かなセクションといちばんにぎやかなセクションの音量の差のめやす。選び方：各スタイル 4 個の候補を実際に鳴らして、音量の差・ちょうど良い大きさ・音割れの少なさで点数をつけた。</p>`, 'seeds'),
 
   chapter('裏技・隠し要素', '知ってると自慢できる！', `<div class="tricks">${TRICKS.map((t) => `<div class="trick"><h4>★ ${esc(t.name)}</h4><p>${esc(t.what)}</p></div>`).join('')}</div>`, 'tricks'),
 

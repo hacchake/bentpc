@@ -72,18 +72,20 @@ const slots = toys.map((t, i) => {
 const composeSlot = document.createElement('div');
 composeSlot.className = 'slot compose-slot';
 composeSlot.style.flex = `${PANEL_W / PANEL_H} 1 0`;
-composeSlot.innerHTML = '<div class="slot-head"><b>AUTO COMPOSER</b><span>並べた全部のおもちゃで合同の曲</span></div><div class="slot-body"></div>';
+composeSlot.innerHTML = '<div class="slot-head"><b>AUTO COMPOSER</b><span>並べたおもちゃで合同の曲</span></div><div class="slot-body"></div>';
 $('deck').appendChild(composeSlot);
-const lineupQuery = () => ({ toys: lineup.join(',') });
+// with = 参加するおもちゃ（並びの何番目か、1 から）。全部のときは付けない
+const lineupQuery = (with_: number[]): Record<string, string> => (with_.length === lineup.length ? { toys: lineup.join(',') } : { toys: lineup.join(','), with: with_.map((t) => t + 1).join(',') });
 const panel = mountComposerPanel({
-  toys: lineup.map((id, i) => ({ toy: i, kind: KINDS[id] })),
+  choices: lineup.map((id, i) => ({ toy: i, kind: KINDS[id], name: `${i + 1}.${toys[i].title.split(' ')[0]}` })),
+  defaultToys: lineup.map((_, i) => i),
   storeKey: 'bentpc.compose.studio',
   song: () => arr.song,
   load: (song, play) => { arr.setSong(song); if (play) void transport(true, 0); },
   togglePlay: () => void transport(!arr.playing, arr.playing ? undefined : 0),
-  onCompose: (st) => setPageQuery(settingsToQuery(st, lineupQuery())),
-  share: async (st) => {
-    const url = setPageQuery(settingsToQuery(st, lineupQuery()));
+  onCompose: (st, with_) => setPageQuery(settingsToQuery(st, lineupQuery(with_))),
+  share: async (st, with_) => {
+    const url = setPageQuery(settingsToQuery(st, lineupQuery(with_)));
     if (await copyText(url)) toast('この曲の URL をコピーしました。開くと、同じおもちゃの並びで同じ曲が作られます');
   },
 });
@@ -138,7 +140,8 @@ arr.addButton('新しい曲', '空の曲にする（「元に戻す」で戻せ�
 arr.sendInitial();
 // URL で送られた曲（?toys=…&seed=…）：同じ設定で合同の曲を作る。デモ曲の URL（?demo=1）
 const shared = settingsFromQuery(query);
-if (shared) queueMicrotask(() => { panel.composeWith(shared, false); toast(`送られた曲を作りました（シード ${shared.seed}）。「▶」で鳴らせます`, 6000); });
+const sharedWith = (query.get('with') ?? '').split(',').filter((x) => x.trim() !== '').map((x) => Number(x) - 1).filter((x) => Number.isInteger(x) && x >= 0);
+if (shared) queueMicrotask(() => { panel.composeWith(shared, false, sharedWith.length ? sharedWith : lineup.map((_, i) => i)); toast(`送られた曲を作りました（シード ${shared.seed}）。「▶」で鳴らせます`, 6000); });
 else if (query.get('demo') && isDefault) arr.setSong(demoSong(), false);
 
 // ---- エンジンからのメッセージ ----

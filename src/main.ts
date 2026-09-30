@@ -7,7 +7,7 @@ import { PowerGuide } from './core/power';
 import { Arranger } from './studio/arranger';
 import { createViewSync } from './studio/sync';
 import { exportMidi, exportWav } from './studio/export';
-import { PANEL_W, mountComposerPanel } from './compose/panel';
+import { PANEL_H, PANEL_W, mountComposerPanel } from './compose/panel';
 import { PART_COMPOSERS } from './compose/rules';
 import { copyText, setPageQuery, settingsFromQuery, settingsToQuery, toast } from './compose/share';
 import type { ToyKind } from './compose/types';
@@ -26,7 +26,7 @@ const COMMON_HELP = `
   <tr><td>上のタブ / F1〜F6</td><td>おもちゃの切り替え（裏のおもちゃも鳴り続けます）。TYPOTRON・TELEKEY 表示中は F キーが楽器の機能なので、タブで切り替え</td></tr>
   <tr><td>REC</td><td>全部のおもちゃの音を録音。もう一度押すと WAV をダウンロード</td></tr>
   <tr><td>☰ SEQ</td><td>シーケンサー：演奏の操作を録音（重ね録り）して、あとから手直しできる。WAV / MIDI で書き出し</td></tr>
-  <tr><td>AUTO COMPOSER</td><td>おもちゃの右の緑の基板：「自動作曲」を押すと、そのおもちゃの曲を作ってシーケンサーに書き込み、鳴らす（STYLE・壊れ度・LENGTH・BPM・SEED）</td></tr>
+  <tr><td>AUTO COMPOSER</td><td>おもちゃの右の緑の基板：「自動作曲」を押すと、曲を作ってシーケンサーに書き込み、鳴らす（STYLE 26 種類・参加するおもちゃ・壊れ度・LENGTH・BPM・SEED）。参加ボタンで何台かを 1 つの曲に</td></tr>
   <tr><td>MIDI</td><td>チャンネル n → n 台目（1〜6）、それ以外→表示中のおもちゃ</td></tr>
 </table>
 <p><button class="guide-again" type="button">電源の案内をもう一度見る</button></p>
@@ -59,17 +59,22 @@ const tabEls = toys.map((t, i) => {
 const KINDS: ToyKind[] = ['blippy', 'piko', 'dj', 'vroom', 'typo', 'tele'];
 const PANEL_GAP = 50;
 const panelScale = (h: number) => Math.max(0.9, Math.min(1.4, h / 820));
+// 何台かで 1 つの曲も作れる（参加ボタン）。パネルの付いたおもちゃはいつも参加
+const CHOICES = toys.map((t, i) => ({ toy: i, kind: KINDS[i], name: `${i + 1}.${t.title.split(' ')[0]}` })).filter((c) => PART_COMPOSERS[c.kind]);
+const rackQuery = (i: number, with_: number[]) => ({ toy: String(i + 1), toys: with_.map((t) => t + 1).join(',') });
 const panels = toys.map((t, i) => {
   if (!PART_COMPOSERS[KINDS[i]]) return null;
   const p = mountComposerPanel({
-    toys: [{ toy: i, kind: KINDS[i] }],
+    choices: CHOICES,
+    defaultToys: [i],
+    fixed: i,
     storeKey: `bentpc.compose.${KINDS[i]}`,
     song: () => arr.song,
     load: (song, play) => { arr.setSong(song); openSeq(true); if (play) void transport(true, 0); },
     togglePlay: () => void transport(!arr.playing, arr.playing ? undefined : 0),
-    onCompose: (st) => setPageQuery(settingsToQuery(st, { toy: String(i + 1) })),
-    share: async (st) => {
-      const url = setPageQuery(settingsToQuery(st, { toy: String(i + 1) }));
+    onCompose: (st, with_) => setPageQuery(settingsToQuery(st, rackQuery(i, with_))),
+    share: async (st, with_) => {
+      const url = setPageQuery(settingsToQuery(st, rackQuery(i, with_)));
       if (await copyText(url)) toast('この曲の URL をコピーしました。送った相手が開くと、同じ曲が作られます');
     },
   });
@@ -106,7 +111,7 @@ function fit(): void {
   const dh = wrap.hidden ? 0 : wrap.offsetHeight;
   const k = panelScale(t.height);
   const w = t.width + (panels[active] ? PANEL_GAP + PANEL_W * k : 0);
-  const h = Math.max(t.height, panels[active] ? 800 * k : 0);
+  const h = Math.max(t.height, panels[active] ? PANEL_H * k : 0);
   const s = Math.min((window.innerWidth - 16) / w, (window.innerHeight - 60 - dh) / h);
   stage.style.top = `calc(50% + ${26 - dh / 2}px)`;
   stage.style.width = `${w}px`;
@@ -281,14 +286,15 @@ try {
 } catch {
   // 読めなくても動く
 }
-// URL で送られた曲（?toy=1&seed=…）：そのおもちゃを出して、同じ設定で作る（鳴らすのは ▶ を押してから）
+// URL で送られた曲（?toy=1&toys=1,6&seed=…）：そのおもちゃを出して、同じ設定・同じ顔ぶれで作る（鳴らすのは ▶ を押してから）
 const query = new URLSearchParams(location.search);
 const shared = settingsFromQuery(query);
 const sharedToy = Number(query.get('toy')) - 1;
+const sharedWith = (query.get('toys') ?? '').split(',').filter((x) => x.trim() !== '').map((x) => Number(x) - 1).filter((x) => Number.isInteger(x) && x >= 0);
 if (shared && panels[sharedToy]) {
   saved = sharedToy;
   queueMicrotask(() => {
-    panels[sharedToy]!.composeWith(shared, false);
+    panels[sharedToy]!.composeWith(shared, false, sharedWith.length ? sharedWith : [sharedToy]);
     toast(`送られた曲を作りました（シード ${shared.seed}）。「▶ 再生」で鳴らせます`, 6000);
   });
 }

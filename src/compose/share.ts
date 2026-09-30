@@ -1,6 +1,6 @@
 // URL で曲を共有する：自動作曲の設定（シード・スタイル・壊れ度・長さ・BPM）と、おもちゃの並びを URL に入れる。
 // 同じ URL を開けば、同じ曲がもう一度作られる（曲データそのものは送らない）。
-import { LENGTHS, STYLES, STYLE_IDS } from './styles';
+import { LENGTHS, STYLE_IDS, styleOf } from './styles';
 import type { ComposeSettings, StyleId } from './types';
 
 export function settingsToQuery(st: ComposeSettings, extra: Record<string, string> = {}): string {
@@ -17,8 +17,8 @@ export function settingsFromQuery(q: URLSearchParams): ComposeSettings | null {
   const lenQ = Number(q.get('len'));
   const lengthSec = LENGTHS.includes(lenQ) ? lenQ : 60;
   const bpmQ = Number(q.get('bpm'));
-  const [lo, hi] = STYLES[style].bpmRange;
-  const bpm = Number.isFinite(bpmQ) && bpmQ > 0 ? Math.max(lo, Math.min(hi, Math.round(bpmQ))) : STYLES[style].bpm;
+  const [lo, hi] = styleOf(style).bpmRange;
+  const bpm = Number.isFinite(bpmQ) && bpmQ > 0 ? Math.max(lo, Math.min(hi, Math.round(bpmQ))) : styleOf(style).bpm;
   return { seed, style, chaos, lengthSec, bpm };
 }
 

@@ -4,7 +4,8 @@
 
 import type { Song } from '../core/song';
 
-export type StyleId = 'plain' | 'beat' | 'ambient' | 'noise' | 'collapse';
+/** スタイルの名前（styles.ts の STYLES の鍵。'plain' 'beat' 'enka' 'dnb' など） */
+export type StyleId = string;
 
 /** 画面のつまみ・スイッチで決める設定。同じ設定なら必ず同じ曲になる */
 export interface ComposeSettings {
