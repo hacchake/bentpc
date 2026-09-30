@@ -1,6 +1,7 @@
 // 2台目：PIKOTONE PT-32（魔改造ミニキーボード＋エフェクト別ユニット）の画面
 import './piko.css';
 import { Knob, Toggle, momentary } from '../../core/controls';
+import { PowerHints } from '../../core/power';
 import { Board, CC_POWER, noteName, applyCtl, ccMap, ccToValue, type Ctl, type HostApi, type ToyUI } from '../../core/ui';
 import type { FromToy } from '../../host/protocol';
 import {
@@ -23,6 +24,7 @@ const HELP = `
   <tr><td>Enter</td><td>DEMO</td></tr>
   <tr><td>Backspace</td><td>GLITCH スイッチ</td></tr>
   <tr><td>Tab</td><td>ENV / HOLD スイッチ</td></tr>
+  <tr><td>POWER</td><td>操作パネル左の大きな緑の POWER ボタン（押すたびに ON / OFF）。電源 OFF のときは Enter キーでも入る</td></tr>
   <tr><td>PageUp / PageDown</td><td>電源 ON / OFF</td></tr>
 </table>
 <p>AMP TOUCH・PITCH BEND の銀の丸は、押している間だけ効きます。押したまま上下に動かすと強さが変わります。</p>
@@ -118,14 +120,19 @@ export function mountPiko(api: HostApi): ToyUI {
   box('PITCH BEND', 240, 780);
 
   // ================= 操作パネル =================
-  label('POWER', 340, 368);
-  leds.power = b.place('led', 372, 368);
+  leds.power = b.place('led green', 386, 400);
   const powerOn = async () => {
     await api.start();
     api.post({ type: 'power', on: true });
   };
   const powerOff = () => api.post({ type: 'power', on: false });
-  const powerSw = new Toggle(b.place('toggle', 340, 420), 2, 0, (v) => (v ? void powerOn() : powerOff()));
+  // 大きな POWER ボタン（押すたびに ON / OFF）
+  const powerBtn = b.place('dome green big power', 340, 404);
+  let poweredNow = false;
+  const powerSw = { set: (v: number) => (v ? void powerOn() : powerOff()) };
+  momentary(powerBtn, () => powerSw.set(poweredNow ? 0 : 1));
+  b.label('POWER', 340, 450, 'power-label');
+  const hints = new PowerHints(root, powerBtn, leds.power, { x: 400, y: 404, side: 'right' });
   label('MASTER VOL', 430, 368);
   ctl.volume = new Knob(b.knob('black small', 430, 420), def('volume'), (v) => setParam('volume', v));
 
@@ -254,6 +261,7 @@ export function mountPiko(api: HostApi): ToyUI {
 
   return {
     title: 'PIKOTONE PT-32',
+    powerButton: powerBtn,
     paramDefs: PIKO_PARAMS,
     keyCount: PIKO_KEY_COUNT,
     keyName: (k) => (k < PIKO_NOTE_COUNT ? noteName(PIKO_FIRST_NOTE + k) : ['KICK', 'SNARE', 'HAT', 'TOM', 'DEMO', 'START', 'STOP', 'TEMPO+', 'TEMPO−'][k - PAD_KEY] ?? `KEY ${k}`),
@@ -265,6 +273,8 @@ export function mountPiko(api: HostApi): ToyUI {
       if (m.type !== 'status') return;
       const st = m.status;
       leds.power.classList.toggle('lit', st.powered);
+      poweredNow = st.powered;
+      hints.update(st.powered);
       leds.beat.classList.toggle('lit', st.leds.beat > 0);
       running = st.leds.run > 0;
       startEl.classList.toggle('sel', running);
@@ -272,6 +282,9 @@ export function mountPiko(api: HostApi): ToyUI {
       tempoView.textContent = st.fx.tempo ? `${st.fx.tempo} BPM` : '';
     },
     keyDown(e) {
+      // 電源 OFF のとき：Enter で電源 ON。ほかのキーは POWER を光らせて教える
+      if (!hints.powered && e.code === 'Enter') { if (!e.repeat) void powerOn(); return true; }
+      if (!hints.powered && e.code !== 'PageUp' && e.code !== 'PageDown' && !e.repeat && (momentaryFor(e.code) || actions[e.code])) hints.nudge();
       const m = momentaryFor(e.code);
       if (m) { if (!e.repeat) m.press(); return true; }
       const a = actions[e.code];

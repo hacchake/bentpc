@@ -1,6 +1,7 @@
 // 3台目：SPIN-TOT DJ-28（魔改造 子供用 DJ セット）の画面
 import './dj.css';
 import { Knob, SteppedKnob, Toggle, momentary } from '../../core/controls';
+import { PowerHints } from '../../core/power';
 import { Board, CC_POWER, noteName, applyCtl, ccMap, ccToValue, type Ctl, type HostApi, type ToyUI } from '../../core/ui';
 import type { FromToy } from '../../host/protocol';
 import { DISC_NAMES } from './dsp/sounds';
@@ -27,6 +28,7 @@ const HELP = `
   <tr><td>← →</td><td>INSTRUMENT（鍵盤の音色）</td></tr>
   <tr><td>Tab</td><td>KEYBOARD PATTERN 1 / 2（2 = アルペジオ）</td></tr>
   <tr><td>P / L</td><td>PITCH スイッチ / LIGHT スイッチ</td></tr>
+  <tr><td>POWER</td><td>右下の大きな緑の POWER ボタン（OFF は右の青いボタン）。電源 OFF のときは Enter キーでも入る</td></tr>
   <tr><td>PageUp / PageDown</td><td>電源 ON / OFF</td></tr>
 </table>
 <p>ディスクはマウスでつかんで回すとスクラッチ。光センサー（左右の丸いレンズ）はマウスを近づけると影になり、LIGHT スイッチ ON で音程が下がる。押さえるとまっ暗。</p>
@@ -252,12 +254,16 @@ export function mountDj(api: HostApi): ToyUI {
   slider('sfxVol', 640, 'EFFECT VOL');
   lblD('AUX/CD', 795, 690);
   b.place('dj-blue', 760, 716); b.place('dj-blue', 830, 716);
-  lblD('ON   POWER   OFF', 795, 822);
-  leds.power = b.place('led', 795, 852);
+  leds.power = b.place('led green', 795, 760);
   const powerOn = async () => { await api.start(); api.post({ type: 'power', on: true }); };
   const powerOff = () => api.post({ type: 'power', on: false });
-  momentary(b.place('dj-blue', 760, 790), () => void powerOn());
-  momentary(b.place('dj-blue', 830, 790), powerOff);
+  // 大きな POWER（ON）ボタンと、小さな OFF
+  const powerBtn = b.place('dome green big power', 752, 800);
+  momentary(powerBtn, () => void powerOn());
+  b.label('POWER', 752, 846, 'power-label');
+  momentary(b.place('dj-blue', 836, 800), powerOff);
+  lblD('OFF', 836, 836);
+  const hints = new PowerHints(root, powerBtn, leds.power, { x: 700, y: 800, side: 'left' });
   ctl.volume = new Knob(b.knob('blue big', 915, 770), def('volume'), (v) => setParam('volume', v));
   lblD('+   VOLUME   −', 915, 818);
   b.tape('CIRCUIT BENT', 915, 690, false, -2);
@@ -352,6 +358,7 @@ export function mountDj(api: HostApi): ToyUI {
 
   return {
     title: 'SPIN-TOT DJ-28',
+    powerButton: powerBtn,
     paramDefs: DJ_PARAMS,
     keyCount: DJ_KEY_COUNT,
     keyName: (k) => (k < DJ_NOTE_COUNT ? noteName(DJ_FIRST_NOTE + k) : ['PAD 1', 'PAD 2', 'PAD 3', 'PAD 4', 'PAD 5', 'PAD 6', 'PLAY', 'PAUSE', 'TEMPO+', 'TEMPO−', 'DISC'][k - DJ_PAD] ?? `KEY ${k}`),
@@ -365,6 +372,7 @@ export function mountDj(api: HostApi): ToyUI {
       } else if (m.type === 'status') {
         const st = m.status;
         leds.power.classList.toggle('lit', st.powered);
+        hints.update(st.powered);
         leds.beat.classList.toggle('lit', st.leds.beat > 0);
         leds.halt.classList.toggle('lit', st.leds.halt > 0);
         running = st.leds.run > 0;
@@ -374,6 +382,9 @@ export function mountDj(api: HostApi): ToyUI {
       }
     },
     keyDown(e) {
+      // 電源 OFF のとき：Enter で電源 ON。ほかのキーは POWER を光らせて教える
+      if (!hints.powered && e.code === 'Enter') { if (!e.repeat) void powerOn(); return true; }
+      if (!hints.powered && e.code !== 'PageUp' && e.code !== 'PageDown' && !e.repeat && (momentaryFor(e.code) || actions(e.code))) hints.nudge();
       const m = momentaryFor(e.code);
       if (m) { if (!e.repeat) m.press(); return true; }
       const a = actions(e.code);

@@ -1,6 +1,7 @@
 // 4台目：VROOMBOX VR-5（魔改造 子供用ドライブ・ダッシュボード）の画面
 import './vroom.css';
 import { Knob, SteppedKnob, SteppedSlider, Toggle, momentary } from '../../core/controls';
+import { PowerHints } from '../../core/power';
 import { Board, CC_POWER, noteName, applyCtl, ccMap, ccToValue, type Ctl, type HostApi, type ToyUI } from '../../core/ui';
 import type { FromToy } from '../../host/protocol';
 import { GEARS, STATIONS, V_KEY_COUNT, V_CRASH, V_HORN, V_NOTE, V_NOTE_BASE, V_NOTE_COUNT, V_PRESET, V_START, VROOM_INDEX, VROOM_PARAMS, type VroomParamId } from './params';
@@ -12,6 +13,7 @@ const OX = 340; // おもちゃ本体の左端
 const HELP = `
 <h3>VROOMBOX VR-5 のキー操作</h3>
 <table>
+  <tr><td>POWER</td><td>左の POWER の札のイグニッションキー（クリックで ON、ON のままクリックでエンジン始動）。電源 OFF のときは Enter キーでも入る</td></tr>
   <tr><td>PageUp / PageDown</td><td>キーを ON / OFF</td></tr>
   <tr><td>Enter</td><td>エンジン始動（押している間セルが回る）</td></tr>
   <tr><td>↑ または W</td><td>アクセル（押している間）</td></tr>
@@ -115,6 +117,8 @@ export function mountVroom(api: HostApi): ToyUI {
   let powered = false, cranking = false;
   const keyEl = b.place('vr-key', OX + 150, 420, '<div class="vr-key-head"></div>');
   lbl('OFF   ON   START', OX + 150, 372, 'light');
+  b.label('POWER', OX + 150, 340, 'power-label');
+  const powerLed = b.place('led green', OX + 210, 340);
   const setKeyPos = (pos: number) => keyEl.style.setProperty('--rot', `${[-50, 0, 50][pos]}deg`);
   const powerOn = async () => { await api.start(); api.post({ type: 'power', on: true }); powered = true; setKeyPos(1); };
   const powerOff = () => { api.post({ type: 'power', on: false }); powered = false; setKeyPos(0); };
@@ -128,6 +132,7 @@ export function mountVroom(api: HostApi): ToyUI {
   keyEl.addEventListener('pointerup', () => crank(false));
   keyEl.addEventListener('pointercancel', () => crank(false));
   momentary(b.place('vr-small', OX + 150, 480, 'KEY OFF'), powerOff);
+  const hints = new PowerHints(root, keyEl, powerLed, { x: OX + 215, y: 420, side: 'right' });
   setKeyPos(0);
 
   const toggleBtn = (id: VroomParamId, x: number, y: number, name: string, color: string) => {
@@ -296,6 +301,7 @@ export function mountVroom(api: HostApi): ToyUI {
 
   return {
     title: 'VROOMBOX VR-5',
+    powerButton: keyEl,
     paramDefs: VROOM_PARAMS,
     keyCount: V_KEY_COUNT,
     keyName: (k) => (k < 8 ? `PRESET ${k + 1}` : k === V_HORN ? 'HORN' : k === V_CRASH ? 'CRASH' : k === V_START ? 'START' : k >= V_NOTE ? `ENGINE ${noteName(V_NOTE_BASE + k - V_NOTE)}` : `KEY ${k}`),
@@ -309,6 +315,8 @@ export function mountVroom(api: HostApi): ToyUI {
       } else if (m.type === 'status') {
         const st = m.status;
         powered = st.powered;
+        powerLed.classList.toggle('lit', st.powered);
+        hints.update(st.powered);
         const rpm = st.fx.rpm ?? 0;
         setNeedle(tachNeedle, rpm, 8000, rpm > 7400 ? (Math.random() - 0.5) * 6 : 0);
         setNeedle(speedNeedle, st.fx.speed ?? 0, 200);
@@ -321,6 +329,9 @@ export function mountVroom(api: HostApi): ToyUI {
       }
     },
     keyDown(e) {
+      // 電源 OFF のとき：Enter で電源 ON。ほかのキーは POWER を光らせて教える
+      if (!hints.powered && e.code === 'Enter') { if (!e.repeat) void powerOn(); return true; }
+      if (!hints.powered && e.code !== 'PageUp' && e.code !== 'PageDown' && !e.repeat && (momentaryFor(e.code) || actions[e.code])) hints.nudge();
       const m = momentaryFor(e.code);
       if (m) { if (!e.repeat) m.press(); return true; }
       const a = actions[e.code];

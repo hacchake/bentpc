@@ -2,6 +2,7 @@
 // 目の前の PC キーボードでそのまま弾ける。画面のキーは押されたキーが光り、各キーの役目が小さく書いてある。
 import './typo.css';
 import { Knob, momentary } from '../../core/controls';
+import { PowerHints } from '../../core/power';
 import { Board, CC_POWER, noteName, applyCtl, ccMap, ccToValue, type Ctl, type HostApi, type ToyUI } from '../../core/ui';
 import type { FromToy } from '../../host/protocol';
 import {
@@ -35,6 +36,7 @@ const HELP = `
   <tr><td>F5〜F8</td><td>音階 MAJOR / MINOR / PENTA / BENT</td></tr>
   <tr><td>F9〜F12</td><td>キーボードの故障：GHOST / SCAN / BOUNCE / OVERFLOW（ON/OFF）</td></tr>
   <tr><td>テンキー・無変換・変換・かな</td><td>ドラム</td></tr>
+  <tr><td>POWER</td><td>キーボード左上の大きな緑の POWER ボタン（押すたびに ON / OFF）。電源 OFF のときは Enter キーでも入る</td></tr>
   <tr><td>PgUp / PgDn</td><td>電源 ON / OFF</td></tr>
 </table>
 <p>F6・F7・F11・F12 などはブラウザによっては先に取られてしまうことがあります。そのときは画面のキーをクリックしてください。</p>
@@ -93,6 +95,15 @@ export function mountTypo(api: HostApi): ToyUI {
     b.label(name, x, 222, 'tt-lbl');
   });
   for (const [x, y] of [[44, 40], [1736, 40], [44, 234], [1736, 234]]) b.place('screw', x, y);
+  // キーボードの左上に大きな POWER ボタン（押すたびに ON / OFF）
+  let poweredNow = false;
+  const powerOn = () => void api.start().then(() => api.post({ type: 'power', on: true }));
+  const powerOff = () => api.post({ type: 'power', on: false });
+  const powerLed = b.place('led green', 120, 368);
+  const powerBtn = b.place('dome green big power', 120, 430);
+  momentary(powerBtn, () => (poweredNow ? powerOff() : powerOn()));
+  b.label('POWER', 120, 478, 'power-label');
+  const hints = new PowerHints(root, powerBtn, powerLed, { x: 176, y: 430, side: 'right' });
 
   // ================= キーボード =================
   const keysEl = $('keys');
@@ -158,7 +169,7 @@ export function mountTypo(api: HostApi): ToyUI {
     caret.className = 'caret';
     caret.textContent = '_';
     lineEl.appendChild(caret);
-    infoEl.textContent = d.info || 'PgUp で電源 ON';
+    infoEl.textContent = d.info || 'POWER ボタン（Enter）で電源 ON';
   };
   showDisplay({ line: '', cursor: -1, info: '' });
 
@@ -167,6 +178,7 @@ export function mountTypo(api: HostApi): ToyUI {
   const midiHeld = new Set<number>();
   return {
     title: 'TYPOTRON TT-109',
+    powerButton: powerBtn,
     paramDefs: TYPO_PARAMS,
     keyCount: TYPO_KEYS.length,
     keyName: (k) => (k >= RAW_NOTE ? `MIDI ${noteName(k - RAW_NOTE)}` : TYPO_KEYS[k] ? `${TYPO_KEYS[k].label} ${TYPO_KEYS[k].role.r === 'note' ? '' : TYPO_KEYS[k].code}`.trim() : `KEY ${k}`),
@@ -179,6 +191,9 @@ export function mountTypo(api: HostApi): ToyUI {
       else if (m.type === 'status') {
         const st = m.status;
         leds.power.classList.toggle('lit', st.powered);
+        powerLed.classList.toggle('lit', st.powered);
+        poweredNow = st.powered;
+        hints.update(st.powered);
         for (const id of ['loop', 'latch', 'overwrite', 'stutter', 'corrupt', 'ghost', 'scan', 'bounce', 'overflow']) leds[id].classList.toggle('lit', st.leds[id] > 0.5);
         for (const p of ['ghost', 'scan', 'bounce', 'overflow']) bendCaps[p]?.classList.toggle('sel', st.leds[p] > 0.5);
         capEls.get('CapsLock')?.classList.toggle('sel', st.leds.latch > 0.5);
@@ -192,6 +207,9 @@ export function mountTypo(api: HostApi): ToyUI {
       }
     },
     keyDown(e) {
+      // 電源 OFF のとき：Enter で電源 ON。ほかのキーは POWER を光らせて教える
+      if (!hints.powered && e.code === 'Enter') { if (!e.repeat) void powerOn(); return true; }
+      if (!hints.powered && e.code !== 'PageUp' && e.code !== 'PageDown' && !e.repeat && keyCtl.has(e.code)) hints.nudge();
       const k = keyCtl.get(e.code);
       if (!k) return false;
       if (!e.repeat) k.press();
@@ -220,7 +238,7 @@ export function mountTypo(api: HostApi): ToyUI {
         else setParam(p.id, v);
       } else if (st === 0xc0) setParam('wave', d1 % 4);
     },
-    powerOn: () => void api.start().then(() => api.post({ type: 'power', on: true })),
-    powerOff: () => api.post({ type: 'power', on: false }),
+    powerOn,
+    powerOff,
   };
 }
