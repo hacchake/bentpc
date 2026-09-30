@@ -14,6 +14,8 @@
 
 ## 使い方
 
+- **攻略本**（使い方を全部まとめた説明書・印刷や PDF にもできる）：https://hacchake.github.io/bentpc/manual/ （各画面の「📖 攻略本」から）。作り直すときは `npm run manual`（スクリーンショットの自動撮影 → おすすめシード選び → ページ → PDF。`scripts/manual/`）
+
 - 公開ページ：https://hacchake.github.io/bentpc/ （スタジオは https://hacchake.github.io/bentpc/studio.html ）。main に push すると GitHub Actions（`.github/workflows/deploy.yml`）が自動でビルドして公開する
 
 - すぐ遊ぶ：`dist/index.html` をダブルクリック（`npm run build` で作り直せる）

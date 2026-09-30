@@ -1,0 +1,152 @@
+[
+ {
+  "where": "studio",
+  "style": "plain",
+  "name": "素朴",
+  "seed": 712970,
+  "chaos": 0.3,
+  "url": "https://hacchake.github.io/bentpc/studio.html?toys=0,5&seed=712970&style=plain&chaos=30&len=60&bpm=108",
+  "contrast": 1.4386046794372824,
+  "mean": 0.18721210415766754
+ },
+ {
+  "where": "studio",
+  "style": "plain",
+  "name": "素朴",
+  "seed": 813925,
+  "chaos": 0.3,
+  "url": "https://hacchake.github.io/bentpc/studio.html?toys=0,5&seed=813925&style=plain&chaos=30&len=60&bpm=108",
+  "contrast": 1.4558965284038468,
+  "mean": 0.1830445924055095
+ },
+ {
+  "where": "rack",
+  "style": "plain",
+  "name": "素朴",
+  "seed": 712397,
+  "chaos": 0.3,
+  "url": "https://hacchake.github.io/bentpc/?toy=1&seed=712397&style=plain&chaos=30&len=60&bpm=108",
+  "contrast": 1.581990490414933,
+  "mean": 0.15310669561468707
+ },
+ {
+  "where": "studio",
+  "style": "beat",
+  "name": "ビート",
+  "seed": 525413,
+  "chaos": 0.6,
+  "url": "https://hacchake.github.io/bentpc/studio.html?toys=0,5&seed=525413&style=beat&chaos=60&len=60&bpm=124",
+  "contrast": 3.2184081535001674,
+  "mean": 0.3047762703229346
+ },
+ {
+  "where": "studio",
+  "style": "beat",
+  "name": "ビート",
+  "seed": 888558,
+  "chaos": 0.6,
+  "url": "https://hacchake.github.io/bentpc/studio.html?toys=0,5&seed=888558&style=beat&chaos=60&len=60&bpm=124",
+  "contrast": 3.204124954813243,
+  "mean": 0.3068178707740505
+ },
+ {
+  "where": "rack",
+  "style": "beat",
+  "name": "ビート",
+  "seed": 402280,
+  "chaos": 0.6,
+  "url": "https://hacchake.github.io/bentpc/?toy=1&seed=402280&style=beat&chaos=60&len=60&bpm=124",
+  "contrast": 4,
+  "mean": 0.2584569606936029
+ },
+ {
+  "where": "studio",
+  "style": "ambient",
+  "name": "アンビエント",
+  "seed": 528196,
+  "chaos": 0.35,
+  "url": "https://hacchake.github.io/bentpc/studio.html?toys=0,5&seed=528196&style=ambient&chaos=35&len=60&bpm=80",
+  "contrast": 4,
+  "mean": 0.2442289534328943
+ },
+ {
+  "where": "studio",
+  "style": "ambient",
+  "name": "アンビエント",
+  "seed": 338383,
+  "chaos": 0.35,
+  "url": "https://hacchake.github.io/bentpc/studio.html?toys=0,5&seed=338383&style=ambient&chaos=35&len=60&bpm=80",
+  "contrast": 4,
+  "mean": 0.25487813633436346
+ },
+ {
+  "where": "rack",
+  "style": "ambient",
+  "name": "アンビエント",
+  "seed": 759961,
+  "chaos": 0.35,
+  "url": "https://hacchake.github.io/bentpc/?toy=1&seed=759961&style=ambient&chaos=35&len=60&bpm=80",
+  "contrast": 4,
+  "mean": 0.2840784777418777
+ },
+ {
+  "where": "studio",
+  "style": "noise",
+  "name": "ノイズ",
+  "seed": 305659,
+  "chaos": 0.8,
+  "url": "https://hacchake.github.io/bentpc/studio.html?toys=0,5&seed=305659&style=noise&chaos=80&len=60&bpm=132",
+  "contrast": 2.706421118451712,
+  "mean": 0.2881846541752667
+ },
+ {
+  "where": "studio",
+  "style": "noise",
+  "name": "ノイズ",
+  "seed": 451903,
+  "chaos": 0.8,
+  "url": "https://hacchake.github.io/bentpc/studio.html?toys=0,5&seed=451903&style=noise&chaos=80&len=60&bpm=132",
+  "contrast": 2.4830073203874368,
+  "mean": 0.2773619132535507
+ },
+ {
+  "where": "rack",
+  "style": "noise",
+  "name": "ノイズ",
+  "seed": 964924,
+  "chaos": 0.8,
+  "url": "https://hacchake.github.io/bentpc/?toy=1&seed=964924&style=noise&chaos=80&len=60&bpm=132",
+  "contrast": 1.8212297720045214,
+  "mean": 0.23970198659599118
+ },
+ {
+  "where": "studio",
+  "style": "collapse",
+  "name": "崩壊",
+  "seed": 307569,
+  "chaos": 0.8,
+  "url": "https://hacchake.github.io/bentpc/studio.html?toys=0,5&seed=307569&style=collapse&chaos=80&len=60&bpm=116",
+  "contrast": 2.464005354794745,
+  "mean": 0.27534444930535257
+ },
+ {
+  "where": "studio",
+  "style": "collapse",
+  "name": "崩壊",
+  "seed": 583170,
+  "chaos": 0.8,
+  "url": "https://hacchake.github.io/bentpc/studio.html?toys=0,5&seed=583170&style=collapse&chaos=80&len=60&bpm=116",
+  "contrast": 2.447122755288515,
+  "mean": 0.2867134224620576
+ },
+ {
+  "where": "rack",
+  "style": "collapse",
+  "name": "崩壊",
+  "seed": 923014,
+  "chaos": 0.8,
+  "url": "https://hacchake.github.io/bentpc/?toy=1&seed=923014&style=collapse&chaos=80&len=60&bpm=116",
+  "contrast": 3.4158774274991517,
+  "mean": 0.2830321390477612
+ }
+]

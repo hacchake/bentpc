@@ -99,4 +99,5 @@ html, body {
 }
 
 a.bar-btn { text-decoration: none; }
+a.bar-btn.manual { background: #ffd23d; color: #222; }
 .guide-again { padding: 6px 12px; border-radius: 8px; border: 2px solid #222; background: #ffe066; font: 700 13px sans-serif; cursor: pointer; }

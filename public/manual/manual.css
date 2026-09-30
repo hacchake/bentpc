@@ -1,0 +1,199 @@
+/* BENT TOY RACK 完全攻略本：90 年代の攻略本ふう。画面でも印刷（A4・PDF）でもきれいに */
+:root {
+  --red: #e8322a; --yellow: #ffd23d; --blue: #2f6fe0; --green: #2fae4a; --pink: #ff6fa8; --ink: #1e1a24; --paper: #fffdf5;
+}
+* { box-sizing: border-box; }
+html { background: #f3eedf; }
+body {
+  margin: 0; color: var(--ink); background: #f3eedf;
+  font: 16px/1.75 'M PLUS Rounded 1c', 'Hiragino Maru Gothic ProN', 'Meiryo', sans-serif;
+  -webkit-print-color-adjust: exact; print-color-adjust: exact;
+}
+main { max-width: 1040px; margin: 0 auto; padding: 0 16px 60px; }
+h1, h2, h3, h4 { font-family: 'Mochiy Pop One', 'M PLUS Rounded 1c', sans-serif; font-weight: 400; line-height: 1.3; }
+a { color: var(--blue); font-weight: 700; }
+b { color: #c0281f; }
+
+.topnav { position: sticky; top: 0; z-index: 10; display: flex; gap: 10px; align-items: center; padding: 8px 16px; background: var(--ink); }
+.topnav a, .topnav button { padding: 6px 14px; border-radius: 20px; border: 0; background: var(--yellow); color: var(--ink); font: 700 14px 'M PLUS Rounded 1c', sans-serif; text-decoration: none; cursor: pointer; }
+.topnav .sp { flex: 1; }
+
+/* ---- 表紙 ---- */
+.cover {
+  position: relative; margin: 24px 0; padding: 40px 32px 32px; border: 6px solid var(--ink); border-radius: 24px; overflow: hidden; text-align: center;
+  background: repeating-conic-gradient(from 0deg at 50% 45%, #ffe45c 0 10deg, #ffcf2e 10deg 20deg);
+  box-shadow: 10px 10px 0 var(--ink);
+}
+.cover-band { display: inline-block; padding: 6px 28px; background: var(--red); color: #fff; font: 28px 'Mochiy Pop One'; transform: rotate(-3deg); border: 4px solid var(--ink); box-shadow: 5px 5px 0 var(--ink); }
+.cover h1 { margin: 18px 0 6px; font-size: 76px; color: #fff; letter-spacing: 2px; -webkit-text-stroke: 3px var(--ink); text-shadow: 6px 6px 0 var(--ink); }
+.cover h1 small { display: block; font-size: 22px; -webkit-text-stroke: 0; color: var(--ink); text-shadow: none; letter-spacing: 6px; }
+.cover-sub { display: inline-block; margin: 6px 0 18px; padding: 6px 18px; background: #fff; border: 3px solid var(--ink); border-radius: 30px; font: 22px 'Mochiy Pop One'; }
+.cover-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; align-items: center; }
+.cover-grid img { width: 100%; height: 190px; object-fit: contain; background: #2b2533; border: 4px solid var(--ink); border-radius: 12px; transform: rotate(var(--r, 0deg)); }
+.cover-grid img:nth-child(odd) { --r: -2deg; }
+.cover-grid img:nth-child(even) { --r: 2deg; }
+.cover-stars { margin-top: 18px; font: 16px 'Mochiy Pop One'; color: var(--red); }
+
+/* ---- 目次 ---- */
+.toc { margin: 24px 0; padding: 20px 28px; background: var(--paper); border: 4px solid var(--ink); border-radius: 18px; box-shadow: 6px 6px 0 var(--ink); }
+.toc h2 { margin: 0 0 8px; color: var(--blue); }
+.toc ol { columns: 2; margin: 0; padding-left: 28px; font-weight: 700; }
+.toc li { break-inside: avoid; }
+
+/* ---- 章 ---- */
+.chapter { margin: 36px 0; padding: 26px 28px; background: var(--paper); border: 4px solid var(--ink); border-radius: 18px; box-shadow: 6px 6px 0 var(--ink); }
+.ch-head { display: flex; gap: 16px; align-items: center; margin: -26px -28px 18px; padding: 16px 24px; background: var(--blue); border-bottom: 4px solid var(--ink); border-radius: 14px 14px 0 0; color: #fff; }
+.chapter:nth-of-type(3n) .ch-head { background: var(--red); }
+.chapter:nth-of-type(3n+1) .ch-head { background: var(--green); }
+.ch-no {
+  flex: none; width: 68px; height: 68px; display: grid; place-items: center; font: 34px 'Mochiy Pop One'; color: var(--ink);
+  background: var(--yellow); border: 4px solid var(--ink);
+  clip-path: polygon(50% 0, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
+}
+.ch-head h2 { margin: 0; font-size: 32px; text-shadow: 3px 3px 0 var(--ink); }
+.ch-head p { margin: 2px 0 0; font-weight: 700; }
+.chapter h3 { margin: 26px 0 10px; padding: 4px 14px; border-left: 12px solid var(--red); background: #ffeaa0; font-size: 22px; }
+.lead { font-size: 18px; font-weight: 700; }
+.note { font-size: 13px; color: #555; }
+
+/* ---- 囲み・吹き出し ---- */
+.box { position: relative; margin: 22px 0; padding: 20px 18px 10px; border: 4px solid var(--ink); border-radius: 12px; break-inside: avoid; }
+.box-h { position: absolute; top: -18px; left: 14px; padding: 2px 14px; border: 3px solid var(--ink); border-radius: 20px; font: 16px 'Mochiy Pop One'; }
+.point { background: #fff7c7; }
+.point .box-h { background: var(--yellow); }
+.warn { background: repeating-linear-gradient(-45deg, #fff0ee 0 12px, #ffe2de 12px 24px); }
+.warn .box-h { background: var(--red); color: #fff; }
+.bubble { display: flex; gap: 12px; align-items: flex-start; margin: 20px 0; break-inside: avoid; }
+.bubble .who { flex: none; width: 76px; height: 76px; display: grid; place-items: center; border-radius: 50%; border: 4px solid var(--ink); background: var(--pink); color: #fff; font: 12px 'Mochiy Pop One'; text-align: center; padding: 6px; }
+.bubble p { position: relative; margin: 0; padding: 12px 16px; background: #fff; border: 3px solid var(--ink); border-radius: 16px; font-weight: 700; }
+.bubble p::before { content: ''; position: absolute; left: -14px; top: 22px; border: 8px solid transparent; border-right: 12px solid var(--ink); }
+
+/* ---- 図（スクリーンショットと番号） ---- */
+.shot { margin: 16px auto; break-inside: avoid; }
+.shot .frame { position: relative; border: 4px solid var(--ink); border-radius: 12px; overflow: hidden; background: #221d29; }
+.shot img { display: block; width: 100%; }
+.shot figcaption { margin-top: 6px; font-size: 13px; font-weight: 700; text-align: center; color: #555; }
+.toy-page .shot { max-width: 620px; }
+.toy-page .wide-shot, .wide-shot { max-width: 100%; }
+.narrow-shot { max-width: 380px; }
+.badge {
+  position: absolute; width: 30px; height: 30px; margin: -15px 0 0 -15px; display: grid; place-items: center; border-radius: 50%;
+  background: var(--red); color: #fff; font: 900 15px 'M PLUS Rounded 1c'; border: 3px solid #fff; box-shadow: 0 0 0 2px var(--ink), 3px 3px 0 2px rgba(0,0,0,.5);
+}
+.parts { list-style: none; padding: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 10px 18px; }
+.parts li { display: flex; gap: 10px; break-inside: avoid; }
+.parts .num { flex: none; width: 30px; height: 30px; display: grid; place-items: center; border-radius: 50%; background: var(--red); color: #fff; font: 900 15px 'M PLUS Rounded 1c'; }
+.parts h4 { margin: 2px 0; font-size: 16px; color: var(--blue); }
+.parts p { margin: 0; font-size: 14px; line-height: 1.6; }
+.parts .tip { margin-top: 3px; color: #2c6b2a; font-weight: 700; }
+.toy-page { margin: 18px 0 34px; padding-top: 12px; border-top: 4px dashed #d9cfae; }
+.toy-page:first-child { border-top: 0; }
+.toy-title { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin: 0 0 8px; font-size: 28px; }
+.toy-title span { width: 44px; height: 44px; display: grid; place-items: center; border-radius: 10px; background: var(--ink); color: var(--yellow); }
+.toy-title small { font-size: 15px; color: var(--red); }
+.two { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+
+/* ---- 紹介カード ---- */
+.cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+.card { padding: 10px; border: 3px solid var(--ink); border-radius: 12px; background: #fff; break-inside: avoid; }
+.card img { width: 100%; height: 150px; object-fit: contain; background: #2b2533; border-radius: 8px; }
+.card h4 { margin: 8px 0 2px; color: var(--blue); }
+.card .catch { margin: 0 0 4px; font-weight: 900; color: var(--red); font-size: 14px; }
+.card p { font-size: 13px; line-height: 1.6; margin: 0; }
+
+/* ---- 表 ---- */
+table.grid { width: 100%; border-collapse: collapse; margin: 10px 0 18px; background: #fff; font-size: 14px; break-inside: auto; }
+table.grid th { background: var(--ink); color: #fff; padding: 6px 8px; font-weight: 700; }
+table.grid td { padding: 5px 8px; border-bottom: 1px solid #e0d6b8; vertical-align: top; }
+table.grid tr:nth-child(even) td { background: #fff8dc; }
+table.grid tr { break-inside: avoid; }
+table.grid .c { text-align: center; white-space: nowrap; }
+table.grid.small { font-size: 11.5px; }
+table.grid.small th { font-size: 11px; padding: 4px; }
+table.grid.small td { padding: 3px 4px; }
+table.grid tbody th { background: var(--yellow); color: var(--ink); }
+.wide { overflow-x: auto; }
+h4.base { margin: 18px 0 4px; display: inline-block; padding: 2px 12px; background: var(--ink); color: var(--yellow); border-radius: 8px; }
+.stars { color: #ff9f1a; letter-spacing: 1px; white-space: nowrap; }
+.stars i { font-style: normal; color: #ddd; }
+
+/* ---- コンボ・裏技・手順 ---- */
+.combos { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.combo { padding: 12px 14px; border: 3px solid var(--ink); border-radius: 12px; background: #fff; box-shadow: 4px 4px 0 var(--ink); break-inside: avoid; }
+.combo-h { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.combo-h .toy { padding: 1px 8px; border-radius: 6px; background: var(--blue); color: #fff; font-size: 12px; font-weight: 700; }
+.combo-h h4 { margin: 0; font-size: 18px; flex: 1; }
+.combo ol { margin: 8px 0; padding-left: 22px; font-size: 14px; }
+.combo .why { margin: 0; font-size: 13.5px; font-weight: 700; color: #2c6b2a; }
+.tricks { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.trick { padding: 10px 14px; border: 3px dashed var(--red); border-radius: 12px; background: #fff; break-inside: avoid; }
+.trick h4 { margin: 0 0 4px; color: var(--red); }
+.trick p { margin: 0; font-size: 14px; }
+.steps { counter-reset: s; list-style: none; padding: 0; }
+.steps li { counter-increment: s; position: relative; margin: 8px 0; padding: 8px 12px 8px 50px; background: #fff; border: 3px solid var(--ink); border-radius: 10px; break-inside: avoid; }
+.steps li::before { content: counter(s); position: absolute; left: 10px; top: 8px; width: 28px; height: 28px; display: grid; place-items: center; border-radius: 50%; background: var(--green); color: #fff; font: 900 15px 'M PLUS Rounded 1c'; }
+.flow { display: flex; gap: 10px; flex-wrap: wrap; }
+.flow-step { flex: 1 1 150px; padding: 10px; border: 3px solid var(--ink); border-radius: 12px; background: #eaf3ff; position: relative; break-inside: avoid; }
+.flow-step b { display: grid; place-items: center; width: 32px; height: 32px; border-radius: 50%; background: var(--blue); color: #fff; font-size: 18px; }
+.flow-step p { margin: 6px 0 0; font-size: 14px; }
+
+/* ---- キー配置マップ ---- */
+.kbmap { padding: 12px; border: 4px solid var(--ink); border-radius: 12px; background: #e8e1cc; }
+.kb-row { display: flex; gap: 4px; margin-bottom: 4px; }
+.kb-row.nav { justify-content: flex-end; }
+.kb-gap { display: block; }
+.kb-key { flex: 1; min-width: 0; padding: 3px 3px 4px; border-radius: 6px; border: 2px solid #6b6451; background: #fbf8ee; text-align: center; overflow: hidden; }
+.kb-key b { display: block; color: var(--ink); font-size: 13px; }
+.kb-key small { display: block; font-size: 8.5px; line-height: 1.2; color: #444; }
+.kb-row.nav .kb-key { flex: 0 0 70px; }
+.r-glitch { background: #dfe9ff; }
+.r-inst { background: #ffe1b8; }
+.r-bang { background: #ffc4c0; }
+.r-base { background: #d9d9d9; }
+.r-cue { background: #d9f5d4; }
+.r-fn { background: #f0ead6; }
+.legend { display: flex; gap: 6px; flex-wrap: wrap; }
+.legend .kb-key { flex: 0 0 auto; padding: 2px 10px; font-size: 12px; font-weight: 700; }
+
+/* ---- Q&A・用語 ---- */
+.qa dt { margin-top: 14px; padding: 6px 12px; background: var(--blue); color: #fff; border-radius: 10px 10px 0 0; font-weight: 900; }
+.qa dd { margin: 0; padding: 8px 12px; background: #fff; border: 3px solid var(--blue); border-top: 0; border-radius: 0 0 10px 10px; break-inside: avoid; }
+.words { display: grid; grid-template-columns: 220px 1fr; gap: 0; background: #fff; border: 3px solid var(--ink); border-radius: 12px; overflow: hidden; }
+.words dt { padding: 8px 12px; background: #fff3b8; font-weight: 900; border-bottom: 1px solid #e0d6b8; }
+.words dd { margin: 0; padding: 8px 12px; border-bottom: 1px solid #e0d6b8; font-size: 14px; }
+.rights { padding: 18px 22px; background: #fff; border: 4px solid var(--ink); border-radius: 12px; font-size: 16px; }
+.rights p { margin: 0 0 12px; }
+
+footer { margin-top: 30px; text-align: center; font-size: 13px; color: #777; }
+
+/* ---- スマホ ---- */
+@media (max-width: 760px) {
+  .cover h1 { font-size: 42px; }
+  .cover-grid, .cards { grid-template-columns: 1fr 1fr; }
+  .parts, .combos, .tricks, .two { grid-template-columns: 1fr; }
+  .toc ol { columns: 1; }
+  .words { grid-template-columns: 1fr; }
+  .chapter { padding: 20px 14px; }
+  .ch-head { margin: -20px -14px 14px; }
+}
+
+/* ---- 印刷（A4・PDF） ---- */
+@page { size: A4; margin: 12mm 10mm; }
+@media print {
+  html, body { background: #fff; }
+  body { font-size: 11pt; }
+  .topnav { display: none; }
+  main { max-width: none; padding: 0; }
+  .cover { margin: 0; box-shadow: none; break-after: page; }
+  .cover h1 { font-size: 56pt; }
+  .toc { box-shadow: none; break-after: page; }
+  .chapter { margin: 0; box-shadow: none; border-width: 3px; break-before: page; }
+  .shot, .box, .combo, .trick, .card, .parts li, .steps li, table.grid tr { break-inside: avoid; }
+  .toy-page { break-before: page; border-top: 0; }
+  .toy-page:first-child { break-before: auto; }
+  .toy-page .shot { max-width: 110mm; }
+  .wide-shot { max-width: 100% !important; }
+  a { color: var(--ink); text-decoration: none; }
+  .wide { overflow: visible; }
+}
+table.grid th, table.grid tbody th { white-space: nowrap; }
