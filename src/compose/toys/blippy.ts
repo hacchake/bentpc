@@ -9,6 +9,7 @@ import type { Rng } from '../../core/rng';
 import type { Plan, PlannedSection } from '../plan';
 import type { StyleId } from '../types';
 import { PartWriter } from '../writer';
+import { crashSpan } from '../harmony';
 
 // ================= おもちゃの番号 =================
 const P = { volume: 0, mode: 1, base: 8, lfoRate: 11, lfoDepth: 12, stretch: 13, stretchHold: 14, stretchRel: 15, dist: 16, distType: 17 };
@@ -89,16 +90,8 @@ export function composeBlippy(ctx: BlippyContext): (SeqTrack & { part: string })
   mods.set(P.base, 0, 0);
 
   // ---- クラッシュの区間（キーを置かない） ----
-  let crash: { start: number; end: number } | null = null;
-  if (plan.crashSection >= 0) {
-    const s = plan.sections[plan.crashSection];
-    const sb = s.bars * 4;
-    const isLast = plan.crashSection === plan.sections.length - 1;
-    const start = s.start + (isLast ? Math.max(2, Math.floor(sb / 2)) : 1);
-    const len = isLast ? end - 0.5 - start : Math.min(8, Math.max(3, sb - bootBeats - 3));
-    crash = { start, end: start + len };
-    mods.note(SYS_CRASH, start, len);
-  }
+  const crash = crashSpan(plan);
+  if (crash) mods.note(SYS_CRASH, crash.start, crash.end - crash.start);
 
   // ---- メロディのモチーフ（セクションの種類ごとに 1 つ。同じ種類のセクションは同じモチーフ＝繰り返し） ----
   const motifs = new Map<string, { rhythm: number[]; steps: number[]; startTone: number }>();

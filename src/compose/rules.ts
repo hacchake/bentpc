@@ -6,14 +6,24 @@ import { trackToy, type SeqTrack, type Song } from '../core/song';
 import { planSong, rngFor } from './plan';
 import { STYLES } from './styles';
 import { composeBlippy } from './toys/blippy';
+import { composeDj } from './toys/dj';
+import { composePiko } from './toys/piko';
+import { composeTele } from './toys/tele';
+import { composeTypo } from './toys/typo';
+import { composeVroom } from './toys/vroom';
+import type { Part, PartContext } from './context';
 import type { ComposeInfo, ComposeRequest, Composer, ToyKind } from './types';
 
-type Part = SeqTrack & { part: string };
-type PartComposer = (ctx: Parameters<typeof composeBlippy>[0]) => Part[];
+type PartComposer = (ctx: PartContext) => Part[];
 
 /** おもちゃごとの作曲係（まだ無いおもちゃは空） */
 export const PART_COMPOSERS: Partial<Record<ToyKind, PartComposer>> = {
   blippy: composeBlippy,
+  piko: composePiko,
+  dj: composeDj,
+  vroom: composeVroom,
+  typo: composeTypo,
+  tele: composeTele,
 };
 
 export class RuleComposer implements Composer {
@@ -42,7 +52,6 @@ export class RuleComposer implements Composer {
 
     // 元の曲のトラック（おもちゃ番号をはっきり書いておく。並べ替えてもずれないように）
     const baseTracks: SeqTrack[] = base ? base.tracks.map((tr, i) => ({ ...tr, toy: trackToy(base, i) })) : [];
-    const targets = new Set(req.toys.map((t) => t.toy));
     let tracks: SeqTrack[];
     if (req.section !== undefined && base) {
       // ---- セクションだけ作り直す：鍵の無い自動作曲トラックの、その範囲だけ差し替える ----
@@ -60,8 +69,8 @@ export class RuleComposer implements Composer {
         };
       });
     } else {
-      // ---- 作り直す：鍵の付いたトラックと、対象外のおもちゃのトラックは残す ----
-      const kept = baseTracks.filter((tr) => tr.lock || !targets.has(tr.toy!));
+      // ---- 作り直す：鍵の付いたトラックだけ残す（ほかのおもちゃの曲と重ねたいときも、鍵を掛けておけば残る） ----
+      const kept = baseTracks.filter((tr) => tr.lock);
       const fresh = generated.filter((g) => !kept.some((k) => k.part === g.part && k.toy === g.toy));
       tracks = [...kept, ...fresh].sort((p, q) => p.toy! - q.toy!);
     }
