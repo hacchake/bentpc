@@ -99,7 +99,7 @@ export class Sequencer {
     this.releaseAll();
   }
 
-  /** おもちゃを新品にする。POWER ON の音符が無いおもちゃは、すぐ電源を入れる */
+  /** おもちゃを新品にする */
   private rebuild(): void {
     const fresh = this.factory!(this.song.seed!);
     fresh.forEach((t, i) => { this.toys[i] = t; });
@@ -107,8 +107,11 @@ export class Sequencer {
     this.crash.fill(null);
     this.hist.forEach((h) => h.fill(0));
     this.toys.forEach((t, toy) => {
-      const hasPower = this.song.tracks.some((tr, i) => trackToy(this.song, i) === toy && !tr.mute && tr.notes.some((n) => n.key === SYS_POWER_ON));
-      if (!hasPower) t.powerOn();
+      const mine = this.song.tracks.filter((tr, i) => trackToy(this.song, i) === toy && !tr.mute);
+      const hasPower = mine.some((tr) => tr.notes.some((n) => n.key === SYS_POWER_ON));
+      const used = mine.some((tr) => tr.notes.length || tr.autos.length);
+      // 曲で使っていて POWER ON の音符が無いおもちゃだけ、すぐ電源を入れる（使っていないおもちゃは切ったまま）
+      if (!hasPower && used) t.powerOn();
     });
     this.cb.onRebuild?.();
   }

@@ -3,12 +3,13 @@
 import '../core/parts.css';
 import '../host/host.css';
 import './studio.css';
-import { autoValueAt, trackToy, SYS_CRASH, type Song } from '../core/song';
+import type { Song } from '../core/song';
 import type { ToyUI } from '../core/ui';
 import { AudioHost } from '../host/audio';
 import { PowerGuide } from '../core/power';
 import { TOY_UIS } from '../toys/uis';
 import { Arranger } from './arranger';
+import { createViewSync } from './sync';
 import { demoSong } from './demo';
 import { exportMidi, exportWav, makeCompositor, safeName } from './export';
 import { STUDIO_TOYS, blankStudioSong } from './songs';
@@ -73,6 +74,7 @@ const arr = new Arranger({
   },
   record: async (on, take) => { await audio.start(); audio.post({ type: 'seqRec', on, take }); },
   onSong: (s) => { $('songTitle').textContent = s.title ?? ''; },
+  storeKey: 'bentpc.studio.song.v1',
 }, demoSong);
 $('arr-wrap').appendChild(arr.el);
 arr.addButton('デモ曲', 'デモ曲「POWER ON / POWER OFF」を読み込む（今の曲は「元に戻す」で戻せます）', () => { arr.setSong(demoSong()); });
@@ -107,23 +109,12 @@ let onRec: ((m: { type: 'recChunk'; data: Float32Array } | { type: 'recDone' }) 
 export const setRecHandler = (f: typeof onRec) => { onRec = f; };
 
 // ---- 再生を画面に映す：キーが光る・ノブやスイッチが動く・クラッシュ ----
-const lit = toys.map(() => new Set<number>());
-const shown = toys.map(() => new Map<number, number>());
-const crashed = toys.map(() => false);
+const sync = createViewSync(toys, () => arr.song, (toy, on) => slots[toy].classList.toggle('crashed', on));
 function resetViews(): void {
-  toys.forEach((t, toy) => {
-    t.setTestClock?.(clock);
-    t.paramDefs.forEach((p, i) => { if (p.kind !== 'momentary') t.showParam?.(i, p.default); });
-    shown[toy].clear();
-  });
+  toys.forEach((t) => t.setTestClock?.(clock));
+  sync.resetViews();
 }
-function clearViews(): void {
-  toys.forEach((t, toy) => {
-    lit[toy].forEach((k) => t.showKey?.(k, false));
-    lit[toy].clear();
-    if (crashed[toy]) { crashed[toy] = false; slots[toy].classList.remove('crashed'); t.freezeView?.(false); }
-  });
-}
+const clearViews = () => sync.clearViews();
 const clock = { beat: 0, bpm: 120, label: '' };
 const heats = toys.map(() => 0);
 let onSongEnd: (() => void) | null = null;
@@ -133,35 +124,7 @@ function frame(now: number): void {
   clock.beat = beat;
   clock.bpm = song.bpm;
   clock.label = arr.sectionAt(beat);
-  if (playing) {
-    toys.forEach((t, toy) => {
-      const want = new Set<number>();
-      let crash = false;
-      song.tracks.forEach((tr, i) => {
-        if (tr.mute || trackToy(song, i) !== toy) return;
-        for (const n of tr.notes) {
-          if (n.start > beat) break;
-          if (beat < n.start + n.len) { if (n.key === SYS_CRASH) crash = true; else if (n.key < 2000) want.add(n.key); }
-        }
-        const params = new Set(tr.autos.map((a) => a.index));
-        params.forEach((idx) => {
-          const cont = t.paramDefs[idx]?.kind === 'continuous';
-          const v = autoValueAt(tr.autos, idx, beat, !!song.ramp && cont);
-          if (v === undefined || t.paramDefs[idx]?.kind === 'momentary') return;
-          const prev = shown[toy].get(idx);
-          if (prev === undefined || Math.abs(prev - v) > 0.002) { shown[toy].set(idx, v); t.showParam?.(idx, v); }
-        });
-      });
-      lit[toy].forEach((k) => { if (!want.has(k)) t.showKey?.(k, false); });
-      want.forEach((k) => { if (!lit[toy].has(k)) t.showKey?.(k, true); });
-      lit[toy] = want;
-      if (crash !== crashed[toy]) {
-        crashed[toy] = crash;
-        slots[toy].classList.toggle('crashed', crash);
-        t.freezeView?.(crash);
-      }
-    });
-  }
+  sync.frame(beat, playing);
   requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);
@@ -228,7 +191,7 @@ const webmBtn = arr.addButton('WebM', '曲を最初から最後まで再生し�
     tele: toys[1].root.querySelector('canvas[data-id="gl"]') as HTMLCanvasElement,
     lcd: toys[0].root.querySelector('canvas[data-id="lcd"]') as HTMLCanvasElement,
     heat: (t) => heats[t],
-    crashed: (t) => crashed[t],
+    crashed: (t) => sync.crashed(t),
   });
   comp.draw();
   const stream = new MediaStream([...comp.canvas.captureStream(30).getVideoTracks(), ...(await audio.outputStream()).getAudioTracks()]);

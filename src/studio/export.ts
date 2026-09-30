@@ -2,7 +2,7 @@
 import { songBeats, trackToy, type Song } from '../core/song';
 import { encodeWav, download } from '../host/wav';
 import { fromInt8 } from '../toys/blippy/dsp/mic';
-import { songToMidi } from './midi-export';
+import { songToMidi, type MidiToy } from './midi-export';
 import RenderWorker from './render-worker.ts?worker&inline';
 import { STUDIO_MIDI, TOY_PC } from './songs';
 
@@ -24,7 +24,8 @@ function userSamples(): { toy: number; key: number; data: Float32Array }[] {
 }
 
 /** WAV：曲を最初から最後まで（実際の時間より速く）鳴らして書き出す。progress は 0〜1 */
-export function exportWav(song: Song, progress: (f: number) => void, sr = 48000): Promise<void> {
+/** toys：曲のおもちゃ番号 → エンジンの番号（スタジオは [0, 5]、ラックは全部） */
+export function exportWav(song: Song, progress: (f: number) => void, toys?: number[], sr = 48000): Promise<void> {
   return new Promise((resolve, reject) => {
     const w = new RenderWorker();
     w.onmessage = (e: MessageEvent<{ type: 'progress'; f: number } | { type: 'done'; data: Float32Array }>) => {
@@ -34,13 +35,13 @@ export function exportWav(song: Song, progress: (f: number) => void, sr = 48000)
       resolve();
     };
     w.onerror = (e) => { w.terminate(); reject(new Error(e.message)); };
-    w.postMessage({ song: JSON.parse(JSON.stringify(song)), sr, userSamples: userSamples() });
+    w.postMessage({ song: JSON.parse(JSON.stringify(song)), sr, toys, userSamples: userSamples() });
   });
 }
 
 /** MIDI：Standard MIDI File（トイPC = ch1、TELEKEY = ch6） */
-export function exportMidi(song: Song): void {
-  const bytes = songToMidi(song, STUDIO_MIDI);
+export function exportMidi(song: Song, midiToys: MidiToy[] = STUDIO_MIDI): void {
+  const bytes = songToMidi(song, midiToys);
   download(new Blob([bytes], { type: 'audio/midi' }), `${safeName(song)}.mid`);
 }
 

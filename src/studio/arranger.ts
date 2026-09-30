@@ -6,8 +6,8 @@
 // 編集はすべてマウス（ダブルクリックで追加・ドラッグで移動・右クリックで削除）とキー（Delete・Ctrl+Z など）。
 import { autoValueAt, clampSong, cloneSong, mergeTake, songBeats, trackToy, BTN, SYS_CRASH, SYS_NAMES, SYS_POWER_OFF, SYS_POWER_ON, type SeqAuto, type SeqNote, type Song, type takeFromRaw } from '../core/song';
 import { seqKeyName, type ToyUI } from '../core/ui';
+import './arranger.css';
 
-const STORE = 'bentpc.studio.song.v1';
 const GUTTER = 190;
 const RULER_H = 44;
 const H_HEAD = 24, H_NOTE = 16, H_SWITCH = 22, H_KNOB = 46;
@@ -28,6 +28,8 @@ export interface ArrangerHost {
   record(on: boolean, take: number): void;
   /** 曲が変わった（画面の同期用） */
   onSong?(song: Song): void;
+  /** 曲を自動保存する場所（ブラウザの中） */
+  storeKey: string;
 }
 
 export class Arranger {
@@ -241,7 +243,7 @@ export class Arranger {
 
   private persist(): void {
     try {
-      localStorage.setItem(STORE, JSON.stringify(this.song));
+      localStorage.setItem(this.host.storeKey, JSON.stringify(this.song));
     } catch {
       // 保存できなくても使える
     }
@@ -249,7 +251,7 @@ export class Arranger {
 
   private load(): Song | null {
     try {
-      const s = JSON.parse(localStorage.getItem(STORE) ?? 'null');
+      const s = JSON.parse(localStorage.getItem(this.host.storeKey) ?? 'null');
       return s && s.version === 1 && Array.isArray(s.tracks) ? s : null;
     } catch {
       return null;

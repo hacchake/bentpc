@@ -1,0 +1,40 @@
+/* 自動作曲ユニット：緑の基板にテープで貼った後付けパーツ */
+.compose-panel {
+  position: absolute; border-radius: 14px;
+  background:
+    repeating-linear-gradient(90deg, rgba(255,255,255,.035) 0 2px, transparent 2px 22px),
+    repeating-linear-gradient(0deg, rgba(255,255,255,.035) 0 2px, transparent 2px 22px),
+    linear-gradient(160deg, #1f6b3a, #134d29 70%, #0f3f22);
+  box-shadow: inset 0 0 0 3px #0b2e18, inset 0 0 0 6px #c9a74a, 0 20px 40px rgba(0,0,0,.55);
+  font-family: 'Share Tech Mono', monospace; color: #e8f5e0;
+}
+.compose-panel::before, .compose-panel::after {
+  content: ''; position: absolute; width: 70px; height: 20px; background: rgba(230, 210, 120, .8); box-shadow: 0 1px 2px rgba(0,0,0,.35);
+}
+.compose-panel::before { left: -18px; top: 60px; transform: rotate(-12deg); }
+.compose-panel::after { left: -14px; bottom: 90px; transform: rotate(9deg); }
+.compose-panel .mod-label { color: #e8f5e0; }
+.compose-panel .cp-sub { font: 700 12px 'Fredoka', sans-serif; color: #bfe6c3; white-space: nowrap; }
+.compose-panel .cp-sub.small { font-size: 10.5px; white-space: normal; width: 300px; text-align: center; }
+.compose-panel .cp-lbl { font: 900 15px 'Fredoka', sans-serif; letter-spacing: 2px; color: #fff; }
+.compose-panel .cp-val { font: 700 16px 'Share Tech Mono', monospace; color: #ffe066; background: #0b2413; padding: 2px 8px; border-radius: 4px; min-width: 60px; text-align: center; }
+.compose-panel .cp-go { font-size: 17px; }
+.dome.compose { width: 70px; height: 70px; }
+.dome.compose::after { background: radial-gradient(circle at 38% 30%, #ffb0a8, #e8322a 45%, #7a0f0a); box-shadow: 0 4px 0 #4a0806; }
+.dome.compose::before {
+  content: ''; position: absolute; inset: -9px; border-radius: 50%;
+  border: 4px solid #ffe066; box-shadow: 0 0 0 3px rgba(0,0,0,.35);
+}
+.cp-seed input {
+  width: 200px; height: 38px; border-radius: 6px; border: 3px solid #0b2413; background: #9fd18a; color: #0b2413;
+  font: 700 24px 'Share Tech Mono', monospace; text-align: center; box-shadow: inset 0 3px 6px rgba(0,0,0,.35);
+}
+.cp-btn {
+  padding: 6px 14px; border-radius: 8px; border: 2px solid #0b2413; background: linear-gradient(180deg, #f4efe0, #d8d0b8);
+  color: #1b1b1b; font: 700 13px 'Fredoka', sans-serif; white-space: nowrap; cursor: pointer; box-shadow: 0 3px 0 #0b2413;
+}
+.cp-btn:active { transform: translateY(2px); box-shadow: 0 1px 0 #0b2413; }
+.cp-btn.play { background: linear-gradient(180deg, #ffe066, #f0b400); }
+.cp-btn.disabled { opacity: .45; pointer-events: none; }
+.cp-sec select { width: 260px; height: 30px; border-radius: 6px; border: 2px solid #0b2413; background: #f4efe0; color: #111; font: 13px sans-serif; }
+.cp-ticks span { font: 700 12px 'Fredoka', sans-serif; color: #fff; white-space: nowrap; }

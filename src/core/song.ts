@@ -2,6 +2,8 @@
 // 時間はすべて拍（beat）で持つ。テンポを変えても位置関係は変わらない。
 // Worklet（再生・録音）と画面（編集）の両方が同じ関数を使うので、表示と音が必ず一致する。
 
+import type { ComposeInfo } from '../compose/types';
+
 /** 音符：あるキーを start 拍から len 拍押す */
 export interface SeqNote {
   key: number;
@@ -32,6 +34,8 @@ export interface SeqTrack {
   rec?: boolean;
   /** 中身がなくても表示する行（"k:キー番号" / "p:パラメーター番号"） */
   show?: string[];
+  /** 自動作曲のパート名（"blippy:melody" など。作り直すときの目印） */
+  part?: string;
 }
 
 /** 曲の区切り（イントロ・サビなど）。start は拍 */
@@ -66,6 +70,8 @@ export interface Song {
   ramp?: boolean;
   /** テスト信号のコード進行（MIDI ノート番号の組、1 小節ずつ） */
   chords?: number[][];
+  /** 自動作曲で作った曲：どの作曲方法・どの設定で作ったか */
+  compose?: ComposeInfo;
 }
 
 /** トラック i が鳴らすおもちゃの番号 */

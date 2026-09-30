@@ -1,0 +1,44 @@
+/* シーケンサー画面（スタジオ・ラック共通） */
+#arr-wrap { position: fixed; left: 0; right: 0; bottom: 0; height: 47vh; min-height: 300px; z-index: 9; border-top: 2px solid #ff5a4f; }
+.arr {
+  position: absolute; inset: 0; display: flex; flex-direction: column;
+  background: #16131a; color: #ddd; font: 12px 'Share Tech Mono', 'Consolas', monospace;
+}
+.arr-bar {
+  display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+  padding: 5px 8px; background: #1f1b25; border-bottom: 1px solid #000;
+}
+.arr-bar button, .arr-bar select, .arr-bar input[type=number] {
+  height: 26px; padding: 0 8px; border: 1px solid #3a3440; border-radius: 6px;
+  background: #2c2732; color: #eee; font: inherit; cursor: pointer;
+}
+.arr-bar input[type=number] { width: 62px; cursor: text; }
+.arr-bar input[data-id=seed] { width: 96px; }
+.arr-bar button:hover { background: #3a3342; }
+.arr-bar button.on { background: #2c6b2a; border-color: #5dd35a; }
+.arr-bar button.rec { color: #ff6b5f; }
+.arr-bar button.rec.on { background: #8a1510; color: #fff; border-color: #ff5a4f; animation: arr-blink 1s steps(2) infinite; }
+@keyframes arr-blink { 50% { opacity: .65; } }
+.arr-bar label { display: flex; align-items: center; gap: 4px; color: #aaa; }
+.arr-bar label.chk input { accent-color: #ff5a4f; }
+.arr-bar .pos { min-width: 150px; color: #9dff7a; font-size: 14px; white-space: nowrap; }
+.arr-bar .sp { flex: 1; }
+.arr-bar [data-id=extra] { display: contents; }
+.arr-body { position: relative; flex: 1; display: flex; flex-direction: column; min-height: 0; }
+.arr-ruler { display: block; width: 100%; height: 44px; flex: none; cursor: pointer; }
+.arr-main { display: block; width: 100%; flex: 1; min-height: 0; }
+.arr-hint { flex: none; padding: 3px 8px; color: #6d6678; font-size: 10px; background: #141217; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.arr-menu {
+  position: absolute; z-index: 5; width: 240px; background: #221e28; color: #eee;
+  border: 1px solid #7dff6a; font: 12px 'Share Tech Mono', monospace;
+}
+
+.arr-grip { position: absolute; left: 0; right: 0; top: -6px; height: 10px; cursor: ns-resize; z-index: 10; }
+
+/* クラッシュ中のおもちゃ（ラック） */
+.toy-root.crashed::after {
+  content: '*** SYSTEM HALTED ***\A FATAL ERROR 0x0BADC0DE\A ① RESET → ② POWER で再起動中…'; white-space: pre;
+  position: absolute; inset: 0; z-index: 30; display: flex; align-items: center; justify-content: center; text-align: center;
+  background: repeating-linear-gradient(0deg, rgba(0,0,0,.35) 0 3px, transparent 3px 7px), rgba(0, 20, 170, .55);
+  color: #fff; font: 700 40px/1.6 'Share Tech Mono', monospace; pointer-events: none;
+}
