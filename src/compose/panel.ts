@@ -23,16 +23,28 @@ export interface ComposerHost {
   /** 設定を覚えておく名前（おもちゃごと） */
   storeKey: string;
   song(): Song;
-  /** 作った曲をシーケンサーに入れて、頭から鳴らす */
-  load(song: Song): void;
+  /** 作った曲をシーケンサーに入れる（play なら頭から鳴らす） */
+  load(song: Song, play: boolean): void;
   togglePlay(): void;
+  /** 作ったとき（URL を書き換える） */
+  onCompose?(st: ComposeSettings): void;
+  /** URL をコピー */
+  share(st: ComposeSettings): void;
 }
 
 export function newSeed(): number {
   return 1 + Math.floor(Math.random() * 999998);
 }
 
-export function mountComposerPanel(host: ComposerHost): { root: HTMLElement; refresh(): void; settings(): ComposeSettings } {
+export interface ComposerPanel {
+  root: HTMLElement;
+  refresh(): void;
+  settings(): ComposeSettings;
+  /** 設定を入れて作る（URL から開いたとき） */
+  composeWith(st: ComposeSettings, play: boolean): void;
+}
+
+export function mountComposerPanel(host: ComposerHost): ComposerPanel {
   const root = document.createElement('div');
   root.className = 'compose-panel';
   root.style.width = `${PANEL_W}px`;
@@ -111,7 +123,8 @@ export function mountComposerPanel(host: ComposerHost): { root: HTMLElement; ref
   const secBox = b.place('cp-sec', 170, 676, '<select></select>');
   const secSel = secBox.querySelector('select') as HTMLSelectElement;
   const regen = b.place('cp-btn', 170, 712, 'このセクションだけ作り直す');
-  const playBtn = b.place('cp-btn play', 170, 752, '▶ 再生 / ■ 停止');
+  const playBtn = b.place('cp-btn play', 98, 752, '▶ 再生 / ■ 停止');
+  const shareBtn = b.place('cp-btn', 252, 752, '🔗 URL をコピー');
   b.label('🔒 残したいトラックは、シーケンサーのトラック名の横の鍵', 170, 786, 'cp-sub small');
 
   const show = () => {
@@ -122,12 +135,12 @@ export function mountComposerPanel(host: ComposerHost): { root: HTMLElement; ref
     bpmVal.textContent = String(st.bpm);
   };
   show();
-  void lenKnob;
-  void styleKnob;
 
-  const compose = (section?: number) => {
-    const song = defaultComposer().compose({ settings: { ...st }, toys: host.toys, base: host.song(), section });
-    host.load(song);
+  const compose = (section?: number, play = true, fresh = false) => {
+    // fresh：URL から開いたとき。このブラウザの鍵のトラックを混ぜない（誰が開いても同じ曲に）
+    const song = defaultComposer().compose({ settings: { ...st }, toys: host.toys, base: fresh ? undefined : host.song(), section });
+    host.load(song, play);
+    host.onCompose?.({ ...st });
     refresh();
   };
   momentary(go, () => { st.seed = newSeed(); show(); save(); compose(); });
@@ -150,6 +163,7 @@ export function mountComposerPanel(host: ComposerHost): { root: HTMLElement; ref
     compose(i);
   });
   playBtn.addEventListener('click', () => host.togglePlay());
+  shareBtn.addEventListener('click', () => host.share({ ...st }));
 
   /** シーケンサーの曲が変わったら、セクションの一覧を作り直す */
   function refresh(): void {
@@ -163,5 +177,19 @@ export function mountComposerPanel(host: ComposerHost): { root: HTMLElement; ref
     regen.classList.toggle('disabled', !can);
   }
   queueMicrotask(refresh); // シーケンサーができてから
-  return { root, refresh, settings: () => ({ ...st }) };
+  return {
+    root,
+    refresh,
+    settings: () => ({ ...st }),
+    composeWith(next, play) {
+      st = { ...next };
+      styleKnob.set(Math.max(0, STYLE_IDS.indexOf(st.style)), false);
+      chaosKnob.set(st.chaos, false);
+      lenKnob.set(Math.max(0, LENGTHS.indexOf(st.lengthSec)), false);
+      bpmKnob.set(bpmToK(st.bpm), false);
+      show();
+      save();
+      compose(undefined, play, true);
+    },
+  };
 }

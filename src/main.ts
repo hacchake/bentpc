@@ -9,6 +9,7 @@ import { createViewSync } from './studio/sync';
 import { exportMidi, exportWav } from './studio/export';
 import { PANEL_W, mountComposerPanel } from './compose/panel';
 import { PART_COMPOSERS } from './compose/rules';
+import { copyText, setPageQuery, settingsFromQuery, settingsToQuery, toast } from './compose/share';
 import type { ToyKind } from './compose/types';
 import { emptySong } from './core/song';
 import { startMidi } from './host/midi';
@@ -64,8 +65,13 @@ const panels = toys.map((t, i) => {
     toys: [{ toy: i, kind: KINDS[i] }],
     storeKey: `bentpc.compose.${KINDS[i]}`,
     song: () => arr.song,
-    load: (song) => { arr.setSong(song); openSeq(true); void transport(true, 0); },
+    load: (song, play) => { arr.setSong(song); openSeq(true); if (play) void transport(true, 0); },
     togglePlay: () => void transport(!arr.playing, arr.playing ? undefined : 0),
+    onCompose: (st) => setPageQuery(settingsToQuery(st, { toy: String(i + 1) })),
+    share: async (st) => {
+      const url = setPageQuery(settingsToQuery(st, { toy: String(i + 1) }));
+      if (await copyText(url)) toast('この曲の URL をコピーしました。送った相手が開くと、同じ曲が作られます');
+    },
   });
   // おもちゃの高さに合わせて大きさを変える
   const k = panelScale(t.height);
@@ -274,6 +280,17 @@ try {
   saved = Number(localStorage.getItem('bentpc.activeToy') ?? 0) || 0;
 } catch {
   // 読めなくても動く
+}
+// URL で送られた曲（?toy=1&seed=…）：そのおもちゃを出して、同じ設定で作る（鳴らすのは ▶ を押してから）
+const query = new URLSearchParams(location.search);
+const shared = settingsFromQuery(query);
+const sharedToy = Number(query.get('toy')) - 1;
+if (shared && panels[sharedToy]) {
+  saved = sharedToy;
+  queueMicrotask(() => {
+    panels[sharedToy]!.composeWith(shared, false);
+    toast(`送られた曲を作りました（シード ${shared.seed}）。「▶ 再生」で鳴らせます`, 6000);
+  });
 }
 show(Math.min(saved, toys.length - 1));
 guide.showIfFirst();

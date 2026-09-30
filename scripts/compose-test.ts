@@ -104,6 +104,34 @@ for (const style of STYLE_IDS) {
   }
 }
 
+// ---- 合同の曲（スタジオ）：役割分担・掛け合い・ブレイクで 1 台だけ・鳴る ----
+{
+  const KINDS = ['blippy', 'piko', 'dj', 'vroom', 'typo', 'tele'] as const;
+  for (const ids of [[0, 5], [0, 1, 4], [0, 1, 2, 3, 4, 5]]) {
+    const toys = ids.map((id, i) => ({ toy: i, kind: KINDS[id] }));
+    const st = { seed: 2468, style: 'beat' as const, chaos: 0.8, lengthSec: 60, bpm: 124 };
+    const s = C.compose({ settings: st, toys });
+    if (JSON.stringify(s) !== JSON.stringify(C.compose({ settings: st, toys }))) ng(`合同 ${ids}：同じ設定なのに違う曲`);
+    const beatParts = s.tracks.filter((t) => ['tele:beat', 'typo:drums', 'piko:rhythm', 'dj:rhythm'].includes(t.part ?? ''));
+    if (ids.length > 1 && beatParts.length > 1) ng(`合同 ${ids}：ビートのパートが ${beatParts.length} 本`);
+    const brk = s.sections!.find((x) => x.name === 'ブレイク');
+    if (brk) {
+      const nx = s.sections![s.sections!.indexOf(brk) + 1];
+      const playing = new Set(s.tracks.filter((t) => t.notes.some((n) => n.key < 2000 && n.start >= brk.start && n.start < nx.start)).map((t) => t.toy));
+      if (playing.size > 1) ng(`合同 ${ids}：ブレイクで ${playing.size} 台鳴っている`);
+    }
+    const a = renderSong(s, SR, { toys: ids });
+    const peak = a.reduce((m, x) => Math.max(m, Math.abs(x)), 0);
+    let clip = 0;
+    for (const x of a) if (Math.abs(x) > 0.98) clip++;
+    console.log(`合同 ${ids.join(',')}：トラック ${s.tracks.length} 本・音量 ${rms(a).toFixed(3)}・音割れ ${((clip / a.length) * 100).toFixed(2)}%`);
+    if (rms(a) < 0.02) ng(`合同 ${ids} が鳴らない`);
+    if (clip / a.length > 0.03) ng(`合同 ${ids} の音割れが多い`);
+    void peak;
+    writeFileSync(`out/compose-studio-${ids.join('')}.wav`, wav(a));
+  }
+}
+
 // 壊れ度 0 ならクラッシュしない（崩壊スタイル以外）
 if (make({ style: 'beat', chaos: 0 }).tracks.some((t) => t.notes.some((n) => n.key === SYS_CRASH))) ng('壊れ度 0 でクラッシュする');
 console.log(fail ? `失敗 ${fail} 件` : 'すべて OK');

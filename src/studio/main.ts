@@ -1,5 +1,6 @@
-// スタジオ：BLIPPY BOOK 30（トイPC）と TELEKEY TK-6（映像グリッチ・マシン）を 1 ページに並べ、
-// 下のシーケンサーで 2 台いっしょに曲を作る。再生するとキーが光り、ノブやスイッチも動いて見える。
+// スタジオ：好きなおもちゃ（最初はトイPC と TELEKEY）を 1 ページに並べ、下のシーケンサーでいっしょに曲を作る。
+// 自動作曲ユニットで、並べたおもちゃ全部の合同の曲を作れる（URL で共有できる）。
+// 再生するとキーが光り、ノブやスイッチも動いて見える。
 import '../core/parts.css';
 import '../host/host.css';
 import './studio.css';
@@ -13,12 +14,39 @@ import { createViewSync } from './sync';
 import { demoSong } from './demo';
 import { exportMidi, exportWav, makeCompositor, safeName } from './export';
 import { STUDIO_TOYS, blankStudioSong } from './songs';
+import { PANEL_H, PANEL_W, mountComposerPanel } from '../compose/panel';
+import { copyText, setPageQuery, settingsFromQuery, settingsToQuery, toast } from '../compose/share';
+import type { ToyKind } from '../compose/types';
 
 const $ = (id: string) => document.getElementById(id) as HTMLElement;
-const audio = new AudioHost({ toys: STUDIO_TOYS });
+const KINDS: ToyKind[] = ['blippy', 'piko', 'dj', 'vroom', 'typo', 'tele'];
+const TOY_NAMES = ['BLIPPY BOOK 30（トイPC）', 'PIKOTONE PT-32', 'SPIN-TOT DJ-28', 'VROOMBOX VR-5', 'TYPOTRON TT-109', 'TELEKEY TK-6（映像）'];
+const query = new URLSearchParams(location.search);
+
+// ---- 並べるおもちゃ：URL（?toys=0,5）→ 前回の並び → トイPC と TELEKEY ----
+function readLineup(): number[] {
+  const parse = (v: string | null) => [...new Set((v ?? '').split(',').filter((x) => x.trim() !== '').map(Number).filter((n) => Number.isInteger(n) && n >= 0 && n < KINDS.length))];
+  let ids = parse(query.get('toys'));
+  if (!ids.length) {
+    try {
+      ids = parse(localStorage.getItem('bentpc.studio.toys'));
+    } catch {
+      // 読めなければ最初の並び
+    }
+  }
+  return ids.length ? ids.sort((a, b) => a - b) : STUDIO_TOYS;
+}
+const lineup = readLineup();
+const isDefault = lineup.join(',') === STUDIO_TOYS.join(',');
+try {
+  localStorage.setItem('bentpc.studio.toys', lineup.join(','));
+} catch {
+  // 保存できなくても動く
+}
+const audio = new AudioHost({ toys: lineup });
 
 // ---- おもちゃを並べる（並び = 曲のトラックの toy 番号） ----
-const toys: ToyUI[] = STUDIO_TOYS.map((id, toy) =>
+const toys: ToyUI[] = lineup.map((id, toy) =>
   TOY_UIS[id]({
     post: (m) => audio.post({ ...m, toy }),
     start: () => audio.start(),
@@ -40,7 +68,29 @@ const slots = toys.map((t, i) => {
   $('deck').appendChild(slot);
   return slot;
 });
-let active = 1;
+// ---- 自動作曲ユニット（並べたおもちゃ全部で、合同の曲を作る） ----
+const composeSlot = document.createElement('div');
+composeSlot.className = 'slot compose-slot';
+composeSlot.style.flex = `${PANEL_W / PANEL_H} 1 0`;
+composeSlot.innerHTML = '<div class="slot-head"><b>AUTO COMPOSER</b><span>並べた全部のおもちゃで合同の曲</span></div><div class="slot-body"></div>';
+$('deck').appendChild(composeSlot);
+const lineupQuery = () => ({ toys: lineup.join(',') });
+const panel = mountComposerPanel({
+  toys: lineup.map((id, i) => ({ toy: i, kind: KINDS[id] })),
+  storeKey: 'bentpc.compose.studio',
+  song: () => arr.song,
+  load: (song, play) => { arr.setSong(song); if (play) void transport(true, 0); },
+  togglePlay: () => void transport(!arr.playing, arr.playing ? undefined : 0),
+  onCompose: (st) => setPageQuery(settingsToQuery(st, lineupQuery())),
+  share: async (st) => {
+    const url = setPageQuery(settingsToQuery(st, lineupQuery()));
+    if (await copyText(url)) toast('この曲の URL をコピーしました。開くと、同じおもちゃの並びで同じ曲が作られます');
+  },
+});
+composeSlot.querySelector('.slot-body')!.appendChild(panel.root);
+panel.root.style.transformOrigin = '0 0';
+
+let active = lineup.length - 1;
 function setActive(i: number): void {
   if (i === active) return;
   toys[active].releaseAll();
@@ -54,32 +104,42 @@ function fit(): void {
   const arrH = $('arr-wrap').offsetHeight;
   const deck = $('deck');
   deck.style.bottom = `${arrH}px`;
-  toys.forEach((t, i) => {
-    const body = slots[i].querySelector('.slot-body') as HTMLElement;
+  const place = (root: HTMLElement, slot: HTMLElement, tw: number, th: number) => {
+    const body = slot.querySelector('.slot-body') as HTMLElement;
     const w = body.clientWidth, h = body.clientHeight;
-    const s = Math.min(w / t.width, h / t.height);
-    t.root.style.transform = `translate(${(w - t.width * s) / 2}px, ${(h - t.height * s) / 2}px) scale(${s})`;
-  });
+    const s = Math.min(w / tw, h / th);
+    root.style.transform = `translate(${(w - tw * s) / 2}px, ${(h - th * s) / 2}px) scale(${s})`;
+  };
+  toys.forEach((t, i) => place(t.root, slots[i], t.width, t.height));
+  place(panel.root, composeSlot, PANEL_W, PANEL_H);
 }
 window.addEventListener('resize', fit);
 
 // ---- シーケンサー ----
+async function transport(play: boolean, from?: number): Promise<void> {
+  await audio.start();
+  if (play && (from ?? 0) < 1e-9) resetViews();
+  audio.post({ type: 'transport', play, from });
+}
 const arr = new Arranger({
   toys,
   send: (song) => audio.post({ type: 'song', song }),
-  transport: async (play, from) => {
-    await audio.start();
-    if (play && (from ?? 0) < 1e-9) resetViews();
-    audio.post({ type: 'transport', play, from });
-  },
+  transport: (play, from) => void transport(play, from),
   record: async (on, take) => { await audio.start(); audio.post({ type: 'seqRec', on, take }); },
   onSong: (s) => { $('songTitle').textContent = s.title ?? ''; },
-  storeKey: 'bentpc.studio.song.v1',
-}, demoSong);
+  storeKey: isDefault ? 'bentpc.studio.song.v1' : `bentpc.studio.song.v1.${lineup.join('-')}`,
+}, () => (isDefault ? demoSong() : blankStudioSong(toys.map((t) => t.title))));
 $('arr-wrap').appendChild(arr.el);
-arr.addButton('デモ曲', 'デモ曲「POWER ON / POWER OFF」を読み込む（今の曲は「元に戻す」で戻せます）', () => { arr.setSong(demoSong()); });
-arr.addButton('新しい曲', '空の曲にする（「元に戻す」で戻せます）', () => { arr.setSong(blankStudioSong()); });
+arr.addButton('デモ曲', 'デモ曲「POWER ON / POWER OFF」を読み込む（トイPC と TELEKEY の曲。今の曲は「元に戻す」で戻せます）', () => {
+  if (isDefault) arr.setSong(demoSong());
+  else location.href = `studio.html?toys=${STUDIO_TOYS.join(',')}&demo=1`;
+});
+arr.addButton('新しい曲', '空の曲にする（「元に戻す」で戻せます）', () => { arr.setSong(blankStudioSong(toys.map((t) => t.title))); });
 arr.sendInitial();
+// URL で送られた曲（?toys=…&seed=…）：同じ設定で合同の曲を作る。デモ曲の URL（?demo=1）
+const shared = settingsFromQuery(query);
+if (shared) queueMicrotask(() => { panel.composeWith(shared, false); toast(`送られた曲を作りました（シード ${shared.seed}）。「▶」で鳴らせます`, 6000); });
+else if (query.get('demo') && isDefault) arr.setSong(demoSong(), false);
 
 // ---- エンジンからのメッセージ ----
 let posBeat = 0, posAt = 0, playing = false;
@@ -144,7 +204,8 @@ window.addEventListener('blur', () => toys.forEach((t) => t.releaseAll()));
 const HELP = `
 <h3>BENT TOY STUDIO の使い方</h3>
 <table>
-  <tr><td>おもちゃ</td><td>クリックしたおもちゃが PC キーボードで弾けます（緑の枠）。キー操作は各おもちゃのヘルプ（ラック）と同じ</td></tr>
+  <tr><td>おもちゃ</td><td>クリックしたおもちゃが PC キーボードで弾けます（緑の枠）。キー操作は各おもちゃのヘルプ（ラック）と同じ。<b>右上の「おもちゃを選ぶ」</b>で並べるおもちゃを変えられます</td></tr>
+  <tr><td>AUTO COMPOSER</td><td>右端の緑の基板：「自動作曲」で並べた全部のおもちゃの合同の曲を作る（役割分担・掛け合い・同時にクラッシュ・1 台だけ残るブレイク）。「URL をコピー」で同じ曲を人に送れる</td></tr>
   <tr><td>▶ / ■</td><td>再生 / 停止（シーケンサーをクリックした後は Space）。<b>曲の頭から再生すると、おもちゃを新品にしてから鳴らすので、毎回同じ音・同じグリッチ</b>になります</td></tr>
   <tr><td>● REC</td><td>弾いた操作を録音して、● の付いたトラックに書き込みます（重ね録り）</td></tr>
   <tr><td>目盛り</td><td>上段 = セクション（ダブルクリックで追加・名前変更、ドラッグで移動、右クリックで削除）<br>下段 = クリックで再生位置、ドラッグでループ範囲（右クリックでループ解除）</td></tr>
@@ -173,7 +234,7 @@ const wavBtn = arr.addButton('WAV', '曲を最初から最後まで WAV（音声
   if (wavBtn.disabled) return;
   wavBtn.disabled = true;
   try {
-    await exportWav(arr.song, (f) => { wavBtn.textContent = `WAV ${Math.round(f * 100)}%`; });
+    await exportWav(arr.song, (f) => { wavBtn.textContent = `WAV ${Math.round(f * 100)}%`; }, lineup);
   } catch (e) {
     alert(`WAV を書き出せませんでした：${(e as Error).message}`);
   }
@@ -188,8 +249,11 @@ const webmBtn = arr.addButton('WebM', '曲を最初から最後まで再生し�
     song: () => arr.song,
     beat: () => clock.beat,
     section: () => clock.label,
-    tele: toys[1].root.querySelector('canvas[data-id="gl"]') as HTMLCanvasElement,
-    lcd: toys[0].root.querySelector('canvas[data-id="lcd"]') as HTMLCanvasElement,
+    tele: (toys[lineup.indexOf(5)]?.root.querySelector('canvas[data-id="gl"]') as HTMLCanvasElement) ?? null,
+    lcd: (toys[lineup.indexOf(0)]?.root.querySelector('canvas[data-id="lcd"]') as HTMLCanvasElement) ?? null,
+    teleIndex: lineup.indexOf(5),
+    lcdIndex: lineup.indexOf(0),
+    names: toys.map((t) => t.title),
     heat: (t) => heats[t],
     crashed: (t) => sync.crashed(t),
   });
@@ -221,7 +285,23 @@ const webmBtn = arr.addButton('WebM', '曲を最初から最後まで再生し�
   audio.post({ type: 'bounce' });
   onSongEnd = () => setTimeout(() => vrec?.state === 'recording' && vrec.stop(), 1200);
 });
-arr.addButton('MIDI', '曲を MIDI ファイルに書き出す（トイPC = チャンネル 1、TELEKEY = チャンネル 6。将来の VST 用）', () => exportMidi(arr.song));
+arr.addButton('MIDI', '曲を MIDI ファイルに書き出す（チャンネル = ラックの番号：トイPC = 1 … TELEKEY = 6。将来の VST 用）', () =>
+  exportMidi(arr.song, lineup.map((id, i) => ({ title: toys[i].title, channel: id, noteOf: (k: number) => Math.min(127, (id === 5 ? 24 : 36) + k), paramDefs: toys[i].paramDefs }))));
+
+// ---- おもちゃを選ぶ（並べ直すとページを開き直す） ----
+{
+  const box = $('lineup');
+  box.innerHTML = `<b>スタジオに並べるおもちゃ</b>${TOY_NAMES.map((n, id) => `<label><input type="checkbox" value="${id}" ${lineup.includes(id) ? 'checked' : ''}> ${id + 1}. ${n}</label>`).join('')}
+    <p>2〜3 台がおすすめ（たくさん並べると 1 台ずつが小さくなります）。並べ直すと、その並び用の曲に切り替わります。</p>
+    <button type="button" data-id="go">この並びで開く</button> <button type="button" data-id="cancel">やめる</button>`;
+  $('lineupBtn').addEventListener('click', () => { box.hidden = !box.hidden; });
+  box.querySelector('[data-id=cancel]')!.addEventListener('click', () => { box.hidden = true; });
+  box.querySelector('[data-id=go]')!.addEventListener('click', () => {
+    const ids = [...box.querySelectorAll<HTMLInputElement>('input:checked')].map((i) => Number(i.value));
+    if (!ids.length) { alert('1 台以上選んでください'); return; }
+    location.href = `studio.html?toys=${ids.join(',')}`;
+  });
+}
 
 // シーケンサーの高さ：上の縁をドラッグで変える
 {

@@ -12,6 +12,7 @@ import { composeTele } from './toys/tele';
 import { composeTypo } from './toys/typo';
 import { composeVroom } from './toys/vroom';
 import type { Part, PartContext } from './context';
+import { arrangeEnsemble } from './ensemble';
 import type { ComposeInfo, ComposeRequest, Composer, ToyKind } from './types';
 
 type PartComposer = (ctx: PartContext) => Part[];
@@ -49,6 +50,11 @@ export class RuleComposer implements Composer {
         rng: (part, sec) => rngFor(settings.seed, t.kind, t.toy, part, sec ?? 'song', sec !== undefined ? salt[sec] ?? 0 : 0),
       }));
     }
+
+    // 何台かいっしょのとき：役割分担・掛け合い・片方だけ残るブレイク
+    const arranged = [...arrangeEnsemble(plan, req.toys, generated)];
+    generated.length = 0;
+    generated.push(...arranged);
 
     // 元の曲のトラック（おもちゃ番号をはっきり書いておく。並べ替えてもずれないように）
     const baseTracks: SeqTrack[] = base ? base.tracks.map((tr, i) => ({ ...tr, toy: trackToy(base, i) })) : [];

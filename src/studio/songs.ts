@@ -19,7 +19,8 @@ export const STUDIO_MIDI: MidiToy[] = [
   { title: 'TELEKEY TK-6', channel: 5, noteOf: (k) => (k < 72 ? 24 + k : -1), paramDefs: TELE_PARAMS },
 ];
 
-export function blankStudioSong(): Song {
+/** 空の曲。names = 並べたおもちゃの名前（1 台 1 トラック） */
+export function blankStudioSong(names: string[] = ['トイPC', 'キーボード']): Song {
   return {
     version: 1,
     title: 'NEW SONG',
@@ -30,9 +31,6 @@ export function blankStudioSong(): Song {
     ramp: true,
     loop: { on: false, start: 0, end: 16 },
     sections: [{ name: 'イントロ', start: 0 }],
-    tracks: [
-      { toy: TOY_PC, name: 'トイPC', mute: false, notes: [], autos: [], rec: true },
-      { toy: TELE, name: 'キーボード', mute: false, notes: [], autos: [], rec: true },
-    ],
+    tracks: names.map((name, toy) => ({ toy, name, mute: false, notes: [], autos: [], rec: true })),
   };
 }

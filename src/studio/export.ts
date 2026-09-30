@@ -49,8 +49,13 @@ export interface CompositorSource {
   song(): Song;
   beat(): number;
   section(): string;
-  tele: HTMLCanvasElement; // TELEKEY のモニター（WebGL）
-  lcd: HTMLCanvasElement; // トイPC の液晶
+  tele: HTMLCanvasElement | null; // TELEKEY のモニター（WebGL）。並べていなければ null
+  lcd: HTMLCanvasElement | null; // トイPC の液晶
+  /** TELEKEY・トイPC が何台目か（無ければ -1） */
+  teleIndex?: number;
+  lcdIndex?: number;
+  /** 並べたおもちゃの名前（熱のメーターに出す） */
+  names?: string[];
   heat(toy: number): number;
   crashed(toy: number): boolean;
 }
@@ -100,14 +105,30 @@ export function makeCompositor(src: CompositorSource): { canvas: HTMLCanvasEleme
     const tw = 800, th = 600;
     g.fillStyle = '#2a2823';
     g.fillRect(16, 16, tw + 16, th + 16);
-    g.drawImage(src.tele, 24, 24, tw, th);
+    if (src.tele) g.drawImage(src.tele, 24, 24, tw, th);
+    else {
+      // TELEKEY を並べていないとき：曲名とセクション名を大きく
+      g.fillStyle = '#16131a';
+      g.fillRect(24, 24, tw, th);
+      g.fillStyle = '#ff5a4f';
+      g.font = '700 44px sans-serif';
+      g.fillText(song.title ?? 'BENT TOY STUDIO', 60, 140);
+      g.fillStyle = '#ffe066';
+      g.font = '700 80px sans-serif';
+      g.fillText(src.section() || ' ', 60, 330);
+      g.fillStyle = '#9dff7a';
+      g.font = '60px monospace';
+      g.fillText(`BAR ${Math.floor(beat / 4) + 1}.${Math.floor(beat % 4) + 1}`, 60, 460);
+    }
     // ---- トイPC の液晶 ----
-    const lx = 860, ly = 24, lw = 396, lh = Math.round((396 * src.lcd.height) / Math.max(1, src.lcd.width));
-    g.fillStyle = '#e8dcc0';
-    g.fillRect(lx - 8, ly - 8, lw + 16, lh + 16);
-    g.imageSmoothingEnabled = false;
-    g.drawImage(src.lcd, lx, ly, lw, lh);
-    g.imageSmoothingEnabled = true;
+    const lx = 860, ly = 24, lw = 396, lh = src.lcd ? Math.round((396 * src.lcd.height) / Math.max(1, src.lcd.width)) : 0;
+    if (src.lcd) {
+      g.fillStyle = '#e8dcc0';
+      g.fillRect(lx - 8, ly - 8, lw + 16, lh + 16);
+      g.imageSmoothingEnabled = false;
+      g.drawImage(src.lcd, lx, ly, lw, lh);
+      g.imageSmoothingEnabled = true;
+    }
     // クラッシュ中
     const crashBox = (x: number, y: number, w: number, h: number) => {
       g.fillStyle = 'rgba(0, 20, 170, .6)';
@@ -116,8 +137,9 @@ export function makeCompositor(src: CompositorSource): { canvas: HTMLCanvasEleme
       g.font = '700 22px monospace';
       g.fillText('*** SYSTEM HALTED ***', x + w / 2 - 140, y + h / 2);
     };
-    if (src.crashed(1)) crashBox(24, 24, tw, th);
-    if (src.crashed(0)) crashBox(lx, ly, lw, lh);
+    const ti = src.teleIndex ?? 1, li = src.lcdIndex ?? 0;
+    if (ti >= 0 && src.crashed(ti)) crashBox(24, 24, tw, th);
+    if (src.lcd && li >= 0 && src.crashed(li)) crashBox(lx, ly, lw, lh);
     // ---- 文字 ----
     let y = ly + lh + 50;
     g.fillStyle = '#ffe066';
@@ -129,15 +151,15 @@ export function makeCompositor(src: CompositorSource): { canvas: HTMLCanvasEleme
     const sec = (beat * 60) / song.bpm;
     g.fillText(`BAR ${Math.floor(beat / 4) + 1}.${Math.floor(beat % 4) + 1}   ${Math.floor(sec / 60)}:${String(Math.floor(sec % 60)).padStart(2, '0')}`, lx, y);
     y += 44;
-    ['BLIPPY BOOK 30', 'TELEKEY TK-6'].forEach((name, toy) => {
+    (src.names ?? ['BLIPPY BOOK 30', 'TELEKEY TK-6']).forEach((name, toy) => {
       g.fillStyle = '#bbb';
-      g.font = '16px monospace';
+      g.font = '14px monospace';
       g.fillText(`${name}  HEAT`, lx, y);
       g.fillStyle = '#2c2732';
-      g.fillRect(lx, y + 8, lw, 12);
+      g.fillRect(lx, y + 6, lw, 9);
       g.fillStyle = '#ff5a2a';
-      g.fillRect(lx, y + 8, lw * Math.min(1, src.heat(toy)), 12);
-      y += 44;
+      g.fillRect(lx, y + 6, lw * Math.min(1, src.heat(toy)), 9);
+      y += 32;
     });
     // 今鳴っている音符の数（トラックごとの光）
     y += 6;
