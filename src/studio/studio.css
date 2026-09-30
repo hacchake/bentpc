@@ -93,3 +93,5 @@
 #s-help td:first-child { font-weight: 700; white-space: nowrap; }
 
 .arr-grip { position: absolute; left: 0; right: 0; top: -6px; height: 10px; cursor: ns-resize; z-index: 10; }
+.crash .crash-steps { margin-top: 6px; padding: 4px 10px; background: #ffe066; color: #111; border-radius: 6px; animation: crash-steps 1s steps(2) infinite; }
+@keyframes crash-steps { 50% { opacity: .55; } }

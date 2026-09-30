@@ -1,0 +1,73 @@
+/* 電源を分かりやすくする部品 */
+
+/* 大きな POWER ボタン（dome に足す） */
+.dome.power { width: 62px; height: 62px; }
+.dome.power::before {
+  content: ''; position: absolute; inset: -9px; border-radius: 50%;
+  border: 4px solid rgba(255, 255, 255, .85); box-shadow: 0 0 0 3px rgba(0,0,0,.35), inset 0 0 0 2px rgba(0,0,0,.25);
+}
+.mod-label.power-label {
+  font: 900 15px 'Fredoka', 'Arial Rounded MT Bold', sans-serif; letter-spacing: 2px;
+  padding: 1px 8px; border-radius: 6px; background: #d1261c; color: #fff; box-shadow: 0 2px 0 #7a0f0a;
+}
+
+/* 電源 OFF の間：LED がゆっくり点滅して誘う */
+.led.beckon { animation: power-beckon 1.8s ease-in-out infinite; }
+@keyframes power-beckon {
+  0%, 100% { filter: brightness(1); box-shadow: 0 0 0 2px #bbb; }
+  50% { filter: brightness(2.6) saturate(1.6); box-shadow: 0 0 0 2px #fff, 0 0 16px 6px rgba(120, 255, 120, .8); }
+}
+
+/* 電源 OFF のまま触ったとき：POWER ボタンがピカッと光る */
+.power-flash { animation: power-flash .9s ease-out 1; }
+@keyframes power-flash {
+  0% { filter: brightness(2.2); box-shadow: 0 0 0 0 rgba(255, 240, 120, .95); }
+  60% { box-shadow: 0 0 0 26px rgba(255, 240, 120, 0); }
+  100% { filter: none; box-shadow: 0 0 0 0 rgba(255, 240, 120, 0); }
+}
+
+/* 吹き出し（おもちゃの画面の中） */
+.power-bubble {
+  position: absolute; z-index: 100; width: max-content; max-width: 300px;
+  padding: 10px 14px; border-radius: 14px; border: 3px solid #222;
+  background: #fff7b0; color: #222; font: 700 15px/1.45 'Fredoka', 'Hiragino Maru Gothic ProN', sans-serif;
+  box-shadow: 4px 5px 0 rgba(0,0,0,.35); pointer-events: none;
+  transform: translateY(-50%); animation: power-pop .25s ease-out;
+}
+.power-bubble.left { transform: translate(-100%, -50%); }
+.power-bubble::after {
+  content: ''; position: absolute; top: 50%; width: 14px; height: 14px; background: #fff7b0;
+  border: 3px solid #222; border-width: 0 0 3px 3px; transform: translateY(-50%) rotate(45deg);
+}
+.power-bubble.right::after { left: -10px; }
+.power-bubble.left::after { right: -10px; transform: translateY(-50%) rotate(225deg); }
+.power-bubble b { color: #d1261c; }
+@keyframes power-pop { from { scale: .85; } }
+
+/* 最初の案内（画面全体） */
+.power-guide { position: fixed; inset: 0; z-index: 50; pointer-events: none; }
+.power-guide svg { position: absolute; left: 0; top: 0; }
+.power-guide .pg-ring { fill: none; stroke: #ffe066; stroke-width: 4; animation: pg-pulse 1.2s ease-in-out infinite; }
+@keyframes pg-pulse { 50% { stroke-width: 9; stroke: #fff; } }
+.pg-label {
+  position: absolute; padding: 12px 18px; border-radius: 16px; border: 4px solid #222;
+  background: #ffe066; color: #222; font: 900 26px/1.2 'Fredoka', 'Hiragino Maru Gothic ProN', sans-serif;
+  box-shadow: 6px 7px 0 rgba(0,0,0,.45); white-space: nowrap;
+  animation: pg-nudge 1s ease-in-out infinite;
+}
+.pg-label b { color: #d1261c; font-size: 32px; }
+.pg-label small { display: block; margin-top: 4px; font: 700 13px sans-serif; }
+@keyframes pg-nudge { 50% { transform: translateX(10px); } }
+.pg-label.left { animation-name: pg-nudge; }
+.pg-label.right { animation-name: pg-nudge-l; }
+@keyframes pg-nudge-l { 50% { transform: translateX(-10px); } }
+.pg-label.below { animation-name: pg-nudge-u; white-space: normal; max-width: calc(100vw - 16px); }
+.pg-label.above { animation-name: pg-nudge-d; white-space: normal; max-width: calc(100vw - 16px); }
+@keyframes pg-nudge-u { 50% { transform: translateY(-8px); } }
+@keyframes pg-nudge-d { 50% { transform: translateY(8px); } }
+/* おもちゃは縮小して表示されるので、吹き出しの文字は大きめに（おもちゃごと） */
+.toy-blippy .power-bubble { font-size: 38px; max-width: 700px; border-width: 6px; border-radius: 26px; padding: 18px 26px; }
+.toy-tele .power-bubble { font-size: 28px; max-width: 560px; border-width: 5px; border-radius: 22px; padding: 14px 20px; }
+.toy-blippy .power-bubble::after, .toy-tele .power-bubble::after { width: 24px; height: 24px; border-width: 0 0 5px 5px; }
+.toy-blippy .power-bubble.right::after, .toy-tele .power-bubble.right::after { left: -17px; }
+.toy-blippy .power-bubble.left::after, .toy-tele .power-bubble.left::after { right: -17px; }

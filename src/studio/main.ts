@@ -6,6 +6,7 @@ import './studio.css';
 import { autoValueAt, trackToy, SYS_CRASH, type Song } from '../core/song';
 import type { ToyUI } from '../core/ui';
 import { AudioHost } from '../host/audio';
+import { PowerGuide } from '../core/power';
 import { TOY_UIS } from '../toys/uis';
 import { Arranger } from './arranger';
 import { demoSong } from './demo';
@@ -30,7 +31,7 @@ const slots = toys.map((t, i) => {
   slot.className = 'slot';
   slot.style.flex = `${t.width / t.height} 1 0`;
   slot.innerHTML = `<div class="slot-head"><b>${i + 1}. ${t.title}</b><span class="kb">⌨ キーボードで演奏中</span><span class="stress" title="熱（ストレス）"><i></i></span></div>
-    <div class="slot-body"></div><div class="crash"><div>*** SYSTEM HALTED ***</div><div>FATAL ERROR 0x0BADC0DE</div><div>…REBOOTING…</div></div>`;
+    <div class="slot-body"></div><div class="crash"><div>*** SYSTEM HALTED ***</div><div>FATAL ERROR 0x0BADC0DE</div><div class="crash-steps">① RESET → ② POWER で再起動中…</div></div>`;
   slot.querySelector('.slot-body')!.appendChild(t.root);
   t.root.style.width = `${t.width}px`;
   t.root.style.height = `${t.height}px`;
@@ -95,6 +96,7 @@ audio.onMessage = (m) => {
     if (m.type === 'status') {
       const heat = m.status.fx.heat ?? 0;
       heats[m.toy] = heat;
+      if (m.status.powered && guide.showing) guide.hide();
       (slots[m.toy].querySelector('.stress i') as HTMLElement).style.width = `${Math.min(100, heat * 100)}%`;
       arr.setStress(m.toy, heat);
     }
@@ -188,9 +190,16 @@ const HELP = `
   <tr><td>キー</td><td>Delete 削除 ／ Ctrl+Z・Y 元に戻す・やり直し ／ Ctrl+C・V コピー・再生位置に貼り付け ／ Ctrl+D すぐ後ろに複製 ／ ← → 少しずらす</td></tr>
   <tr><td>表示</td><td>ホイールで上下、Shift＋ホイールで左右、Ctrl＋ホイールで拡大縮小</td></tr>
   <tr><td>CRASH</td><td>⚡ CRASH の音符の長さの間、音が張り付いて止まり、画面が固まる → 終わりで RESET・再起動（起動音）</td></tr>
+  <tr><td>電源</td><td>各おもちゃの大きな <b>POWER</b> ボタン（またはおもちゃを選んで Enter）。▶ で曲を頭から再生しても電源が入ります</td></tr>
   <tr><td>保存</td><td>曲は自動でこのブラウザに保存。「保存」「読込」で JSON ファイルにも</td></tr>
 </table>`;
-$('s-help').innerHTML = HELP;
+$('s-help').innerHTML = HELP + '<p><button class="guide-again" type="button">電源の案内をもう一度見る</button></p>';
+// ---- 最初の案内：画面を少し暗くして、2 台の POWER ボタンだけを明るく見せる（▶ で再生しても電源が入る） ----
+const guide = new PowerGuide(() => toys.map((t) => t.powerButton).filter((b): b is HTMLElement => !!b));
+$('s-help').addEventListener('click', (e) => {
+  if ((e.target as HTMLElement).classList.contains('guide-again')) { $('s-help').hidden = true; guide.show(); }
+});
+setTimeout(() => guide.showIfFirst(), 300);
 $('helpBtn').addEventListener('click', () => { $('s-help').hidden = !$('s-help').hidden; });
 document.querySelectorAll<HTMLButtonElement>('#s-top button').forEach((b) => { b.tabIndex = -1; b.addEventListener('mousedown', (e) => e.preventDefault()); });
 

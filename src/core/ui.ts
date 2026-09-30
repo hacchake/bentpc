@@ -39,6 +39,8 @@ export interface ToyUI {
   midi(status: number, d1: number, d2: number): void;
   powerOn(): void;
   powerOff(): void;
+  /** 電源ボタン（最初の案内で明るく見せる） */
+  readonly powerButton?: HTMLElement;
   // ---- スタジオ（シーケンサーの再生を画面に映す）用。無くても動く ----
   /** キーやボタンを光らせる（音は出さない）。key は音符のキー番号（1000〜 はボタン） */
   showKey?(key: number, on: boolean): void;

@@ -4,6 +4,7 @@
 //        シーケンサーで鳴らしたキーでも映像が一緒に壊れる
 import './tele.css';
 import { Knob, SteppedKnob, Toggle, momentary } from '../../core/controls';
+import { PowerHints } from '../../core/power';
 import { Board, CC_POWER, ccMap, ccToValue, type HostApi, type ToyUI } from '../../core/ui';
 import type { FromToy } from '../../host/protocol';
 import {
@@ -31,6 +32,7 @@ const HELP = `
   <tr><td>← →</td><td>5 秒戻る / 進む</td></tr>
   <tr><td>BS</td><td>RELEASE（効いているグリッチを全部止める）</td></tr>
   <tr><td>Home</td><td>再生 / 一時停止</td></tr>
+  <tr><td>POWER</td><td>モニターの右下の大きな緑のボタン（押すたびに ON / OFF）。電源 OFF のときは Enter でも入る</td></tr>
   <tr><td>PgUp / PgDn</td><td>電源 ON / OFF</td></tr>
   <tr><td>F1〜F5</td><td>GLITCH ボタン：今の BASE の一発グリッチ（左パネルに名前）</td></tr>
   <tr><td>F6〜F10</td><td>BASE 1〜5（TAPE / DIGITAL / SIGNAL / BEEP / MELTDOWN）</td></tr>
@@ -264,12 +266,18 @@ export function mountTele(api: HostApi): ToyUI {
   });
 
   // ================= 電源・LED（改造パネルはフェーズ3） =================
-  leds.power = b.place('led green', 1250, 590);
-  b.label('POWER', 1250, 610, 'tk-lbl');
-  leds.level = b.place('led', 1290, 590);
-  b.label('AUDIO IN', 1290, 610, 'tk-lbl');
+  // モニターの右下：大きな POWER ボタン（押すたびに ON / OFF）
+  leds.power = b.place('led green', 1285, 408);
+  const powerBtn = b.place('dome green big power', 1285, 462);
+  b.label('POWER', 1285, 508, 'power-label');
+  leds.level = b.place('led', 1285, 590);
+  b.label('AUDIO IN', 1285, 610, 'tk-lbl');
+  // api.start() は押した瞬間に呼ぶ（ブラウザの「最初の操作まで音を出せない」決まりを、この操作で解除する）
   const powerOn = () => void api.start().then(() => api.post({ type: 'power', on: true }));
   const powerOff = () => api.post({ type: 'power', on: false });
+  momentary(powerBtn, () => (powered ? powerOff() : powerOn()));
+  const hints = new PowerHints(root, powerBtn, leds.power, { x: 1236, y: 462, side: 'left' });
+  let heatSaid = -1e9;
 
   // ================= キーボード =================
   const cues = new Map<number, number>(); // キュー番号 → 秒（Shift＋数字で登録）
@@ -419,6 +427,7 @@ export function mountTele(api: HostApi): ToyUI {
   const midiHeld = new Map<number, number>();
   return {
     title: 'TELEKEY TK-6',
+    powerButton: powerBtn,
     width: W,
     height: H,
     root,
@@ -435,6 +444,11 @@ export function mountTele(api: HostApi): ToyUI {
       const st = m.status;
       powered = st.powered;
       leds.power.classList.toggle('lit', powered);
+      hints.update(powered);
+      if (powered && (st.fx.heat ?? 0) > 0.9 && performance.now() - heatSaid > 20000) {
+        heatSaid = performance.now();
+        hints.say('熱すぎ！勝手にグリッチが暴れてるぞ。手を離すと冷める。すぐ冷やすなら <b>Esc</b>（RESET）', 6000, true);
+      }
       leds.level.classList.toggle('lit', st.leds.level > 0.1);
       root.classList.toggle('powered', powered);
       engineMask = st.fx.mask ?? 0;
@@ -463,8 +477,11 @@ export function mountTele(api: HostApi): ToyUI {
       heat = f.heat ?? 0;
     },
     keyDown(e) {
+      // 電源 OFF のとき：Enter で電源 ON。ほかのキーは POWER ボタンを光らせて教える
+      if (!powered && e.code === 'Enter') { if (!e.repeat) powerOn(); return true; }
       const k = keyCtl.get(e.code);
       if (!k) return false;
+      if (!powered && e.code !== 'PageUp' && e.code !== 'PageDown' && !e.repeat) hints.nudge();
       if (!e.repeat) k.press(e.shiftKey);
       return true;
     },

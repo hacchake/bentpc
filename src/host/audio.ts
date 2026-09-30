@@ -16,6 +16,8 @@ export class AudioHost {
 
   /** 最初のユーザー操作で呼ぶ（ブラウザの自動再生制限のため） */
   start(): Promise<void> {
+    // 2 回目以降も、止まっていれば操作の瞬間に再開する
+    if (this.ctx && this.ctx.state !== 'running') void this.ctx.resume();
     if (this.starting) return this.starting.then(() => this.ctx?.resume());
     this.starting = (async () => {
       const ctx = new AudioContext({ latencyHint: 'interactive' });

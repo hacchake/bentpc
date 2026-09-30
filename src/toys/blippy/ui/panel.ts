@@ -1,6 +1,7 @@
 // 1台目：BLIPPY BOOK 30（魔改造トイPC）の画面
 import './blippy.css';
 import { Knob, SteppedKnob, Toggle, momentary } from '../../../core/controls';
+import { PowerHints } from '../../../core/power';
 import { Board, CC_POWER, applyCtl, ccMap, ccToValue, type Ctl, type HostApi, type ToyUI } from '../../../core/ui';
 import type { FromToy } from '../../../host/protocol';
 import type { DisplayState } from '../dsp/firmware';
@@ -39,6 +40,7 @@ const TEMPLATE = `
 
 const HELP = `
 <h3>BLIPPY BOOK 30 のキー操作</h3>
+<p><b>まず左上の大きな緑の POWER ボタンで電源を入れよう</b>（電源 OFF のときは Enter キーでも入る）。RESET を押すと CPU が止まるので、もう一度 POWER。</p>
 <table>
   <tr><td>A〜Z</td><td>文字キー</td></tr>
   <tr><td>1〜0</td><td>ドレミの数字キー</td></tr>
@@ -176,23 +178,32 @@ export function mountBlippy(api: HostApi): ToyUI {
   ['BLIP', 'R', 'C', 'D', 'O', 'W'].forEach((n) => $('lidArt').appendChild(spriteCanvas(n, '#b5121b')));
 
   // ================= 左の列：電源・音量・RESET・STRETCH =================
-  leds.power = b.place('led green', 62, 26);
+  leds.power = b.place('led green', 116, 60);
+  let resetAt = -1e9;
+  let heatSaid = -1e9;
   const powerOn = async () => {
-    await api.start();
+    const p = api.start(); // 最初の操作の中で音を出す準備をする（ブラウザの決まり）
+    await p;
     api.post({ type: 'power', on: true });
+    // LOOP スイッチが下（MUTE）だと起動しない（実物どおり）→ 教える
+    setTimeout(() => {
+      if (!hints.powered && loopSw.value === 2) hints.say('LOOP スイッチが <b>MUTE</b>（いちばん下）だと起動しないよ！上か真ん中にしてから POWER を押そう', 6000, true);
+    }, 700);
   };
   const powerOff = () => api.post({ type: 'power', on: false });
-  momentary(b.place('dome green big', 62, 70), () => void powerOn());
-  b.label('ON', 62, 96);
-  momentary(b.place('dome big', 62, 140), powerOff);
-  b.label('OFF', 62, 166);
+  const powerBtn = b.place('dome green big power', 62, 72);
+  momentary(powerBtn, () => void powerOn());
+  b.label('POWER', 62, 116, 'power-label');
+  momentary(b.place('dome', 62, 160), powerOff);
+  b.label('OFF', 62, 184);
+  const hints = new PowerHints(root, powerBtn, leds.power, { x: 134, y: 72, side: 'right' });
 
   ctl.volume = new Knob(b.knob('blue', 62, 218), def('volume'), (v) => setParam('volume', v));
   b.label('VOLUME', 62, 248);
 
   b.tape('RESET', 26, 316, true);
   btnEl.reset = b.place('dome chrome', 70, 316);
-  const resetBtn = momentary(btnEl.reset, () => setParam('reset', 1), () => setParam('reset', 0));
+  const resetBtn = momentary(btnEl.reset, () => { resetAt = performance.now(); setParam('reset', 1); }, () => setParam('reset', 0));
   ctl.reset = resetBtn;
 
   b.tape('STRETCH', 26, 470, true, -1);
@@ -338,6 +349,7 @@ export function mountBlippy(api: HostApi): ToyUI {
 
   return {
     title: 'BLIPPY BOOK 30',
+    powerButton: powerBtn,
     paramDefs: PARAMS,
     keyCount: KEY_COUNT,
     keyName: (k) => (k < 26 ? LETTER_KEYS[k] : k < FIRST_NUMBER_KEY ? FUNCTION_KEY_LABELS[k - 26] : `${NUMBER_KEY_LABELS[k - FIRST_NUMBER_KEY]} ${k - FIRST_NUMBER_KEY + 1}`),
@@ -352,6 +364,17 @@ export function mountBlippy(api: HostApi): ToyUI {
       } else if (m.type === 'status') {
         const st = m.status;
         leds.power.classList.toggle('lit', st.powered);
+        // RESET で CPU が止まった → 再起動の手順を案内
+        if (hints.powered && !st.powered && performance.now() - resetAt < 3000) {
+          hints.say('リセットしたよ！CPU が止まったので、<b>POWER</b> を押して再起動しよう', 7000, true);
+          hints.flash();
+        }
+        hints.update(st.powered);
+        const heat = (st.fx.heat as number) ?? 0;
+        if (st.powered && heat > 0.85 && performance.now() - heatSaid > 20000) {
+          heatSaid = performance.now();
+          hints.say('熱くなりすぎ！グリッチが勝手に暴れだしたぞ。手を離すと冷める。すぐ止めたいなら <b>RESET</b> → <b>POWER</b>', 6000, true);
+        }
         leds.stretch.classList.toggle('lit', st.leds.stretch > 0);
         leds.loop.classList.toggle('lit', st.leds.loop > 0);
         leds.glitch.classList.toggle('lit', st.leds.glitch > 0.05);
@@ -361,6 +384,9 @@ export function mountBlippy(api: HostApi): ToyUI {
       }
     },
     keyDown(e) {
+      // 電源 OFF のとき：Enter で電源 ON。ほかのキーは POWER ボタンを光らせて教える
+      if (!hints.powered && e.code === 'Enter') { if (!e.repeat) void powerOn(); return true; }
+      if (!hints.powered && e.code !== 'PageUp' && e.code !== 'PageDown' && (momentaryFor(e.code) || actions[e.code]) && !e.repeat) hints.nudge();
       const m = momentaryFor(e.code);
       if (m) { if (!e.repeat) m.press(); return true; }
       const a = actions[e.code];

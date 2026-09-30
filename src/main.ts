@@ -3,6 +3,7 @@ import './core/parts.css';
 import './host/host.css';
 import type { ToyUI } from './core/ui';
 import { AudioHost } from './host/audio';
+import { PowerGuide } from './core/power';
 import { Daw } from './host/daw';
 import { startMidi } from './host/midi';
 import { download, encodeWav } from './host/wav';
@@ -20,6 +21,7 @@ const COMMON_HELP = `
   <tr><td>☰ SEQ</td><td>シーケンサー：演奏の操作を録音（重ね録り）して、ピアノロールで手直しできる</td></tr>
   <tr><td>MIDI</td><td>チャンネル n → n 台目（1〜6）、それ以外→表示中のおもちゃ</td></tr>
 </table>
+<p><button class="guide-again" type="button">電源の案内をもう一度見る</button></p>
 <p>ノブ：上下にドラッグ（Shift で細かく）、ホイール、ダブルクリックで初期値</p>`;
 
 // ---- おもちゃを並べる ----
@@ -82,7 +84,10 @@ audio.onMessage = (m) => {
   else if (m.type === 'seqEnd') { if (bouncing) { bouncing = false; setRecording(false); } }
   else {
     toys[m.toy]?.onMessage(m);
-    if (m.type === 'status') tabEls[m.toy]?.querySelector('.dot')?.classList.toggle('on', m.status.powered);
+    if (m.type === 'status') {
+      tabEls[m.toy]?.querySelector('.dot')?.classList.toggle('on', m.status.powered);
+      if (m.status.powered && guide.showing) guide.hide();
+    }
   }
 };
 
@@ -183,6 +188,12 @@ document.querySelectorAll<HTMLButtonElement>('#topbar button').forEach((btn) => 
   btn.addEventListener('mousedown', (e) => e.preventDefault());
 });
 
+// ---- 最初の案内：画面を少し暗くして、表示中のおもちゃの POWER ボタンだけを明るく見せる ----
+const guide = new PowerGuide(() => { const b = toys[active].powerButton; return b ? [b] : []; });
+$('help').addEventListener('click', (e) => {
+  if ((e.target as HTMLElement).classList.contains('guide-again')) { $('help').hidden = true; guide.show(); }
+});
+
 $('helpBtn').addEventListener('click', () => {
   $('help').hidden = !$('help').hidden;
 });
@@ -194,3 +205,4 @@ try {
   // 読めなくても動く
 }
 show(Math.min(saved, toys.length - 1));
+guide.showIfFirst();

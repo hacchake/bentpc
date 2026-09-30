@@ -31,7 +31,8 @@ export default URL.createObjectURL(new Blob([code], { type: 'application/javascr
 // 単一 HTML にするため、ページごとに作る：ふつうは index.html（ラック）、--mode studio で studio.html（スタジオ）
 export default defineConfig(({ mode }) => ({
   plugins: [workletPlugin(), viteSingleFile()],
-  // GitHub Pages（https://hacchake.github.io/bentpc/）で公開するための置き場所
+  // GitHub Pages（https://hacchake.github.io/bentpc/）で公開するための置き場所。
+  // ※ 単一 HTML 化のプラグインがページ内のパスを相対（./）に直すので、手元のサーバーでは http://localhost:5178/ のまま開く
   base: '/bentpc/',
   server: { port: 5178 },
   build: {
