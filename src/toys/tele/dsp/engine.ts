@@ -4,6 +4,7 @@
 // 楽器キーの音を足し、改造パーツ（ノブ・トグル・GLITCH×BASE・HOLD/RELEASE・LFO・キー混線）で揺さぶる。
 // 映像側（画面）には、いま効いているグリッチ・ノブの値・一発グリッチを status で知らせる（音と映像が同じ状態で壊れる）。
 
+import { pulseBL, sawBL } from '../../../core/blep';
 import { defaultsOf } from '../../../core/params';
 import { Rng, hashSeed } from '../../../core/rng';
 import type { ToyEngine, ToyStatus } from '../../../core/toy';
@@ -555,12 +556,12 @@ export class TeleEngine implements ToyEngine<{ text: string }> {
         v.ph = (v.ph + f / 2 / sr) % 1;
         v.ph2 = (v.ph2 + (f / 2) * 1.006 / sr) % 1;
         if (!v.held) dec(this.burst?.extra === 'swell' ? 1500 : 400);
-        return (v.ph * 2 - 1 + (v.ph2 * 2 - 1)) * 0.15 * v.env;
+        return (sawBL(v.ph, f / 2 / sr) + sawBL(v.ph2, (f / 2) * 1.006 / sr)) * 0.15 * v.env;
       }
       case 7: {
         const fz = f * 8 * Math.exp(-t * 18) + 60;
         v.ph = (v.ph + fz / sr) % 1;
-        return (v.ph < 0.5 ? 0.35 : -0.35) * dec(150);
+        return pulseBL(v.ph, fz / sr) * 0.35 * dec(150);
       }
       case 8:
         v.ph = (v.ph + (f * 4) / sr) % 1;

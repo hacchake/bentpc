@@ -1,5 +1,6 @@
 // 録音データを WAV（16bit・ステレオ）にしてダウンロードする
-export function encodeWav(chunks: Float32Array[], sampleRate: number): Blob {
+/** chunks = 左（右が無ければ左右同じ）、right = 右 */
+export function encodeWav(chunks: Float32Array[], sampleRate: number, right?: Float32Array[]): Blob {
   const len = chunks.reduce((s, c) => s + c.length, 0);
   const ch = 2;
   const buf = new ArrayBuffer(44 + len * 2 * ch);
@@ -10,11 +11,14 @@ export function encodeWav(chunks: Float32Array[], sampleRate: number): Blob {
   v.setUint32(24, sampleRate, true); v.setUint32(28, sampleRate * 2 * ch, true); v.setUint16(32, 2 * ch, true); v.setUint16(34, 16, true);
   str(36, 'data'); v.setUint32(40, len * 2 * ch, true);
   let o = 44;
-  for (const c of chunks) for (let i = 0; i < c.length; i++) {
-    const s = Math.round(Math.max(-1, Math.min(1, c[i])) * 32767);
-    v.setInt16(o, s, true); v.setInt16(o + 2, s, true);
-    o += 4;
-  }
+  const q = (x: number) => Math.round(Math.max(-1, Math.min(1, x)) * 32767);
+  chunks.forEach((c, k) => {
+    const rc = right?.[k] ?? c;
+    for (let i = 0; i < c.length; i++) {
+      v.setInt16(o, q(c[i]), true); v.setInt16(o + 2, q(rc[i]), true);
+      o += 4;
+    }
+  });
   return new Blob([buf], { type: 'audio/wav' });
 }
 

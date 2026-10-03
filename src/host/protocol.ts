@@ -36,7 +36,7 @@ export type FromToy =
 
 export type FromEngine =
   | (FromToy & { toy: number })
-  | { type: 'recChunk'; data: Float32Array }
+  | { type: 'recChunk'; data: Float32Array; dataR?: Float32Array }
   | { type: 'recDone' }
   | { type: 'seqPos'; beat: number; playing: boolean; recording: boolean }
   | { type: 'seqTake'; take: number; data: ReturnType<typeof takeFromRaw> }

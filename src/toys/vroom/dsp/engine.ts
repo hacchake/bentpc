@@ -2,6 +2,7 @@
 // エンジン音は「点火（爆発）の粒」の連続：回転数から点火の間隔を決め、1 回ごとに減衰するノイズ＋チップ音を
 // 排気管（2 つの共振）に通す。FIRING ORDER で点火を間引くと、低回転ではリズムになる。
 
+import { pulseBL } from '../../../core/blep';
 import { defaultsOf } from '../../../core/params';
 import { Rng, hashSeed } from '../../../core/rng';
 import type { ToyEngine, ToyStatus } from '../../../core/toy';
@@ -301,13 +302,13 @@ export class VroomEngine implements ToyEngine<VroomDisplay> {
         const bend = hornBend ? Math.pow(2, wheel) : 1;
         this.hornPh[0] = (this.hornPh[0] + (392 * bend) / sr) % 1;
         this.hornPh[1] = (this.hornPh[1] + (494 * bend) / sr) % 1;
-        extra += Math.tanh(((this.hornPh[0] < 0.5 ? 1 : -1) + (this.hornPh[1] < 0.5 ? 1 : -1)) * 0.8) * 0.35;
+        extra += Math.tanh((pulseBL(this.hornPh[0], (392 * bend) / sr) + pulseBL(this.hornPh[1], (494 * bend) / sr)) * 0.8) * 0.35;
       }
       if (P('siren') > 0.5 && this.powered) {
         this.sirenLfo = (this.sirenLfo + 0.8 / sr) % 1;
         const f = 700 + 400 * (0.5 - 0.5 * Math.cos(2 * Math.PI * this.sirenLfo));
         this.sirenPh = (this.sirenPh + f / sr) % 1;
-        extra += (this.sirenPh < 0.5 ? 1 : -1) * 0.18;
+        extra += pulseBL(this.sirenPh, f / sr) * 0.18;
       }
       const relayRate = P('signal') > 0.5 ? 1.5 : 0;
       if ((relayRate || hazard > 0) && this.powered) {

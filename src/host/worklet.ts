@@ -6,6 +6,7 @@ import type { FromEngine, ToEngine } from './protocol';
 import { Sequencer } from './sequencer';
 import { TestSignal } from '../core/testsignal';
 import { hashSeed } from '../core/rng';
+import { MasterBus } from './master';
 
 declare const sampleRate: number;
 declare function registerProcessor(name: string, ctor: unknown): void;
@@ -38,6 +39,10 @@ class ToyRackProcessor extends AudioWorkletProcessor {
   // 録音
   private recording = false;
   private recBuf = new Float32Array(REC_CHUNK);
+  private recBufR = new Float32Array(REC_CHUNK);
+  /** 仕上げ（まとめ・響き・割れ止め）。録音にも同じ音が入る */
+  private master = new MasterBus(sampleRate);
+  private right = new Float32Array(128);
   private recPos = 0;
   // マイク録音
   private micToy = -1;
@@ -105,8 +110,8 @@ class ToyRackProcessor extends AudioWorkletProcessor {
 
   private flushRec(): void {
     if (this.recPos === 0) return;
-    const data = this.recBuf.slice(0, this.recPos);
-    this.send({ type: 'recChunk', data }, [data.buffer]);
+    const data = this.recBuf.slice(0, this.recPos), dataR = this.recBufR.slice(0, this.recPos);
+    this.send({ type: 'recChunk', data, dataR }, [data.buffer, dataR.buffer]);
     this.recPos = 0;
   }
 
@@ -148,21 +153,25 @@ class ToyRackProcessor extends AudioWorkletProcessor {
       input = this.sigBuf;
     }
     this.seq.render(l, this.click, this.tmp, input);
-    for (let i = 0; i < l.length; i++) l[i] = Math.max(-1, Math.min(1, l[i]));
+    if (this.right.length !== l.length) this.right = new Float32Array(l.length);
+    const r = this.right;
+    this.master.process(l, l, r);
 
     if (this.recording) {
       let i = 0;
       while (i < l.length) {
         const n = Math.min(l.length - i, REC_CHUNK - this.recPos);
         this.recBuf.set(l.subarray(i, i + n), this.recPos);
+        this.recBufR.set(r.subarray(i, i + n), this.recPos);
         this.recPos += n;
         i += n;
         if (this.recPos >= REC_CHUNK) this.flushRec();
       }
     }
     // メトロノームは録音に入れず、スピーカーにだけ足す
-    for (let i = 0; i < l.length; i++) l[i] = Math.max(-1, Math.min(1, l[i] + this.click[i]));
-    for (let c = 1; c < out.length; c++) out[c].set(l);
+    for (let i = 0; i < l.length; i++) { l[i] = Math.max(-1, Math.min(1, l[i] + this.click[i])); r[i] = Math.max(-1, Math.min(1, r[i] + this.click[i])); }
+    if (out.length > 1) for (let c = 1; c < out.length; c++) out[c].set(r);
+    else for (let i = 0; i < l.length; i++) l[i] = (l[i] + r[i]) * 0.5;
     if (++this.posCounter >= 6) {
       this.posCounter = 0;
       this.send({ type: 'seqPos', beat: this.seq.pos, playing: this.seq.playing, recording: this.seq.recording });

@@ -400,10 +400,11 @@ export class SamplerEngine {
         if (span <= 0) { v.active = false; return; }
         v.pos = v.reverse ? v.pos + span : v.pos - span;
       }
-      const i0 = Math.floor(v.pos), f = v.pos - i0;
-      const i1 = Math.min(i0 + 1, L.length - 1);
-      let a = L[i0] + (L[i1] - L[i0]) * f;
-      let b = stereo ? R[i0] + (R[i1] - R[i0]) * f : a;
+      // 4 点のエルミート補間（直線より高い音がこもらず、ザラつきも少ない）
+      const i0 = Math.floor(v.pos), f = v.pos - i0, last = L.length - 1;
+      const im = i0 > 0 ? i0 - 1 : 0, i1 = i0 < last ? i0 + 1 : last, i2 = i0 + 2 <= last ? i0 + 2 : last;
+      let a = hermite(L[im], L[i0], L[i1], L[i2], f);
+      let b = stereo ? hermite(R[im], R[i0], R[i1], R[i2], f) : a;
       if (v.filt) { a = this.svf(v, 0, a); b = stereo ? this.svf(v, 1, b) : a; }
       outL[i] += a * v.gl * v.env;
       outR[i] += b * v.gr * v.env;
@@ -432,6 +433,12 @@ function withMod(p: PadParams, m?: TrigMod): PadParams {
     start: m.start !== undefined ? p.start + (p.end - p.start) * m.start : p.start,
     reverse: m.reverse ? !p.reverse : p.reverse,
   };
+}
+
+/** 4 点エルミート補間（xm1, x0, x1, x2 の間の x0〜x1 を f で） */
+function hermite(xm1: number, x0: number, x1: number, x2: number, f: number): number {
+  const c1 = 0.5 * (x1 - xm1), c2 = xm1 - 2.5 * x0 + 2 * x1 - 0.5 * x2, c3 = 0.5 * (x2 - xm1) + 1.5 * (x0 - x1);
+  return ((c3 * f + c2) * f + c1) * f + x0;
 }
 
 /** 小さい音はそのまま、大きい音はなめらかに ±1 に収める */

@@ -1,5 +1,6 @@
 // 右のミニ鍵盤の音源（6 音）。INSTRUMENT 10 種。KEYBOARD PATTERN 2 は押している音のアルペジオ。
 
+import { pulseBL, sawBL } from '../../../core/blep';
 import { Rng } from '../../../core/rng';
 
 /** [アタック秒, ディケイ秒, サステイン, リリース秒, オクターブ] */
@@ -90,18 +91,19 @@ export class KeySynth {
       } else { v.lvl -= dt / Math.max(0.001, r); if (v.lvl <= 0) { v.lvl = 0; v.stage = 'off'; continue; } }
 
       const f = 440 * Math.pow(2, (v.note + oct - 69) / 12);
-      v.ph = (v.ph + (f * clk) / sr) % 1;
+      const dp = (f * clk) / sr;
+      v.ph = (v.ph + dp) % 1;
       const p = v.ph;
       let x = 0;
       switch (inst) {
-        case 0: x = p < 0.5 ? 1 : -1; break;
-        case 1: x = 2 * p - 1; break;
-        case 2: x = ((p < 0.5 ? 1 : -1) + ((p * 2) % 1 < 0.5 ? 1 : -1)) * 0.5; break;
-        case 3: v.ph2 = (v.ph2 + (f * 1.007 * clk) / sr) % 1; x = (2 * p - 1 + 2 * v.ph2 - 1) * 0.5; break;
+        case 0: x = pulseBL(p, dp); break;
+        case 1: x = sawBL(p, dp); break;
+        case 2: x = (pulseBL(p, dp) + pulseBL((p * 2) % 1, dp * 2)) * 0.5; break;
+        case 3: v.ph2 = (v.ph2 + dp * 1.007) % 1; x = (sawBL(p, dp) + sawBL(v.ph2, dp * 1.007)) * 0.5; break;
         case 4: x = Math.sin(2 * Math.PI * p + 2.5 * v.lvl * Math.sin(2 * Math.PI * p * 3.5)); break;
         case 5: x = p < 0.5 ? 4 * p - 1 : 3 - 4 * p; break;
-        case 6: x = (2 * p - 1) * Math.min(1, v.lvl * 1.5); x = Math.tanh(x * 2); break;
-        case 7: x = p < 0.5 + 0.4 * Math.sin(2 * Math.PI * this.lfo) ? 1 : -1; break;
+        case 6: x = sawBL(p, dp) * Math.min(1, v.lvl * 1.5); x = Math.tanh(x * 2); break;
+        case 7: x = pulseBL(p, dp, 0.5 + 0.4 * Math.sin(2 * Math.PI * this.lfo)); break;
         case 8: v.ph2 = (v.ph2 + (f * 0.995 * clk) / sr) % 1; x = (Math.sin(2 * Math.PI * p) + Math.sin(2 * Math.PI * v.ph2)) * 0.5; break;
         default: if (p < (f * clk) / sr) v.noise = this.rng.bi(); x = v.noise; break; // 音程つきノイズ
       }

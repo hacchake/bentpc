@@ -2,6 +2,7 @@
 // キーボードの「故障」を楽器にしたもの：ゴースト（隣のキーも鳴る）、スキャン（同時押しが順番に読まれる）、
 // バウンス（チャタリングで連打）、オーバーフロー（打った行があふれて暴走）。打った音は「行」にたまり、Enter でループ。
 
+import { pulseBL, sawBL } from '../../../core/blep';
 import { defaultsOf } from '../../../core/params';
 import { Rng, hashSeed } from '../../../core/rng';
 import type { ToyEngine, ToyStatus } from '../../../core/toy';
@@ -410,8 +411,8 @@ export class TypoEngine implements ToyEngine<TypoDisplay> {
         v.ph = (v.ph + f / sr) % 1;
         let s: number;
         switch (wave) {
-          case 0: s = v.ph < 0.25 ? 1 : -0.5; break;
-          case 1: s = 2 * v.ph - 1; break;
+          case 0: s = 0.25 + 0.75 * pulseBL(v.ph, f / sr, 0.25); break;
+          case 1: s = sawBL(v.ph, f / sr); break;
           case 2: v.ph2 = (v.ph2 + (f * 3.5) / sr) % 1; s = Math.sin(2 * Math.PI * v.ph + 2 * v.lvl * Math.sin(2 * Math.PI * v.ph2)); break;
           default: if (v.ph < f / sr) v.sh = this.rng.bi(); s = v.sh; break;
         }

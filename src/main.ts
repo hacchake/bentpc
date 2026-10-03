@@ -124,8 +124,9 @@ window.addEventListener('resize', fit);
 
 // ---- エンジンからのメッセージを各おもちゃへ ----
 let recChunks: Float32Array[] = [];
+let recChunksR: Float32Array[] = [];
 audio.onMessage = (m) => {
-  if (m.type === 'recChunk') recChunks.push(m.data);
+  if (m.type === 'recChunk') { recChunks.push(m.data); recChunksR.push(m.dataR ?? m.data); }
   else if (m.type === 'recDone') finishRecording();
   else if (m.type === 'seqPos') {
     posBeat = m.beat;
@@ -155,6 +156,7 @@ function setRecording(on: boolean): void {
   recording = on;
   if (recording) {
     recChunks = [];
+    recChunksR = [];
     recStart = performance.now();
     recTime.textContent = '00:00';
   }
@@ -170,8 +172,9 @@ function finishRecording(): void {
   if (!recChunks.length || !audio.ctx) return;
   const d = new Date();
   const name = `bentpc-${d.getFullYear()}${p2(d.getMonth() + 1)}${p2(d.getDate())}-${p2(d.getHours())}${p2(d.getMinutes())}${p2(d.getSeconds())}.wav`;
-  download(encodeWav(recChunks, audio.ctx.sampleRate), name);
+  download(encodeWav(recChunks, audio.ctx.sampleRate, recChunksR), name);
   recChunks = [];
+  recChunksR = [];
 }
 setInterval(() => {
   if (!recording) return;

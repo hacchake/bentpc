@@ -28,9 +28,9 @@ function userSamples(): { toy: number; key: number; data: Float32Array }[] {
 export function exportWav(song: Song, progress: (f: number) => void, toys?: number[], sr = 48000, customs: { toy: number; data: unknown }[] = []): Promise<void> {
   return new Promise((resolve, reject) => {
     const w = new RenderWorker();
-    w.onmessage = (e: MessageEvent<{ type: 'progress'; f: number } | { type: 'done'; data: Float32Array }>) => {
+    w.onmessage = (e: MessageEvent<{ type: 'progress'; f: number } | { type: 'done'; data: Float32Array; dataR: Float32Array }>) => {
       if (e.data.type === 'progress') { progress(e.data.f); return; }
-      download(encodeWav([e.data.data], sr), `${safeName(song)}.wav`);
+      download(encodeWav([e.data.data], sr, [e.data.dataR]), `${safeName(song)}.wav`);
       w.terminate();
       resolve();
     };
