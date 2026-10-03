@@ -1,6 +1,6 @@
 // サンプラーの音の中心（DOM 非依存）。160 パッドの音と設定を持ち、32 ボイスで鳴らして、ステレオで出す。
 // 録音（マイク入力・リサンプル）もここでする。
-import { PAD_COUNT, REC_MAX_SEC, attackSec, cutoffHz, defaultPad, releaseSec, volGain, type PadParams, type SampleBuf } from './types';
+import { PAD_COUNT, REC_MAX_SEC, attackSec, cutoffHz, defaultPad, releaseSec, volGain, type PadParams, type SampleBuf, type TrigMod } from './types';
 
 const MAX_VOICES = 32;
 /** 止められた音を消す時間（プチッと鳴らないように） */
@@ -14,6 +14,8 @@ class Voice {
   inc = 1;
   lo = 0; // 鳴らす範囲（フレーム）
   hi = 0;
+  loopLo = 0; // ループの戻り先
+  mod: TrigMod | undefined;
   reverse = false;
   loop = false;
   gate = false;
@@ -72,7 +74,7 @@ export class SamplerEngine {
   setParams(pad: number, p: PadParams): void {
     this.pads[pad] = { ...p };
     // 鳴っている音にも、音量・パン・音程・フィルターをすぐ反映
-    for (const v of this.voices) if (v.active && v.pad === pad) this.applyLive(v, p);
+    for (const v of this.voices) if (v.active && v.pad === pad) this.applyLive(v, withMod(p, v.mod));
   }
 
   private applyLive(v: Voice, p: PadParams): void {
@@ -95,11 +97,16 @@ export class SamplerEngine {
     v.gate = p.gate;
   }
 
-  /** パッドを鳴らす。vel は 0〜1 */
-  trigger(pad: number, vel = 1): void {
+  /** パッドを鳴らす。vel は 0〜1、mod は 16 レベルの変化。ロール中は押している間くり返す */
+  trigger(pad: number, vel = 1, mod?: TrigMod): void {
+    if (this.roll.on) this.held.set(pad, { vel, mod, next: this.clock + this.rollFrames() });
+    this.fire(pad, vel, mod);
+  }
+
+  private fire(pad: number, vel: number, mod?: TrigMod): void {
     const buf = this.samples[pad];
     if (!buf) return;
-    const p = this.pads[pad];
+    const p = withMod(this.pads[pad], mod);
     // ループで GATE なし：鳴っていれば止める（押すたびに入／切）
     if (p.loop && !p.gate) {
       const playing = this.voices.filter((v) => v.active && v.pad === pad && v.stage !== 2);
@@ -121,6 +128,8 @@ export class SamplerEngine {
     v.buf = buf;
     v.lo = lo;
     v.hi = hi;
+    v.loopLo = Math.max(lo, Math.min(hi - 2, Math.floor(Math.max(0, Math.min(1, p.loopStart)) * len)));
+    v.mod = mod;
     v.reverse = p.reverse;
     v.pos = p.reverse ? hi - 1 : lo;
     v.age = ++this.ageCounter;
@@ -136,15 +145,46 @@ export class SamplerEngine {
     this.applyLive(v, p);
   }
 
-  /** パッドを離した（GATE のパッドだけ止まる） */
+  /** パッドを離した（GATE のパッドだけ止まる・ロールも止まる） */
   releasePad(pad: number): void {
+    this.held.delete(pad);
     for (const v of this.voices) {
       if (v.active && v.pad === pad && v.gate && v.stage !== 2) v.release(Math.exp(-1 / (releaseSec(this.pads[pad].release) * this.sr)));
     }
   }
 
   stopAll(): void {
+    this.held.clear();
     for (const v of this.voices) if (v.active) v.release(this.killCoef);
+  }
+
+  // ---------------- テンポ・ロール ----------------
+  bpm = 120;
+  /** 出した音の数（サンプル）。ロールやシーケンサーの時計 */
+  clock = 0;
+  roll = { on: false, rate: 0.25 };
+  private held = new Map<number, { vel: number; mod?: TrigMod; next: number }>();
+  private rollFrames(): number {
+    return Math.max(16, Math.round(((this.roll.rate * 60) / this.bpm) * this.sr));
+  }
+  setRoll(on: boolean, rate: number): void {
+    this.roll = { on, rate };
+    if (!on) this.held.clear();
+  }
+  /** 次の予定（ロールの連打）まで何サンプルか（max まで） */
+  private untilNext(max: number): number {
+    let d = max;
+    for (const h of this.held.values()) d = Math.min(d, Math.max(0, h.next - this.clock));
+    return d;
+  }
+  /** いまの時刻の予定を鳴らす */
+  private fireDue(): void {
+    for (const [pad, h] of this.held) {
+      if (h.next <= this.clock) {
+        this.fire(pad, h.vel, h.mod);
+        h.next += this.rollFrames();
+      }
+    }
   }
 
   private allocVoice(): Voice {
@@ -209,7 +249,16 @@ export class SamplerEngine {
     const n = outL.length;
     outL.fill(0);
     outR.fill(0);
-    for (const v of this.voices) if (v.active) this.renderVoice(v, outL, outR, n);
+    // 予定（ロールなど）の時刻で区切って鳴らす（ブロックの途中でも、ぴったりの時刻に）
+    let off = 0;
+    while (off < n) {
+      this.fireDue();
+      const len = Math.max(1, this.untilNext(n - off));
+      const l = outL.subarray(off, off + len), r = outR.subarray(off, off + len);
+      for (const v of this.voices) if (v.active) this.renderVoice(v, l, r, len);
+      off += len;
+      this.clock += len;
+    }
     // 入力のモニター
     let ip = 0;
     if (inL) {
@@ -244,7 +293,8 @@ export class SamplerEngine {
       // 範囲の外に出たら：ループなら戻る、そうでなければ終わり
       if (v.reverse ? v.pos < v.lo : v.pos >= v.hi - 1) {
         if (!v.loop) { v.active = false; return; }
-        const span = v.hi - 1 - v.lo;
+        const lo = v.reverse ? v.lo : v.loopLo;
+        const span = v.hi - 1 - lo;
         if (span <= 0) { v.active = false; return; }
         v.pos = v.reverse ? v.pos + span : v.pos - span;
       }
@@ -267,6 +317,18 @@ export class SamplerEngine {
     v.s2[c] = 2 * v2 - v.s2[c];
     return v2;
   }
+}
+
+/** 16 レベルの変化を足した設定 */
+function withMod(p: PadParams, m?: TrigMod): PadParams {
+  if (!m) return p;
+  return {
+    ...p,
+    pitch: p.pitch + (m.pitch ?? 0),
+    cutoff: m.cutoff ?? p.cutoff,
+    attack: m.attack ?? p.attack,
+    start: m.start !== undefined ? p.start + (p.end - p.start) * m.start : p.start,
+  };
 }
 
 /** 小さい音はそのまま、大きい音はなめらかに ±1 に収める */

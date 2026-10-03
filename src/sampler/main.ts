@@ -1,29 +1,34 @@
 // PAKU-PAKU 16（音を食べるサンプラー）の画面。
-// 子ども用の録音おもちゃを魔改造した見た目。16 パッド × 10 バンク、録音・リサンプル・ファイル読み込み、
-// パッドごとの GATE / LOOP / REV / POLY・ミュートグループ・音程・フィルター・エンベロープ。
+// 子ども用の録音おもちゃを魔改造した見た目。16 パッド × 10 バンク。
+// 下の機能ボタンはタブで切り替える：PAD（録音・再生のしかた）／PLAY（ロール・サブパッド・16 レベル・テンポ）／EDIT（波形・チョップ・テンポ合わせ）
 import './sampler.css';
 import { Knob } from '../core/controls';
 import { factoryBank, factoryParams } from './dsp/factory';
 import {
-  BANKS, BANK_NAMES, PADS, PAD_COUNT, attackSec, cutoffHz, defaultPad, padLabel, releaseSec,
-  type FromSampler, type PadParams, type SampleBuf,
+  BANKS, BANK_NAMES, PADS, PAD_COUNT, ROLL_NAMES, ROLL_RATES, attackSec, cutoffHz, defaultPad, padLabel, releaseSec,
+  type FromSampler, type PadParams, type SampleBuf, type TrigMod,
 } from './dsp/types';
 import { SamplerHost } from './host';
-import { loadAll, savePads, type StoredPad } from './store';
+import { loadAll, loadMeta, saveMeta, savePads, type StoredPad } from './store';
+import { openEditor, type EditorApi } from './editor';
+import { normalize as edNormalize, reverse as edReverse, trim as edTrim } from './dsp/edit';
 
 const $ = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
 const host = new SamplerHost();
 
-// ---------------- 中身（160 パッド） ----------------
+// ---------------- 中身（160 パッド）と、パッド以外の設定 ----------------
 const params: PadParams[] = Array.from({ length: PAD_COUNT }, defaultPad);
 const samples: (SampleBuf | null)[] = Array.from({ length: PAD_COUNT }, () => null);
 const names: string[] = Array.from({ length: PAD_COUNT }, () => '');
+interface Meta { bpm: number; rollRate: number; lvParam: number }
+const meta: Meta = { bpm: 120, rollRate: 2, lvParam: 0 };
 let bank = 0;
 let cur = 0; // いまのパッド（0〜159）
 
 // ---------------- 本体の画面を作る ----------------
 const dev = document.createElement('div');
 dev.className = 'paku';
+const lamp = '<i class="lamp"></i>';
 dev.innerHTML = `
   <i class="screw s1"></i><i class="screw s2"></i><i class="screw s3"></i><i class="screw s4"></i>
   <div class="pk-head">
@@ -35,36 +40,49 @@ dev.innerHTML = `
   </div>
   <div class="pk-lcd">
     <div class="pk-lcd-top"><b id="pk-padname">A-01</b><span id="pk-sname"></span><span class="tags" id="pk-tags"></span></div>
-    <canvas id="pk-wave" width="520" height="132"></canvas>
-    <div class="pk-lcd-bot"><span id="pk-msg"></span><span class="meters"><i>IN</i><b id="pk-min"><u></u></b><i>OUT</i><b id="pk-mout"><u></u></b></span></div>
+    <canvas id="pk-wave" width="520" height="120"></canvas>
+    <div class="pk-lcd-bot"><span id="pk-msg"></span><span class="pk-bpm" id="pk-bpmlcd"></span><span class="meters"><i>IN</i><b id="pk-min"><u></u></b><i>OUT</i><b id="pk-mout"><u></u></b></span></div>
   </div>
   <div class="pk-plate pk-knobs">
-    <div class="pk-pages">
-      <button data-page="0" class="on">SOUND</button><button data-page="1">FILTER・ENV</button><button data-page="2">SAMPLE</button>
-    </div>
+    <div class="pk-pages" id="pk-pages"></div>
     <div class="pk-krow">${[0, 1, 2, 3].map((i) => `<div class="pk-k"><span class="pk-kname" id="pk-kn${i}"></span><div class="knob big black" id="pk-k${i}"><div class="cap"></div></div><span class="pk-kval" id="pk-kv${i}"></span></div>`).join('')}</div>
   </div>
   <div class="pk-funcs">
-    <div class="pk-grp rec-grp">
-      <button class="pk-btn red" id="pk-rec"><i class="lamp"></i>REC</button>
-      <button class="pk-btn small" id="pk-auto" title="音が来たら録音を始める"><i class="lamp"></i>AUTO</button>
-      <button class="pk-btn orange" id="pk-res"><i class="lamp"></i>RESAMPLE</button>
-      <button class="pk-btn small" id="pk-mon" title="入力の音をスピーカーから出す（ハウリングに注意）"><i class="lamp"></i>MON</button>
+    <div class="pk-tabs" id="pk-tabs"></div>
+    <div class="pk-tab" data-tab="pad">
+      <div class="pk-grp">
+        <button class="pk-btn red" id="pk-rec">${lamp}REC</button>
+        <button class="pk-btn small" id="pk-auto" title="音が来たら録音を始める">${lamp}AUTO</button>
+        <button class="pk-btn orange" id="pk-res">${lamp}RESAMPLE</button>
+        <button class="pk-btn small" id="pk-mon" title="入力の音をスピーカーから出す（ハウリングに注意）">${lamp}MON</button>
+      </div>
+      <div class="pk-grp">
+        <button class="pk-btn mode" id="pk-gate">${lamp}GATE</button>
+        <button class="pk-btn mode" id="pk-loop">${lamp}LOOP</button>
+        <button class="pk-btn mode" id="pk-rev">${lamp}REV</button>
+        <button class="pk-btn mode" id="pk-poly">${lamp}POLY</button>
+      </div>
+      <div class="pk-grp">
+        <button class="pk-btn gray" id="pk-file-btn">📂 FILE</button>
+        <button class="pk-btn gray" id="pk-copy">${lamp}COPY</button>
+        <button class="pk-btn gray" id="pk-del">${lamp}DEL</button>
+        <button class="pk-btn gray" id="pk-fixed" title="パッドの強さをいつも最大に">${lamp}FIXED VEL</button>
+      </div>
     </div>
-    <div class="pk-grp mode-grp">
-      <button class="pk-btn mode" id="pk-gate"><i class="lamp"></i>GATE</button>
-      <button class="pk-btn mode" id="pk-loop"><i class="lamp"></i>LOOP</button>
-      <button class="pk-btn mode" id="pk-rev"><i class="lamp"></i>REV</button>
-      <button class="pk-btn mode" id="pk-poly"><i class="lamp"></i>POLY</button>
+    <div class="pk-tab" data-tab="play">
+      <div class="pk-grp"><button class="pk-btn mode" id="pk-roll">${lamp}ROLL</button><span class="pk-seg" id="pk-rates">${ROLL_NAMES.map((n, i) => `<button data-i="${i}">${n}</button>`).join('')}</span></div>
+      <div class="pk-grp"><button class="pk-btn orange" id="pk-sub" title="最後に鳴らしたパッドをもう一度">SUB PAD</button><button class="pk-btn mode" id="pk-16lv">${lamp}16 LEVELS</button><span class="pk-seg" id="pk-lvp">${['PITCH', 'VEL', 'CUTOFF', 'ATTACK', 'START'].map((n, i) => `<button data-i="${i}">${n}</button>`).join('')}</span></div>
+      <div class="pk-grp"><span class="pk-lbl">TEMPO</span><button class="pk-btn gray" id="pk-bpm-">−</button><span class="pk-num" id="pk-bpm">120.0</span><button class="pk-btn gray" id="pk-bpm+">＋</button><button class="pk-btn gray" id="pk-tap">TAP</button></div>
     </div>
-    <div class="pk-grp edit-grp">
-      <button class="pk-btn gray" id="pk-file-btn">📂 FILE</button>
-      <button class="pk-btn gray" id="pk-copy"><i class="lamp"></i>COPY</button>
-      <button class="pk-btn gray" id="pk-del"><i class="lamp"></i>DEL</button>
-      <button class="pk-btn gray" id="pk-fixed" title="パッドの強さをいつも最大に"><i class="lamp"></i>FIXED VEL</button>
+    <div class="pk-tab" data-tab="edit">
+      <div class="pk-grp"><button class="pk-btn mode" id="pk-ed-wave">〰 WAVE EDIT</button><button class="pk-btn orange" id="pk-ed-chop">✂ CHOP</button><button class="pk-btn mode" id="pk-ed-fit">⏱ TEMPO FIT</button></div>
+      <div class="pk-grp"><button class="pk-btn gray" id="pk-ed-norm">NORMALIZE</button><button class="pk-btn gray" id="pk-ed-rev">REVERSE</button><button class="pk-btn gray" id="pk-ed-trim" title="START〜END だけ残す">TRIM</button><button class="pk-btn gray" id="pk-ed-undo">↶ UNDO</button></div>
+      <div class="pk-note">いまのパッドの音を編集します（UNDO で 1 回だけ戻せる）</div>
+    </div>
+    <div class="pk-side">
+      <div class="pk-vol"><div class="knob red" id="pk-master"><div class="cap"></div></div><span>VOL</span></div>
       <button class="pk-btn black" id="pk-stop">■ STOP</button>
     </div>
-    <div class="pk-vol"><div class="knob red" id="pk-master"><div class="cap"></div></div><span>VOL</span></div>
   </div>
   <div class="pk-banks">
     <button class="pk-bnav" id="pk-bprev">◀</button>
@@ -72,10 +90,11 @@ dev.innerHTML = `
     <button class="pk-bnav" id="pk-bnext">▶</button>
   </div>
   <div class="pk-pads" id="pk-pads"></div>
+  <div class="pk-modal" id="pk-modal" hidden></div>
   <div class="pk-tape t1">MIC IN →</div>
   <div class="pk-tape t2">パッド 上ほど つよい</div>`;
 $('pk-stage').appendChild(dev);
-const q = <T extends HTMLElement = HTMLElement>(id: string) => dev.querySelector(`#${id}`) as T;
+const q = <T extends HTMLElement = HTMLElement>(id: string) => dev.querySelector(`#${CSS.escape(id)}`) as T;
 
 // パッド：左下が 1（MIDI のパッド機と同じ並び）。画面の上の段が 13〜16
 const padEls: HTMLElement[] = [];
@@ -89,7 +108,7 @@ for (let row = 3; row >= 0; row--) for (let col = 0; col < 4; col++) {
 }
 
 // ---------------- 大きさ合わせ（横長はパッドが右、縦長はパッドが下） ----------------
-const DESIGN = { land: [1260, 760], port: [740, 1380] } as const;
+const DESIGN = { land: [1260, 780], port: [740, 1420] } as const;
 function fit(): void {
   const top = $('pk-top').offsetHeight;
   const w = window.innerWidth, h = window.innerHeight - top;
@@ -106,58 +125,77 @@ function fit(): void {
 window.addEventListener('resize', fit);
 fit();
 
+// ---------------- 機能タブ ----------------
+const TABS = [['pad', 'PAD'], ['play', 'PLAY'], ['edit', 'EDIT']] as const;
+let tab = 'pad';
+q('pk-tabs').innerHTML = TABS.map(([id, n]) => `<button data-tab="${id}">${n}</button>`).join('');
+function setTab(t: string): void {
+  tab = t;
+  dev.querySelectorAll<HTMLElement>('.pk-tabs button').forEach((b) => b.classList.toggle('on', b.dataset.tab === t));
+  dev.querySelectorAll<HTMLElement>('.pk-tab').forEach((x) => (x.hidden = x.dataset.tab !== t));
+}
+dev.querySelectorAll<HTMLElement>('.pk-tabs button').forEach((b) => b.addEventListener('click', () => setTab(b.dataset.tab!)));
+setTab('pad');
+
 // ---------------- ノブ（ページで役目が変わる） ----------------
-interface KDef { key: keyof PadParams; name: string; toK: (v: number) => number; fromK: (k: number) => number; fmt: (v: number) => string }
-const lin = (lo: number, hi: number, round = false) => ({
-  toK: (v: number) => (v - lo) / (hi - lo),
-  fromK: (k: number) => { const v = lo + k * (hi - lo); return round ? Math.round(v) : v; },
-});
+interface KDef { name: string; get: () => number; set: (k: number) => void; fmt: () => string; def: number }
 const pct = (v: number) => `${Math.round(v * 100)}%`;
 const secs = (s: number) => (s < 1 ? `${Math.round(s * 1000)}ms` : `${s.toFixed(2)}s`);
 const sampleLen = () => { const s = samples[cur]; return s ? s.ch[0].length / s.sr : 0; };
-const PAGES: KDef[][] = [
-  [
-    { key: 'vol', name: 'VOLUME', ...lin(0, 1), fmt: pct },
-    { key: 'pan', name: 'PAN', ...lin(-1, 1), fmt: (v) => (Math.abs(v) < 0.02 ? 'C' : v < 0 ? `L${Math.round(-v * 50)}` : `R${Math.round(v * 50)}`) },
-    { key: 'pitch', name: 'PITCH', ...lin(-24, 24, true), fmt: (v) => `${v > 0 ? '+' : ''}${v}` },
-    { key: 'fine', name: 'FINE', ...lin(-50, 50, true), fmt: (v) => `${v > 0 ? '+' : ''}${v}¢` },
-  ],
-  [
-    { key: 'cutoff', name: 'CUTOFF', ...lin(0, 1), fmt: (v) => (v >= 0.999 ? 'OPEN' : cutoffHz(v) >= 1000 ? `${(cutoffHz(v) / 1000).toFixed(1)}k` : `${Math.round(cutoffHz(v))}Hz`) },
-    { key: 'reso', name: 'RESO', ...lin(0, 1), fmt: pct },
-    { key: 'attack', name: 'ATTACK', ...lin(0, 1), fmt: (v) => secs(attackSec(v)) },
-    { key: 'release', name: 'RELEASE', ...lin(0, 1), fmt: (v) => secs(releaseSec(v)) },
-  ],
-  [
-    { key: 'start', name: 'START', ...lin(0, 1), fmt: (v) => secs(v * sampleLen()) },
-    { key: 'end', name: 'END', ...lin(0, 1), fmt: (v) => secs(v * sampleLen()) },
-    { key: 'mute', name: 'MUTE GRP', ...lin(0, 8, true), fmt: (v) => (v ? String(v) : 'OFF') },
-    { key: 'vel', name: 'VEL', ...lin(0, 1), fmt: (v) => (v < 0.01 ? 'FIXED' : pct(v)) },
-  ],
+/** パッドの設定 1 つ分のノブ（lo〜hi を 0〜1 に） */
+function padK(key: keyof PadParams, name: string, lo: number, hi: number, fmt: (v: number) => string, round = false): KDef {
+  const def = defaultPad()[key] as number;
+  return {
+    name,
+    def: (def - lo) / (hi - lo),
+    get: () => ((params[cur][key] as number) - lo) / (hi - lo),
+    set: (k) => { const v = lo + k * (hi - lo); setParam(cur, key, (round ? Math.round(v) : v) as never); },
+    fmt: () => fmt(params[cur][key] as number),
+  };
+}
+const NONE: KDef = { name: '—', def: 0, get: () => 0, set: () => {}, fmt: () => '' };
+const PAGES: [string, KDef[]][] = [
+  ['SOUND', [
+    padK('vol', 'VOLUME', 0, 1, pct),
+    padK('pan', 'PAN', -1, 1, (v) => (Math.abs(v) < 0.02 ? 'C' : v < 0 ? `L${Math.round(-v * 50)}` : `R${Math.round(v * 50)}`)),
+    padK('pitch', 'PITCH', -24, 24, (v) => `${v > 0 ? '+' : ''}${v}`, true),
+    padK('fine', 'FINE', -50, 50, (v) => `${v > 0 ? '+' : ''}${v}¢`, true),
+  ]],
+  ['FILTER・ENV', [
+    padK('cutoff', 'CUTOFF', 0, 1, (v) => (v >= 0.999 ? 'OPEN' : cutoffHz(v) >= 1000 ? `${(cutoffHz(v) / 1000).toFixed(1)}k` : `${Math.round(cutoffHz(v))}Hz`)),
+    padK('reso', 'RESO', 0, 1, pct),
+    padK('attack', 'ATTACK', 0, 1, (v) => secs(attackSec(v))),
+    padK('release', 'RELEASE', 0, 1, (v) => secs(releaseSec(v))),
+  ]],
+  ['SAMPLE', [
+    padK('start', 'START', 0, 1, (v) => secs(v * sampleLen())),
+    padK('end', 'END', 0, 1, (v) => secs(v * sampleLen())),
+    padK('loopStart', 'LOOP', 0, 1, (v) => secs(v * sampleLen())),
+    padK('vel', 'VEL', 0, 1, (v) => (v < 0.01 ? 'FIXED' : pct(v))),
+  ]],
+  ['MIX', [
+    padK('mute', 'MUTE GRP', 0, 8, (v) => (v ? String(v) : 'OFF'), true),
+    padK('bpm', 'SMPL BPM', 0, 240, (v) => (v ? v.toFixed(1) : '?')),
+    NONE, NONE,
+  ]],
 ];
 let page = 0;
-const knobs = [0, 1, 2, 3].map((i) => new Knob(q(`pk-k${i}`), { default: 0 }, (k) => {
-  const d = PAGES[page][i];
-  setParam(cur, d.key, d.fromK(k));
-}));
+q('pk-pages').innerHTML = PAGES.map(([n], i) => `<button data-page="${i}">${n}</button>`).join('');
+const knobs = [0, 1, 2, 3].map((i) => new Knob(q(`pk-k${i}`), { default: 0 }, (k) => { PAGES[page][1][i].set(k); showKnobs(); }));
 // ダブルクリックで初期値（ページで変わるので、ここで決める）
 [0, 1, 2, 3].forEach((i) => q(`pk-k${i}`).addEventListener('dblclick', () => {
-  const d = PAGES[page][i];
-  const v = defaultPad()[d.key] as number;
-  knobs[i].set(d.toK(v), false);
-  setParam(cur, d.key, v);
-}, true));
-dev.querySelectorAll<HTMLButtonElement>('.pk-pages button').forEach((b) => b.addEventListener('click', () => {
-  page = Number(b.dataset.page);
-  dev.querySelectorAll('.pk-pages button').forEach((x) => x.classList.toggle('on', x === b));
+  const d = PAGES[page][1][i];
+  d.set(d.def);
   showKnobs();
-}));
+}, true));
+dev.querySelectorAll<HTMLButtonElement>('.pk-pages button').forEach((b) => b.addEventListener('click', () => { page = Number(b.dataset.page); showKnobs(); }));
 function showKnobs(): void {
-  PAGES[page].forEach((d, i) => {
-    const v = params[cur][d.key] as number;
-    knobs[i].set(Math.max(0, Math.min(1, d.toK(v))), false);
+  dev.querySelectorAll<HTMLElement>('.pk-pages button').forEach((x) => x.classList.toggle('on', Number(x.dataset.page) === page));
+  PAGES[page][1].forEach((d, i) => {
+    knobs[i].set(Math.max(0, Math.min(1, d.get())), false);
     q(`pk-kn${i}`).textContent = d.name;
-    q(`pk-kv${i}`).textContent = d.fmt(v);
+    q(`pk-kv${i}`).textContent = d.fmt();
+    q(`pk-k${i}`).classList.toggle('off', d === NONE);
   });
 }
 
@@ -195,13 +233,22 @@ function setPad(pad: number, name: string, data: SampleBuf | null, p: PadParams)
 // ---------------- 保存（少し待ってまとめて） ----------------
 const dirty = new Set<number>();
 let saveTimer = 0;
+let metaDirty = false;
 function markDirty(pad: number): void {
   dirty.add(pad);
+  scheduleSave();
+}
+function markMeta(): void {
+  metaDirty = true;
+  scheduleSave();
+}
+function scheduleSave(): void {
   clearTimeout(saveTimer);
   saveTimer = window.setTimeout(() => {
     const items: StoredPad[] = [...dirty].map((p) => ({ pad: p, name: names[p], params: params[p], sample: samples[p] }));
     dirty.clear();
-    void savePads(items);
+    if (items.length) void savePads(items);
+    if (metaDirty) { metaDirty = false; void saveMeta(meta); }
   }, 600);
 }
 
@@ -214,14 +261,33 @@ function showModes(): void {
   q('pk-tags').textContent = tags.join(' ');
 }
 
+const LV_NAMES = ['PITCH', 'VEL', 'CUTOFF', 'ATTACK', 'START'];
+/** 16 レベル：パッド i の変化 */
+function levelOf(i: number): { vel?: number; mod: TrigMod; label: string } {
+  switch (meta.lvParam) {
+    case 0: return { mod: { pitch: i - 8 }, label: `${i - 8 > 0 ? '+' : ''}${i - 8}` };
+    case 1: return { vel: (i + 1) / 16, mod: {}, label: `${Math.round(((i + 1) / 16) * 100)}%` };
+    case 2: return { mod: { cutoff: 0.25 + (0.75 * i) / 15 }, label: `F${i + 1}` };
+    case 3: return { mod: { attack: (i / 15) * 0.8 }, label: `A${i + 1}` };
+    default: return { mod: { start: i / 16 }, label: `S${i + 1}` };
+  }
+}
+
 function renderPads(): void {
   for (let i = 0; i < PADS; i++) {
     const pad = bank * PADS + i;
     const el = padEls[i];
+    if (lvSrc >= 0) {
+      el.classList.remove('empty');
+      el.classList.toggle('sel', false);
+      (el.querySelector('.nm') as HTMLElement).textContent = levelOf(i).label;
+      continue;
+    }
     el.classList.toggle('empty', !samples[pad]);
     el.classList.toggle('sel', pad === cur);
     (el.querySelector('.nm') as HTMLElement).textContent = names[pad] || (samples[pad] ? '—' : '');
   }
+  dev.classList.toggle('levels', lvSrc >= 0);
   dev.querySelectorAll<HTMLElement>('.pk-bank').forEach((b) => {
     const k = Number(b.dataset.bank);
     b.classList.toggle('on', k === bank);
@@ -238,6 +304,7 @@ function select(pad: number): void {
   showModes();
   renderPads();
   drawWave();
+  editor?.refresh();
 }
 
 function setBank(b: number): void {
@@ -255,25 +322,30 @@ function peaksOf(pad: number): Float32Array | null {
   if (!s) return null;
   let pk = peaks.get(pad);
   if (pk) return pk;
-  const W = wave.width, d = s.ch[0], n = d.length;
-  pk = new Float32Array(W * 2);
+  pk = computePeaks(s, wave.width, 0, 1);
+  peaks.set(pad, pk);
+  return pk;
+}
+/** a〜b（0〜1）の範囲を W 本の山に */
+function computePeaks(s: SampleBuf, W: number, a: number, b: number): Float32Array {
+  const d = s.ch[0], n = d.length;
+  const pk = new Float32Array(W * 2);
   for (let x = 0; x < W; x++) {
-    const a = Math.floor((x / W) * n), b = Math.max(a + 1, Math.floor(((x + 1) / W) * n));
+    const i0 = Math.floor((a + ((b - a) * x) / W) * n), i1 = Math.max(i0 + 1, Math.floor((a + ((b - a) * (x + 1)) / W) * n));
     let lo = 0, hi = 0;
-    for (let i = a; i < b; i += Math.max(1, Math.floor((b - a) / 64))) { lo = Math.min(lo, d[i]); hi = Math.max(hi, d[i]); }
+    for (let i = i0; i < Math.min(n, i1); i += Math.max(1, Math.floor((i1 - i0) / 64))) { lo = Math.min(lo, d[i]); hi = Math.max(hi, d[i]); }
     pk[x * 2] = lo; pk[x * 2 + 1] = hi;
   }
-  peaks.set(pad, pk);
   return pk;
 }
 function drawWave(): void {
   const W = wave.width, H = wave.height, c = wctx;
   c.fillStyle = '#a9c98a';
   c.fillRect(0, 0, W, H);
-  // 方眼
   c.fillStyle = 'rgba(40,60,20,.08)';
   for (let x = 0; x < W; x += 4) c.fillRect(x, 0, 1, H);
-  const pk = peaksOf(cur);
+  const src = lvSrc >= 0 ? lvSrc : cur;
+  const pk = peaksOf(src);
   if (!pk) {
     c.fillStyle = '#2b3a1c';
     c.font = '700 18px "Share Tech Mono", monospace';
@@ -281,14 +353,13 @@ function drawWave(): void {
     c.fillText(mode === 'recPick' || mode === 'resPick' ? 'パッドを えらんでね' : 'からっぽ：REC か FILE で音を入れる', W / 2, H / 2 + 6);
     return;
   }
-  const p = params[cur];
+  const p = params[src];
   c.fillStyle = '#20301a';
   for (let x = 0; x < W; x++) {
     const lo = pk[x * 2], hi = pk[x * 2 + 1];
     const y0 = H / 2 - hi * (H / 2 - 4), y1 = H / 2 - lo * (H / 2 - 4);
     c.fillRect(x, y0, 1, Math.max(1, y1 - y0));
   }
-  // 鳴らさない所は暗く
   c.fillStyle = 'rgba(30,45,15,.45)';
   const xs = Math.min(p.start, p.end) * W, xe = Math.max(p.start, p.end) * W;
   c.fillRect(0, 0, xs, H);
@@ -296,18 +367,20 @@ function drawWave(): void {
   c.fillStyle = '#c0281c';
   c.fillRect(xs, 0, 2, H);
   c.fillRect(xe - 2, 0, 2, H);
-  // 再生位置
+  if (p.loop && p.loopStart > p.start) { c.fillStyle = '#1a5fb4'; c.fillRect(p.loopStart * W, 0, 2, H); }
   c.fillStyle = '#fff6b0';
-  for (const [pad, pos] of playPos) if (pad === cur) c.fillRect(pos * W, 0, 2, H);
+  for (const [pad, pos] of playPos) if (pad === src) c.fillRect(pos * W, 0, 2, H);
 }
 
-// ---------------- メッセージ ----------------
+// ---------------- メッセージ・状態 ----------------
 type Mode = 'play' | 'recPick' | 'recording' | 'resPick' | 'resampling' | 'copy' | 'del';
 let mode: Mode = 'play';
 let recPad = -1;
 let auto = false;
 let monitor = false;
 let fixedVel = false;
+let lvSrc = -1; // 16 レベルの元のパッド（-1 = オフ）
+let lastPad = 0; // サブパッド用
 const HINT = 'パッドを押すと鳴って、えらべる';
 let msgTimer = 0;
 function msg(text: string, ms = 0): void {
@@ -317,7 +390,7 @@ function msg(text: string, ms = 0): void {
 }
 function showModeMsg(): void {
   const t: Record<Mode, string> = {
-    play: HINT,
+    play: lvSrc >= 0 ? `16 LEVELS：${padLabel(lvSrc)} を ${LV_NAMES[meta.lvParam]} で 16 段に` : HINT,
     recPick: '● 録るパッドを押してね（REC でやめる）',
     recording: auto ? '● 音が来たら録音… REC で止める' : '● 録音中… REC で止める',
     resPick: '● リサンプルするパッドを押してね',
@@ -352,19 +425,20 @@ host.onMessage = (m: FromSampler) => {
     playPos = m.pads;
     const on = new Set(m.pads.map((p) => p[0]));
     for (let i = 0; i < PADS; i++) {
-      const pad = bank * PADS + i;
-      padEls[i].classList.toggle('playing', on.has(pad));
-      const pos = m.pads.find((p) => p[0] === pad);
+      const pad = lvSrc >= 0 ? lvSrc : bank * PADS + i;
+      padEls[i].classList.toggle('playing', lvSrc < 0 && on.has(pad));
+      const pos = lvSrc < 0 ? m.pads.find((p) => p[0] === pad) : undefined;
       (padEls[i].querySelector('.ph') as HTMLElement).style.width = pos ? `${pos[1] * 100}%` : '0';
     }
     drawWave();
+    editor?.drawPlay(playPos);
   } else if (m.type === 'recorded') {
     const pad = recPad;
     recPad = -1;
     setMode('play');
     if (!m.data || m.data.ch[0].length < m.data.sr * 0.02) { msg('音が録れませんでした', 2500); return; }
     const data = trimSilence(m.data);
-    setPad(pad, pendingName, data, { ...params[pad], start: 0, end: 1 });
+    setPad(pad, pendingName, data, { ...params[pad], start: 0, end: 1, loopStart: 0, bpm: 0 });
     select(pad);
     msg(`${padLabel(pad)} に入れました（${(data.ch[0].length / data.sr).toFixed(2)} 秒）`, 2500);
   }
@@ -385,10 +459,22 @@ function trimSilence(s: SampleBuf): SampleBuf {
 }
 
 // ---------------- パッドを押す ----------------
-const held = new Map<number, number>(); // pointerId → pad
+const held = new Map<number, number>(); // pointerId → パッド（0〜15）
+/** 実際に鳴らす（16 レベル中は元のパッドを変化させて） */
+function play(i: number, vel: number): number {
+  if (lvSrc >= 0) {
+    const lv = levelOf(i);
+    host.post({ type: 'trig', pad: lvSrc, vel: lv.vel ?? (fixedVel ? 1 : vel), mod: lv.mod });
+    return lvSrc;
+  }
+  const pad = bank * PADS + i;
+  host.post({ type: 'trig', pad, vel: fixedVel ? 1 : vel });
+  lastPad = pad;
+  return pad;
+}
 function padDown(i: number, vel: number): void {
   const pad = bank * PADS + i;
-  switch (mode) {
+  if (lvSrc < 0) switch (mode) {
     case 'recPick':
     case 'resPick': {
       recPad = pad;
@@ -417,14 +503,15 @@ function padDown(i: number, vel: number): void {
     }
   }
   if (mode === 'recording' && pad === recPad) return;
-  host.post({ type: 'trig', pad, vel: fixedVel ? 1 : vel });
+  const played = play(i, vel);
   padEls[i].classList.add('hit');
   setTimeout(() => padEls[i].classList.remove('hit'), 90);
-  if (pad !== cur) select(pad);
+  if (lvSrc < 0 && played !== cur) select(played);
 }
 function padUp(i: number): void {
-  host.post({ type: 'release', pad: bank * PADS + i });
+  host.post({ type: 'release', pad: lvSrc >= 0 ? lvSrc : bank * PADS + i });
 }
+const whenReady = (f: () => void) => { if (host.running) f(); else void host.start().then(f); };
 
 padEls.forEach((el, i) => {
   el.addEventListener('pointerdown', (e) => {
@@ -435,8 +522,7 @@ padEls.forEach((el, i) => {
     const r = el.getBoundingClientRect();
     const byPos = 1 - 0.75 * Math.max(0, Math.min(1, (e.clientY - r.top) / r.height));
     const vel = e.pointerType === 'pen' && e.pressure > 0 ? e.pressure : byPos;
-    const go = () => padDown(i, vel);
-    if (host.running) go(); else void host.start().then(go);
+    whenReady(() => padDown(i, vel));
   });
   const up = (e: PointerEvent) => {
     if (!held.has(e.pointerId)) return;
@@ -456,7 +542,7 @@ padEls.forEach((el, i) => {
   });
 });
 
-// ---------------- ボタン ----------------
+// ---------------- ボタン（PAD タブ） ----------------
 const click = (id: string, f: () => void) => q(id).addEventListener('click', () => { void host.start(); f(); });
 click('pk-rec', async () => {
   if (mode === 'recording') { host.post({ type: 'rec', on: false }); return; }
@@ -464,12 +550,14 @@ click('pk-rec', async () => {
   if (mode === 'resampling') return;
   msg('マイクを準備しています…');
   if (!(await host.enableMic())) { msg('マイクが使えません（ブラウザの許可を確かめてね）', 4000); return; }
+  setLevels(false);
   setMode('recPick');
 });
 click('pk-res', () => {
   if (mode === 'resampling') { host.post({ type: 'rec', on: false }); return; }
   if (mode === 'resPick') { setMode('play'); return; }
   if (mode === 'recording') return;
+  setLevels(false);
   setMode('resPick');
 });
 click('pk-auto', () => { auto = !auto; q('pk-auto').classList.toggle('lit', auto); });
@@ -501,13 +589,118 @@ async function importFile(f: File, pad: number): Promise<void> {
   try {
     const data = await host.decodeFile(f);
     const name = f.name.replace(/\.[^.]+$/, '').toUpperCase().slice(0, 10);
-    setPad(pad, name, data, { ...params[pad], start: 0, end: 1 });
+    setPad(pad, name, data, { ...params[pad], start: 0, end: 1, loopStart: 0, bpm: 0 });
     select(pad);
     msg(`${padLabel(pad)} に「${name}」を入れました`, 2500);
   } catch {
     msg('この音のファイルは読めませんでした', 3000);
   }
 }
+
+// ---------------- PLAY タブ：ロール・サブパッド・16 レベル・テンポ ----------------
+let rollOn = false;
+function sendRoll(): void {
+  host.post({ type: 'roll', on: rollOn, rate: ROLL_RATES[meta.rollRate] });
+  q('pk-roll').classList.toggle('lit', rollOn);
+  q('pk-rates').querySelectorAll<HTMLElement>('button').forEach((b) => b.classList.toggle('on', Number(b.dataset.i) === meta.rollRate));
+}
+click('pk-roll', () => { rollOn = !rollOn; sendRoll(); msg(rollOn ? `ROLL ${ROLL_NAMES[meta.rollRate]}：押している間くり返す` : HINT, 2500); });
+q('pk-rates').querySelectorAll<HTMLElement>('button').forEach((b) => b.addEventListener('click', () => { meta.rollRate = Number(b.dataset.i); sendRoll(); markMeta(); }));
+// サブパッド：押している間、最後のパッドを鳴らす（ロール中はくり返す）
+const sub = q('pk-sub');
+sub.style.touchAction = 'none';
+sub.addEventListener('pointerdown', (e) => {
+  e.preventDefault();
+  sub.setPointerCapture(e.pointerId);
+  sub.classList.add('down');
+  whenReady(() => host.post({ type: 'trig', pad: lastPad, vel: 1 }));
+});
+const subUp = () => { sub.classList.remove('down'); host.post({ type: 'release', pad: lastPad }); };
+sub.addEventListener('pointerup', subUp);
+sub.addEventListener('pointercancel', subUp);
+function setLevels(on: boolean): void {
+  lvSrc = on ? cur : -1;
+  q('pk-16lv').classList.toggle('lit', on);
+  q('pk-lvp').querySelectorAll<HTMLElement>('button').forEach((b) => b.classList.toggle('on', Number(b.dataset.i) === meta.lvParam));
+  renderPads();
+  drawWave();
+  showModeMsg();
+}
+click('pk-16lv', () => {
+  if (lvSrc < 0 && !samples[cur]) { msg('16 LEVELS：音の入ったパッドを選んでから', 2500); return; }
+  setLevels(lvSrc < 0);
+});
+q('pk-lvp').querySelectorAll<HTMLElement>('button').forEach((b) => b.addEventListener('click', () => {
+  meta.lvParam = Number(b.dataset.i);
+  markMeta();
+  setLevels(lvSrc >= 0);
+}));
+function setBpm(v: number): void {
+  meta.bpm = Math.round(Math.max(40, Math.min(240, v)) * 10) / 10;
+  q('pk-bpm').textContent = meta.bpm.toFixed(1);
+  q('pk-bpmlcd').textContent = `♩${meta.bpm.toFixed(1)}`;
+  host.post({ type: 'bpm', bpm: meta.bpm });
+  markMeta();
+}
+click('pk-bpm-', () => setBpm(meta.bpm - 1));
+click('pk-bpm+', () => setBpm(meta.bpm + 1));
+let taps: number[] = [];
+click('pk-tap', () => {
+  const t = performance.now();
+  taps = taps.filter((x) => t - x < 2500).concat(t);
+  if (taps.length >= 2) {
+    const d = (taps[taps.length - 1] - taps[0]) / (taps.length - 1);
+    setBpm(60000 / d);
+  }
+});
+
+// ---------------- EDIT タブ：波形・チョップ・テンポ合わせ（editor.ts） ----------------
+let editor: EditorApi | null = null;
+const editHost = {
+  root: q('pk-modal'),
+  cur: () => cur,
+  bpm: () => meta.bpm,
+  sample: (p: number) => samples[p],
+  params: (p: number) => params[p],
+  name: (p: number) => names[p],
+  setParam,
+  setPad,
+  trig: (p: number) => whenReady(() => host.post({ type: 'trig', pad: p, vel: 1 })),
+  release: (p: number) => host.post({ type: 'release', pad: p }),
+  msg,
+  emptyBank: () => { for (let b = 0; b < BANKS; b++) if (!samples.slice(b * PADS, b * PADS + PADS).some(Boolean)) return b; return -1; },
+  goBank: (b: number) => setBank(b),
+  onClose: () => { editor = null; },
+  pushUndo: (pad: number) => { undo = { pad, data: samples[pad], p: params[pad] }; },
+};
+const openEd = (section: 'wave' | 'chop' | 'fit') => {
+  if (!samples[cur]) { msg('音の入ったパッドを選んでね', 2500); return; }
+  editor?.close();
+  editor = openEditor(editHost, section);
+};
+click('pk-ed-wave', () => openEd('wave'));
+click('pk-ed-chop', () => openEd('chop'));
+click('pk-ed-fit', () => openEd('fit'));
+let undo: { pad: number; data: SampleBuf | null; p: PadParams } | null = null;
+function destructive(label: string, f: (s: SampleBuf, p: PadParams) => [SampleBuf, Partial<PadParams>]): void {
+  const s = samples[cur];
+  if (!s) { msg('からっぽのパッドです', 2000); return; }
+  undo = { pad: cur, data: s, p: params[cur] };
+  const [ns, np] = f(s, params[cur]);
+  setPad(cur, names[cur], ns, { ...params[cur], ...np });
+  msg(`${label}しました（UNDO で戻せる）`, 2500);
+}
+click('pk-ed-norm', () => destructive('ノーマライズ', (s) => [edNormalize(s), {}]));
+click('pk-ed-rev', () => destructive('逆にして保存', (s) => [edReverse(s), {}]));
+click('pk-ed-trim', () => destructive('START〜END だけ残', (s, p) => [edTrim(s, p.start, p.end), { start: 0, end: 1, loopStart: 0 }]));
+click('pk-ed-undo', () => {
+  if (!undo) { msg('戻せるものがありません', 2000); return; }
+  const u = undo;
+  undo = null;
+  setPad(u.pad, names[u.pad], u.data, u.p);
+  select(u.pad);
+  msg('ひとつ戻しました', 2000);
+});
 
 // ---------------- PC のキー ----------------
 // Z X C V = 1〜4、A S D F = 5〜8、Q W E R = 9〜12、1 2 3 4 = 13〜16（パッドの並びと同じ形）
@@ -521,8 +714,7 @@ window.addEventListener('keydown', (e) => {
   const i = KEYMAP[e.code];
   if (i !== undefined) {
     e.preventDefault();
-    const go = () => padDown(i, 1);
-    if (host.running) go(); else void host.start().then(go);
+    whenReady(() => padDown(i, 1));
     return;
   }
   if (e.code === 'BracketLeft') setBank(bank - 1);
@@ -543,7 +735,7 @@ $('midiBtn').addEventListener('click', async () => {
         const [st, d1, d2] = ev.data ?? [];
         const cmd = st & 0xf0, i = d1 - 36;
         if (i < 0 || i >= PADS) return;
-        if (cmd === 0x90 && d2 > 0) { void host.start(); padDown(i, d2 / 127); }
+        if (cmd === 0x90 && d2 > 0) whenReady(() => padDown(i, d2 / 127));
         else if (cmd === 0x80 || (cmd === 0x90 && d2 === 0)) padUp(i);
       };
     });
@@ -573,17 +765,26 @@ $('pk-help').innerHTML = `
   <table>
     <tr><td>パッド</td><td>押すと鳴って、そのパッドを選ぶ。上の方を押すほど強い音（FIXED VEL でいつも最大）</td></tr>
     <tr><td>バンク A〜J</td><td>16 パッド × 10 バンク。◀ ▶ か文字のボタン（PC は [ ]）</td></tr>
-    <tr><td>ノブ 4 つ</td><td>SOUND・FILTER/ENV・SAMPLE でページを切り替え。上下ドラッグ、ダブルクリックで初期値</td></tr>
-    <tr><td>GATE / LOOP / REV / POLY</td><td>押している間だけ鳴る／くり返す（GATE なしなら、もう一度押して止める）／逆再生／押し直しで重ねる</td></tr>
-    <tr><td>MUTE GRP</td><td>同じ番号のパッドは、後から鳴った方が前を止める（ハイハットの開け閉めなど）</td></tr>
+    <tr><td>ノブ 4 つ</td><td>SOUND・FILTER/ENV・SAMPLE・MIX でページを切り替え。上下ドラッグ、ダブルクリックで初期値</td></tr>
+    <tr><td colspan="2"><b>PAD タブ</b></td></tr>
+    <tr><td>GATE / LOOP / REV / POLY</td><td>押している間だけ鳴る／くり返す（GATE なしなら、もう一度押して止める。戻り先は SAMPLE の LOOP）／逆再生／押し直しで重ねる</td></tr>
     <tr><td>REC</td><td>REC → 録るパッドを押す → 声や音を入れる → REC で止める。AUTO が点いていると、音が来てから録音が始まる</td></tr>
     <tr><td>RESAMPLE</td><td>RESAMPLE → 録るパッドを押す → ほかのパッドを鳴らす → RESAMPLE で止める（自分の音を録る）</td></tr>
-    <tr><td>📂 FILE</td><td>音のファイルを選んだパッドに入れる。PC はパッドにファイルを落としてもよい</td></tr>
-    <tr><td>COPY / DEL</td><td>COPY → 貼り付け先のパッド ／ DEL → 消すパッド</td></tr>
+    <tr><td>📂 FILE / COPY / DEL</td><td>音のファイルを入れる（PC はパッドに落としても）／COPY → 貼り付け先／DEL → 消すパッド</td></tr>
+    <tr><td colspan="2"><b>PLAY タブ</b></td></tr>
+    <tr><td>ROLL</td><td>点けると、押している間 1/4〜1/32（3 連も）でくり返す（TEMPO に合わせて）</td></tr>
+    <tr><td>SUB PAD</td><td>最後に鳴らしたパッドをもう一度（ロール中は連打）</td></tr>
+    <tr><td>16 LEVELS</td><td>いまのパッドの音を 16 パッドに並べる：PITCH（半音ずつ、9 が元の高さ）・VEL・CUTOFF・ATTACK・START</td></tr>
+    <tr><td>TEMPO・TAP</td><td>テンポ（ロール・テンポ合わせ・パターンの速さ）。TAP を何回か押すとその速さに</td></tr>
+    <tr><td colspan="2"><b>EDIT タブ</b></td></tr>
+    <tr><td>〰 WAVE EDIT</td><td>大きな波形で START・END・LOOP の印をドラッグ。🔍 で拡大</td></tr>
+    <tr><td>✂ CHOP</td><td>音を切り分けて、からっぽのバンクのパッドに並べる：等分・音の立ち上がりで自動・手で印を付ける</td></tr>
+    <tr><td>⏱ TEMPO FIT</td><td>音の BPM を推定して、TEMPO に合わせる（音程そのまま＝ストレッチ／速さだけ＝ピッチで）</td></tr>
+    <tr><td>NORMALIZE ほか</td><td>音量をそろえる・逆向きにして保存・START〜END だけ残す・UNDO で 1 回戻す</td></tr>
     <tr><td>PC のキー</td><td>Z X C V・A S D F・Q W E R・1 2 3 4 がパッド（下の段から）。スペースで STOP</td></tr>
     <tr><td>MIDI</td><td>上の MIDI を押すと、MIDI 機器のノート 36〜51 でパッド 1〜16</td></tr>
   </table>
-  <p>音と設定はこのブラウザに自動で保存されます。次のフェーズで、波形の編集・チョップ・エフェクト・パターンの録音を足します。</p>`;
+  <p>音と設定はこのブラウザに自動で保存されます。</p>`;
 $('helpBtn').addEventListener('click', () => { $('pk-help').hidden = !$('pk-help').hidden; });
 $('pk-help').addEventListener('click', () => { $('pk-help').hidden = true; });
 $('pk-cover').addEventListener('pointerdown', () => {
@@ -593,7 +794,10 @@ $('pk-cover').addEventListener('pointerdown', () => {
 
 // ---------------- 起動：保存してあった音を戻す（無ければ工場出荷） ----------------
 (async () => {
-  const stored = await loadAll();
+  const [stored, savedMeta] = await Promise.all([loadAll(), loadMeta<Partial<Meta>>()]);
+  if (savedMeta) Object.assign(meta, savedMeta);
+  setBpm(meta.bpm);
+  sendRoll();
   if (stored && stored.length) {
     for (const s of stored) {
       if (s.pad < 0 || s.pad >= PAD_COUNT) continue;
@@ -606,5 +810,6 @@ $('pk-cover').addEventListener('pointerdown', () => {
   } else loadFactory();
   select(0);
   setMode('play');
+  setLevels(false);
 })();
 select(0);

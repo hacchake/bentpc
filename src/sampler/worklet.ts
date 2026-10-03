@@ -21,7 +21,9 @@ class SamplerProcessor extends AudioWorkletProcessor {
       switch (m.type) {
         case 'sample': eng.setSample(m.pad, m.data); break;
         case 'params': eng.setParams(m.pad, m.p); break;
-        case 'trig': eng.trigger(m.pad, m.vel); break;
+        case 'trig': eng.trigger(m.pad, m.vel, m.mod); break;
+        case 'roll': eng.setRoll(m.on, m.rate); break;
+        case 'bpm': eng.bpm = m.bpm; break;
         case 'release': eng.releasePad(m.pad); break;
         case 'stopAll': eng.stopAll(); break;
         case 'master': eng.master = m.vol; break;

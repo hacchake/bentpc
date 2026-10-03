@@ -53,12 +53,12 @@ body {
 }
 .paku.land {
   grid-template-columns: 560px 1fr;
-  grid-template-rows: 112px 196px 178px 1fr;
+  grid-template-rows: 112px 180px 178px 1fr;
   grid-template-areas: "head banks" "lcd pads" "knobs pads" "funcs pads";
 }
 .paku.port {
   grid-template-columns: 1fr;
-  grid-template-rows: 112px 196px 178px 150px 56px 1fr;
+  grid-template-rows: 112px 180px 178px 220px 56px 1fr;
   grid-template-areas: "head" "lcd" "knobs" "funcs" "banks" "pads";
 }
 .pk-head { grid-area: head; position: relative; }
@@ -134,9 +134,29 @@ body {
 .pk-kval { font: 700 13px 'Share Tech Mono', monospace; color: #222; min-width: 60px; text-align: center; background: #f4efe0; border: 1px solid #888; border-radius: 3px; }
 .pk-k .knob { position: relative; width: 70px; height: 70px; }
 
-/* ---- 機能ボタン ---- */
-.pk-funcs { display: flex; flex-wrap: wrap; gap: 8px 10px; align-content: flex-start; position: relative; padding-right: 86px; }
-.pk-grp { display: flex; gap: 6px; flex-wrap: wrap; }
+/* ---- 機能ボタン（タブ） ---- */
+.pk-funcs { position: relative; display: grid; grid-template-columns: 1fr 86px; grid-template-rows: 34px 1fr; gap: 8px 8px; }
+.pk-tabs { grid-column: 1 / 3; display: flex; gap: 4px; }
+.pk-tabs button {
+  flex: 1; font: 900 14px 'Fredoka', sans-serif; letter-spacing: 1px; color: #6b3a00; cursor: pointer;
+  background: rgba(255,255,255,.35); border: 3px solid #2b2118; border-bottom-width: 3px; border-radius: 10px 10px 4px 4px; padding: 0;
+}
+.pk-tabs button.on { background: #2b2118; color: #ffd43b; }
+.pk-tab { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.pk-tab[hidden] { display: none; }
+.pk-side { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.pk-grp { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+.pk-seg { display: inline-flex; border: 3px solid #2b2118; border-radius: 10px; overflow: hidden; box-shadow: 0 3px 0 #2b2118; }
+.pk-seg button { font: 700 14px 'Share Tech Mono', monospace; padding: 8px 9px; border: 0; border-right: 2px solid #2b2118; background: #f4efe0; color: #2b2118; cursor: pointer; touch-action: manipulation; }
+.pk-seg button:last-child { border-right: 0; }
+.pk-seg button.on { background: #2b2118; color: #ffd43b; }
+.pk-lbl { font: 900 13px 'Fredoka', sans-serif; color: #6b3a00; }
+.pk-num { font: 700 18px 'Share Tech Mono', monospace; background: #20301a; color: #c8f0a0; padding: 4px 8px; border-radius: 6px; min-width: 58px; text-align: center; }
+.pk-note { font: 700 12px 'Fredoka', sans-serif; color: #6b3a00; }
+.pk-bpm { font-size: 13px; }
+.knob.off { opacity: .25; pointer-events: none; }
+.paku.levels .pk-pad .nm { font-size: 18px; color: rgba(0,0,0,.75); }
+.paku.levels .pk-pads { box-shadow: inset 0 0 0 4px #ffd43b, inset 0 6px 12px rgba(0,0,0,.6); }
 .pk-btn {
   position: relative; font: 700 13px 'Fredoka', sans-serif; letter-spacing: .5px; padding: 9px 12px 9px 26px; border-radius: 12px; cursor: pointer;
   color: #fff; border: 3px solid #2b2118; box-shadow: 0 4px 0 #2b2118; touch-action: manipulation; white-space: nowrap;
@@ -153,7 +173,7 @@ body {
 .pk-btn.black { background: linear-gradient(180deg, #555, #1b1b1b); padding-left: 12px; }
 .pk-btn.small { padding: 9px 10px 9px 24px; font-size: 12px; background: linear-gradient(180deg, #9a8fb0, #625879); }
 .pk-btn.mode { background: linear-gradient(180deg, #4fd36b, #1f9d3a); }
-.pk-vol { position: absolute; right: 4px; top: 0; display: flex; flex-direction: column; align-items: center; gap: 2px; font: 700 12px 'Share Tech Mono', monospace; }
+.pk-vol { display: flex; flex-direction: column; align-items: center; gap: 2px; font: 700 12px 'Share Tech Mono', monospace; }
 .pk-vol .knob { position: relative; width: 64px; height: 64px; }
 @keyframes pk-blink { 50% { opacity: .25; } }
 
@@ -203,3 +223,19 @@ body {
 .paku.land .t1 { display: none; }
 .paku.land .t2 { right: 40px; bottom: 6px; transform: rotate(-2deg); }
 .paku.port .t2 { right: 40px; bottom: 6px; transform: rotate(-2deg); }
+
+/* ---- 編集画面（液晶・ノブ・機能の所に重ねる） ---- */
+.pk-modal {
+  grid-area: 2 / 1 / 5 / 2; z-index: 5; display: flex; flex-direction: column; gap: 8px; padding: 12px; box-sizing: border-box;
+  background: #2b2b2b; border: 4px solid #111; border-radius: 16px; box-shadow: 0 8px 0 rgba(0,0,0,.35); color: #eee; overflow: hidden;
+}
+.pk-modal[hidden] { display: none; }
+.pk-ed-head { display: flex; align-items: center; gap: 10px; font: 700 15px 'Share Tech Mono', monospace; }
+.pk-ed-head b { color: #ffd43b; font-size: 18px; }
+.pk-ed-head .pk-ed-pad { flex: 1; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.pk-ed-x { font: 900 18px 'Fredoka', sans-serif; width: 40px; height: 34px; border-radius: 8px; border: 2px solid #000; background: #e8322a; color: #fff; cursor: pointer; }
+.pk-ed-wave { width: 100%; height: auto; border-radius: 6px; flex: 0 0 auto; touch-action: none; cursor: crosshair; }
+.pk-ed-body { display: flex; flex-direction: column; gap: 8px; }
+.pk-ed-body .pk-lbl { color: #ffd43b; }
+.pk-ed-info { font: 700 13px 'Share Tech Mono', monospace; color: #c8f0a0; }
+.paku.port .pk-modal { grid-area: 2 / 1 / 5 / 2; }

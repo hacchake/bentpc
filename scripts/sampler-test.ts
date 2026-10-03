@@ -179,5 +179,65 @@ const freq = (x: Float32Array, a: number, b: number) => { let z = 0; for (let i 
   e.playing().length <= 32 && L.every((v) => Number.isFinite(v) && Math.abs(v) <= 1) ? ok('50 回連打：32 音まで・音割れなし') : ng('ボイスの取り合い');
 }
 
+// ================= フェーズ2 =================
+// ---- LOOP の戻り先：2 周目からは loopStart から ----
+{
+  const x = new Float32Array(44100);
+  for (let i = 0; i < x.length; i++) x[i] = i < 22050 ? 0.8 : 0; // 前半だけ音
+  const e = new SamplerEngine(SR);
+  e.setSample(0, { sr: 44100, ch: [x] });
+  e.setParams(0, { ...defaultPad(), loop: true, loopStart: 0.5 });
+  e.trigger(0, 1);
+  const [L] = run(e, 2.5);
+  rms(L, at(0.1), at(0.4)) > 0.3 && rms(L, at(1.3), at(2.4)) < 1e-3 ? ok('LOOP の戻り先（2 周目からは後半だけ）') : ng('LOOP の戻り先');
+}
+// ---- ロール：1/16 で 120BPM → 0.125 秒ごと ----
+{
+  const click = new Float32Array(441); click.fill(0.9);
+  const e = new SamplerEngine(SR);
+  e.bpm = 120;
+  e.setSample(0, { sr: 44100, ch: [click] });
+  e.setParams(0, { ...defaultPad(), poly: true });
+  e.setRoll(true, 0.25);
+  e.trigger(0, 1);
+  const [L] = run(e, 1.01);
+  e.releasePad(0);
+  const [L2] = run(e, 0.5);
+  const onsets: number[] = [];
+  for (let i = 0; i < L.length; i++) if (Math.abs(L[i]) > 0.2 && (i === 0 || Math.abs(L[i - 1]) < 0.01)) onsets.push(i / SR);
+  const even = onsets.length >= 8 && onsets.every((t, i) => Math.abs(t - i * 0.125) < 0.002);
+  even && rms(L2, at(0.1), at(0.5)) < 1e-4 ? ok(`ROLL 1/16：${onsets.length} 回・0.125 秒ごとぴったり・離すと止まる`) : ng(`ROLL ${onsets.map((t) => t.toFixed(3)).join(' ')}`);
+}
+// ---- 16 レベル（音程を足す） ----
+{
+  const e = new SamplerEngine(SR);
+  e.setSample(0, tone());
+  e.trigger(0, 1, { pitch: 7 });
+  const [L] = run(e, 0.4);
+  const f = freq(L, at(0.05), at(0.35));
+  Math.abs(f - 440 * Math.pow(2, 7 / 12)) < 8 ? ok(`16 LEVELS PITCH +7 → ${f.toFixed(1)}Hz`) : ng(`16 LEVELS ${f}`);
+}
+// ---- 編集：ノーマライズ・切り詰め・チョップ・ストレッチ・BPM ----
+{
+  const { normalize, trim, equalMarks, onsetMarks, slice, stretch, estimateBpm } = await import('../src/sampler/dsp/edit');
+  const t = tone(1);
+  const nrm = normalize(t);
+  Math.abs(Math.max(...nrm.ch[0]) - 0.98) < 0.01 ? ok('NORMALIZE') : ng('NORMALIZE');
+  Math.abs(trim(t, 0.25, 0.75).ch[0].length - 22050) < 3 ? ok('TRIM') : ng('TRIM');
+  slice(t, equalMarks(8)).length === 8 ? ok('CHOP 等分 8') : ng('CHOP 等分');
+  const loop = factoryBank(1)[0].buf; // 90 BPM・2 小節のビート（キック・スネアが 11 発 ＋ ハット）
+  const om = onsetMarks(loop, 0.5, 16);
+  om.length >= 6 && om.length <= 15 ? ok(`CHOP AUTO：ビートから ${om.length + 1} 切れ`) : ng(`CHOP AUTO ${om.length}`);
+  const bpm = estimateBpm(loop);
+  Math.abs(bpm - 90) < 1 ? ok(`BPM の推定：${bpm}（正解 90）`) : ng(`BPM の推定 ${bpm}`);
+  const st = stretch(tone(1), 1.5);
+  const e = new SamplerEngine(SR);
+  e.setSample(0, st);
+  e.trigger(0, 1);
+  const [L] = run(e, 1.6);
+  const f = freq(L, at(0.2), at(1.3));
+  Math.abs(st.ch[0].length / 44100 - 1.5) < 0.01 && Math.abs(f - 440) < 6 ? ok(`STRETCH ×1.5：長さ ${(st.ch[0].length / 44100).toFixed(2)} 秒・音程 ${f.toFixed(1)}Hz のまま`) : ng(`STRETCH ${st.ch[0].length} ${f}`);
+}
+
 console.log(fails ? `失敗 ${fails} 件` : 'すべて OK');
 process.exit(fails ? 1 : 0);
