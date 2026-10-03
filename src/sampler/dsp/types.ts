@@ -76,6 +76,8 @@ export interface TrigMod {
   cutoff?: number;
   attack?: number;
   start?: number;
+  /** 同じパッドでも前の音を止めない（音程を変えて弾くとき＝和音） */
+  poly?: boolean;
 }
 
 /** ロール（連打）の速さ（拍）：1/4・1/8・1/16・1/32・1/8 3 連・1/16 3 連 */

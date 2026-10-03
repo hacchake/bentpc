@@ -82,7 +82,7 @@ for (const style of STYLE_IDS) {
 }
 // ---- 6 台すべての作曲係：どのスタイルでも作れて、鳴って、同じ設定なら同じ ----
 {
-  const KINDS = ['blippy', 'piko', 'dj', 'vroom', 'typo', 'tele'] as const;
+  const KINDS = ['blippy', 'piko', 'dj', 'vroom', 'typo', 'tele', 'sampler'] as const;
   const ALL = KINDS.map((_, i) => i);
   for (const [i, kind] of KINDS.entries()) {
     const levels: string[] = [];
@@ -107,13 +107,13 @@ for (const style of STYLE_IDS) {
 
 // ---- 合同の曲（スタジオ）：役割分担・掛け合い・ブレイクで 1 台だけ・鳴る ----
 {
-  const KINDS = ['blippy', 'piko', 'dj', 'vroom', 'typo', 'tele'] as const;
-  for (const ids of [[0, 5], [0, 1, 4], [0, 1, 2, 3, 4, 5]]) {
+  const KINDS = ['blippy', 'piko', 'dj', 'vroom', 'typo', 'tele', 'sampler'] as const;
+  for (const ids of [[0, 5], [0, 1, 4], [0, 6], [5, 6], [0, 1, 2, 3, 4, 5, 6]]) {
     const toys = ids.map((id, i) => ({ toy: i, kind: KINDS[id] }));
     const st = { seed: 2468, style: 'beat' as const, chaos: 0.8, lengthSec: 60, bpm: 124 };
     const s = C.compose({ settings: st, toys });
     if (JSON.stringify(s) !== JSON.stringify(C.compose({ settings: st, toys }))) ng(`合同 ${ids}：同じ設定なのに違う曲`);
-    const beatParts = s.tracks.filter((t) => ['tele:beat', 'typo:drums', 'piko:rhythm', 'dj:rhythm'].includes(t.part ?? ''));
+    const beatParts = s.tracks.filter((t) => ['tele:beat', 'sampler:drums', 'typo:drums', 'piko:rhythm', 'dj:rhythm'].includes(t.part ?? ''));
     if (ids.length > 1 && beatParts.length > 1) ng(`合同 ${ids}：ビートのパートが ${beatParts.length} 本`);
     const brk = s.sections!.find((x) => x.name === 'ブレイク');
     if (brk) {

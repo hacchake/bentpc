@@ -390,19 +390,36 @@ const freq = (x: Float32Array, a: number, b: number) => { let z = 0; for (let i 
 {
   const { renderSong } = await import('../src/studio/render');
   const { TOY_ENGINES } = await import('../src/toys/engines');
-  const kick = factoryBank(0)[0];
-  const customs = [{ toy: 0, data: { kind: 'pad', pad: 0, data: kick.buf, p: factoryParams(kick) } }];
+  const click = new Float32Array(400); click.fill(0.9);
+  // サンプラーのページで入れた音（custom）が、工場出荷の音より優先される
+  const customs = [{ toy: 0, data: { kind: 'pad', pad: 0, data: { sr: SR, ch: [click] }, p: defaultPad() } }];
   const song = {
     version: 1 as const, bpm: 120, bars: 1, metronome: false, seed: 1616,
     tracks: [{ toy: 0, mute: false, autos: [], notes: [0, 1, 2, 3].map((b) => ({ key: 0, start: b, len: 0.2, take: 0 })) }],
   };
   const a = renderSong(song, SR, { toys: [6], customs, tail: 0.5 });
-  const b = renderSong(song, SR, { toys: [6], tail: 0.5 }); // 音を渡さなければ無音
+  const b = renderSong(song, SR, { toys: [6], tail: 0.5 }); // 渡さなければ工場出荷の KICK
   const o: number[] = [];
-  for (let i = 0; i < a.length; i++) if (Math.abs(a[i]) > 0.2 && (i === 0 || Math.abs(a[i - 1]) < 0.15) && (!o.length || i / SR - o[o.length - 1] > 0.2)) o.push(i / SR);
-  TOY_ENGINES.length === 7 && rms(a) > 0.02 && rms(b) < 1e-6 && o.length === 4
-    ? ok(`スタジオ：7 台目のサンプラーが、シーケンサーの音符でサンプラーの音を鳴らす（WAV 書き出しでも ${o.length} 発）`)
-    : ng(`スタジオ ${TOY_ENGINES.length} ${rms(a)} ${rms(b)} ${o}`);
+  for (let i = 0; i < a.length; i++) if (Math.abs(a[i]) > 0.2 && (i === 0 || Math.abs(a[i - 1]) < 0.01)) o.push(i / SR);
+  let diff = 0;
+  for (let i = 0; i < a.length; i++) diff += Math.abs(a[i] - b[i]);
+  TOY_ENGINES.length === 7 && rms(b) > 0.02 && [0.5, 1, 1.5].every((t) => o.some((x) => Math.abs(x - t) < 0.002)) /* 頭は電源の「パクッ」と重なる */ && diff / a.length > 0.01
+    ? ok('スタジオ・ラックの 7 台目：工場出荷の音で鳴り、サンプラーのページの音（custom）で置き換わる（WAV 書き出しでも 0.5 秒ごと 4 発）')
+    : ng(`スタジオ ${TOY_ENGINES.length} ${rms(b)} ${o} ${diff / a.length}`);
+  // メロディ・ベースのキー：MELO PAD の音を音程を変えて弾く
+  {
+    const { SamplerToy, MELO_ROOT_KEY } = await import('../src/sampler/toy/engine');
+    const t = new SamplerToy(SR);
+    t.custom({ kind: 'pad', pad: 24, data: tone(), p: defaultPad() });
+    t.powerOn();
+    const out = new Float32Array(B);
+    for (let i = 0; i < 200; i++) t.process(out); // 起動音が終わるまで
+    t.keyDown(MELO_ROOT_KEY + 12);
+    const L = new Float32Array(SR * 0.3);
+    for (let o2 = 0; o2 + B <= L.length; o2 += B) { t.process(out); L.set(out, o2); }
+    const f = freq(L, at(0.02), at(0.28));
+    Math.abs(f - 880) < 10 ? ok(`♪ MELO のキー：+12 → ${f.toFixed(1)}Hz`) : ng(`MELO ${f}`);
+  }
 }
 
 console.log(fails ? `失敗 ${fails} 件` : 'すべて OK');

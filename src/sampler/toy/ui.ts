@@ -1,18 +1,18 @@
-// スタジオ（DAW）に並べる PAKU-PAKU 16 の画面（小さい版）。
+// ラック・スタジオに並べる PAKU-PAKU 16 の画面（小さい版）。
 // 音と設定は、サンプラーのページ（sampler.html）でこのブラウザに保存したものを読む（無ければ工場出荷の音）。
-// 音を作り直すのはサンプラーのページで。ここではバンクを選んでパッドを叩く・シーケンサーで録る・鳴らす。
+// 音を作り直すのはサンプラーのページで。ここではパッドを叩く・メロディ／ベースに使うパッドを決める・シーケンサーで録る・自動作曲。
 import './toy.css';
-import type { HostApi, ToyUI } from '../../core/ui';
+import { Knob, momentary } from '../../core/controls';
+import { noteName, type HostApi, type ToyUI } from '../../core/ui';
 import type { FromToy } from '../../host/protocol';
 import type { BendState } from '../dsp/bend';
-import { factoryBank, factoryParams } from '../dsp/factory';
-import { defaultSlots, type FxSlot } from '../dsp/fx';
-import { BANK_NAMES, PADS, PAD_COUNT, defaultPad, padLabel, type PadParams, type SampleBuf } from '../dsp/types';
+import type { FxSlot } from '../dsp/fx';
+import { BANK_NAMES, PADS, PAD_COUNT, defaultPad, padLabel } from '../dsp/types';
 import { loadAll, loadMeta } from '../store';
-import { SAMPLER_PARAMS, type SamplerCustom, type SamplerDisplay } from './engine';
+import { BASS_KEY, BASS_ROOT_KEY, KEY_COUNT, MELO_ROOT_KEY, SAMPLER_PARAMS, SP, type SamplerCustom, type SamplerDisplay } from './engine';
 
 const W = 760;
-const H = 820;
+const H = 860;
 const KEYMAP: Record<string, number> = {
   KeyZ: 0, KeyX: 1, KeyC: 2, KeyV: 3, KeyA: 4, KeyS: 5, KeyD: 6, KeyF: 7,
   KeyQ: 8, KeyW: 9, KeyE: 10, KeyR: 11, Digit1: 12, Digit2: 13, Digit3: 14, Digit4: 15,
@@ -21,11 +21,15 @@ const KEYMAP: Record<string, number> = {
 const HELP = `
 <h3>PAKU-PAKU 16（サンプラー）</h3>
 <table>
+  <tr><td>POWER</td><td>左上の赤いボタン（パクッ、パクッと鳴って起動）。電源 OFF のときは Enter キーでも入る</td></tr>
   <tr><td>パッド</td><td>押すと鳴る。シーケンサーではキー A-01〜J-16 の行になる</td></tr>
   <tr><td>A〜J</td><td>バンクの切り替え（PC は [ ]）</td></tr>
   <tr><td>Z X C V・A S D F・Q W E R・1 2 3 4</td><td>いまのバンクのパッド 1〜16（下の段から）</td></tr>
+  <tr><td>♪ MELO / BASS</td><td>いま選んでいるパッドを、メロディ用・ベース用にする。シーケンサーの「♪」「BASS」の行で、そのパッドの音を音程を変えて弾ける（自動作曲もこれを使う。最初は B-09 TOY PNO と B-02 BASS C）</td></tr>
+  <tr><td>BEND</td><td>ノブを上げるほど基板のジャンパー線が増えて壊れる（0 ならサンプラーのページの設定）</td></tr>
   <tr><td>音を作る</td><td>「サンプラーを開く」で PAKU-PAKU 16 のページへ。録音・チョップ・エフェクト・パターンはそちらで。戻ったら「↻ 読み直す」</td></tr>
-  <tr><td>MIDI</td><td>ノート 36〜51 = いまのバンクのパッド 1〜16</td></tr>
+  <tr><td>自動作曲</td><td>バンク A をドラム（1 KICK・2 SNARE・3 CL HAT・4 OP HAT・5 CLAP・11 BOOM・12 LOFI SN・13 CRASH）、メロディ・ベースのパッドで曲を作る</td></tr>
+  <tr><td>MIDI</td><td>ノート 36〜51 = いまのバンクのパッド 1〜16、CC1 = BEND</td></tr>
 </table>`;
 
 export function mountSamplerToy(api: HostApi): ToyUI {
@@ -33,20 +37,33 @@ export function mountSamplerToy(api: HostApi): ToyUI {
   root.className = 'toy-root toy-pkt';
   root.innerHTML = `
     <div class="pkt-body">
-      <div class="pkt-head"><b>PAKU-PAKU</b><span>16</span><i class="pkt-mouth"></i></div>
-      <div class="pkt-lcd"><b class="pkt-pad">A-01</b><span class="pkt-name"></span><span class="pkt-st"></span></div>
+      <div class="pkt-head">
+        <div class="pkt-power"><div class="dome big pkt-pwr" data-id="power"></div><span class="pkt-led" data-id="led"></span><small>POWER</small></div>
+        <b>PAKU-PAKU</b><span>16</span><i class="pkt-mouth"></i>
+      </div>
+      <div class="pkt-lcd"><b class="pkt-no">A-01</b><span class="pkt-name"></span><span class="pkt-st"></span></div>
+      <div class="pkt-row">
+        <button class="pkt-btn" data-a="melo" title="いま選んでいるパッドをメロディ用に">♪ MELO</button><span class="pkt-val" data-id="melo"></span>
+        <button class="pkt-btn" data-a="bass" title="いま選んでいるパッドをベース用に">BASS</button><span class="pkt-val" data-id="bass"></span>
+        <div class="pkt-knob"><div class="knob black small" data-id="bend"><div class="cap"></div></div><small>BEND</small></div>
+        <div class="pkt-knob"><div class="knob small" data-id="vol"><div class="cap"></div></div><small>VOL</small></div>
+      </div>
       <div class="pkt-row">
         <button class="pkt-btn" data-a="reload" title="サンプラーのページで変えた音を読み直す">↻ 読み直す</button>
         <a class="pkt-btn" href="sampler.html" target="_blank" rel="noopener">サンプラーを開く ↗</a>
+        <button class="pkt-btn" data-a="stop">■ STOP</button>
       </div>
       <div class="pkt-banks">${[...BANK_NAMES].map((b, i) => `<button data-b="${i}">${b}</button>`).join('')}</div>
       <div class="pkt-pads"></div>
     </div>`;
   const q = (s: string) => root.querySelector(s) as HTMLElement;
+  const $ = (id: string) => q(`[data-id="${id}"]`);
   const names: string[] = Array.from({ length: PAD_COUNT }, () => '');
   const has: boolean[] = Array.from({ length: PAD_COUNT }, () => false);
+  const params = Float32Array.from(SAMPLER_PARAMS.map((p) => p.default));
   let bank = 0;
   let cur = 0;
+  let powered = false;
   let sent: { key: string; data: SamplerCustom }[] = [];
   const lit = new Set<number>();
   const shown = new Set<number>();
@@ -60,12 +77,16 @@ export function mountSamplerToy(api: HostApi): ToyUI {
     padEls[i] = el;
     q('.pkt-pads').appendChild(el);
   }
+  const padText = (p: number) => `${padLabel(p)} ${names[p] || ''}`.trim();
   function render(): void {
+    const melo = params[SP.meloPad] | 0, bass = params[SP.bassPad] | 0;
     for (let i = 0; i < PADS; i++) {
       const pad = bank * PADS + i;
       padEls[i].classList.toggle('empty', !has[pad]);
       padEls[i].classList.toggle('sel', pad === cur);
       padEls[i].classList.toggle('on', lit.has(pad) || shown.has(pad));
+      padEls[i].classList.toggle('melo', pad === melo);
+      padEls[i].classList.toggle('bass', pad === bass);
       (padEls[i].querySelector('.nm') as HTMLElement).textContent = names[pad];
     }
     root.querySelectorAll<HTMLElement>('.pkt-banks button').forEach((b) => {
@@ -73,33 +94,58 @@ export function mountSamplerToy(api: HostApi): ToyUI {
       b.classList.toggle('on', k === bank);
       b.classList.toggle('has', has.slice(k * PADS, k * PADS + PADS).some(Boolean));
     });
-    q('.pkt-pad').textContent = padLabel(cur);
+    q('.pkt-no').textContent = padLabel(cur);
     q('.pkt-name').textContent = names[cur] || (has[cur] ? '—' : '（からっぽ）');
+    $('melo').textContent = padText(melo);
+    $('bass').textContent = padText(bass);
+    $('led').classList.toggle('on', powered);
+    root.classList.toggle('off', !powered);
   }
   const setBank = (b: number) => { bank = (b + 10) % 10; cur = bank * PADS + (cur % PADS); render(); };
   root.querySelectorAll<HTMLElement>('.pkt-banks button').forEach((b) => b.addEventListener('click', () => setBank(Number(b.dataset.b))));
 
-  // ---- 音を送る（サンプラーのページで保存したもの。無ければ工場出荷の音） ----
+  // ---- パラメーター ----
+  const setParam = (i: number, v: number) => { params[i] = v; api.post({ type: 'param', index: i, value: v }); render(); };
+  const bendKnob = new Knob($('bend'), { default: 0 }, (v) => setParam(SP.bend, v));
+  const volKnob = new Knob($('vol'), { default: 0.8 }, (v) => setParam(SP.volume, v));
+  volKnob.set(0.8, false);
+  q('[data-a="melo"]').addEventListener('click', () => setParam(SP.meloPad, cur));
+  q('[data-a="bass"]').addEventListener('click', () => setParam(SP.bassPad, cur));
+  const stopBtn = q('[data-a="stop"]');
+  momentary(stopBtn, () => setParam(SP.stop, 1), () => setParam(SP.stop, 0));
+
+  // ---- 電源 ----
+  const pwr = $('power');
+  const powerOn = () => { void api.start(); api.post({ type: 'power', on: true }); powered = true; render(); };
+  const powerOff = () => { api.post({ type: 'power', on: false }); powered = false; render(); };
+  pwr.addEventListener('click', () => (powered ? powerOff() : powerOn()));
+
+  // ---- 音を送る（サンプラーのページで保存したもの。無ければエンジンの中の工場出荷の音のまま） ----
   async function load(): Promise<void> {
     q('.pkt-st').textContent = '読み込み中…';
     const [stored, meta] = await Promise.all([loadAll(), loadMeta<{ bpm?: number; fx?: FxSlot[]; bend?: BendState }>()]);
-    const pads: { pad: number; name: string; data: SampleBuf | null; p: PadParams }[] = [];
-    if (stored && stored.length) for (const s of stored) pads.push({ pad: s.pad, name: s.name, data: s.sample, p: { ...defaultPad(), ...s.params } });
-    else for (const b of [0, 1] as const) factoryBank(b).forEach((s, i) => pads.push({ pad: b * PADS + i, name: s.name, data: s.buf, p: factoryParams(s) }));
     names.fill('');
     has.fill(false);
     sent = [];
-    for (const x of pads) {
-      names[x.pad] = x.name;
-      has[x.pad] = !!x.data;
-      const data: SamplerCustom = { kind: 'pad', pad: x.pad, data: x.data, p: x.p };
-      sent.push({ key: `pad${x.pad}`, data });
-      api.post({ type: 'custom', key: `pad${x.pad}`, data });
+    if (stored && stored.length) {
+      for (const s of stored) {
+        names[s.pad] = s.name;
+        has[s.pad] = !!s.sample;
+        const data: SamplerCustom = { kind: 'pad', pad: s.pad, data: s.sample, p: { ...defaultPad(), ...s.params } };
+        sent.push({ key: `pad${s.pad}`, data });
+        api.post({ type: 'custom', key: `pad${s.pad}`, data });
+      }
+    } else {
+      // まだサンプラーを開いていない：工場出荷の音（エンジンにはもう入っている）
+      const { factoryBank } = await import('../dsp/factory');
+      for (const b of [0, 1] as const) factoryBank(b).forEach((s, i) => { names[b * PADS + i] = s.name; has[b * PADS + i] = true; });
     }
-    const m: SamplerCustom = { kind: 'meta', bpm: meta?.bpm ?? 120, fx: Array.isArray(meta?.fx) && meta.fx.length === 3 ? meta.fx : defaultSlots(), bend: meta?.bend };
-    sent.push({ key: 'meta', data: m });
-    api.post({ type: 'custom', key: 'meta', data: m });
-    q('.pkt-st').textContent = `${pads.filter((x) => x.data).length} 音`;
+    if (meta) {
+      const m: SamplerCustom = { kind: 'meta', bpm: meta.bpm ?? 120, fx: Array.isArray(meta.fx) && meta.fx.length === 3 ? meta.fx : (await import('../dsp/fx')).defaultSlots(), bend: meta.bend };
+      sent.push({ key: 'meta', data: m });
+      api.post({ type: 'custom', key: 'meta', data: m });
+    }
+    q('.pkt-st').textContent = `${has.filter(Boolean).length} 音`;
     render();
   }
   q('[data-a="reload"]').addEventListener('click', () => void load());
@@ -136,8 +182,14 @@ export function mountSamplerToy(api: HostApi): ToyUI {
     root,
     help: HELP,
     paramDefs: SAMPLER_PARAMS,
-    keyCount: PAD_COUNT,
-    keyName: (k) => `${padLabel(k)}${names[k] ? ` ${names[k]}` : ''}`,
+    keyCount: KEY_COUNT,
+    powerButton: pwr,
+    keyName: (k) => {
+      if (k < PAD_COUNT) return `${padLabel(k)}${names[k] ? ` ${names[k]}` : ''}`;
+      if (k < BASS_KEY) { const d = k - MELO_ROOT_KEY; return `♪ ${d > 0 ? '+' : ''}${d}（${noteName(72 + d)}）`; }
+      const d = k - BASS_ROOT_KEY;
+      return `BASS ${d > 0 ? '+' : ''}${d}（${noteName(36 + d)}）`;
+    },
     keyKind: () => 'play',
     onMessage(m: FromToy) {
       if (m.type === 'display') {
@@ -145,9 +197,13 @@ export function mountSamplerToy(api: HostApi): ToyUI {
         shown.clear();
         for (const p of d.playing) shown.add(p);
         render();
+      } else if (m.type === 'status' && m.status.powered !== powered) {
+        powered = m.status.powered;
+        render();
       }
     },
     keyDown(e) {
+      if (e.code === 'Enter' && !powered) { powerOn(); return true; }
       const i = KEYMAP[e.code];
       if (i !== undefined) { if (!e.repeat && !held.has(i)) { held.add(i); down(i); } return true; }
       if (e.code === 'BracketLeft') { setBank(bank - 1); return true; }
@@ -164,14 +220,22 @@ export function mountSamplerToy(api: HostApi): ToyUI {
     },
     midi(status, d1, d2) {
       const cmd = status & 0xf0, i = d1 - 36;
+      if (cmd === 0xb0 && d1 === 1) { bendKnob.set(d2 / 127); return; }
       if (i < 0 || i >= PADS) return;
       if (cmd === 0x90 && d2 > 0) down(i);
       else if (cmd === 0x80 || cmd === 0x90) up(i);
     },
-    powerOn() {},
-    powerOff() {},
+    powerOn,
+    powerOff,
     showKey(key, on) {
-      if (on) shown.add(key); else shown.delete(key);
+      const pad = key < PAD_COUNT ? key : key < BASS_KEY ? params[SP.meloPad] | 0 : params[SP.bassPad] | 0;
+      if (on) shown.add(pad); else shown.delete(pad);
+      render();
+    },
+    showParam(index, v) {
+      params[index] = v;
+      if (index === SP.bend) bendKnob.set(v, false);
+      if (index === SP.volume) volKnob.set(v, false);
       render();
     },
     customData: () => sent.map((s) => ({ key: s.key, data: s.data })),

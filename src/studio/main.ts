@@ -78,7 +78,7 @@ $('deck').appendChild(composeSlot);
 // with = 参加するおもちゃ（並びの何番目か、1 から）。全部のときは付けない
 const lineupQuery = (with_: number[]): Record<string, string> => (with_.length === lineup.length ? { toys: lineup.join(',') } : { toys: lineup.join(','), with: with_.map((t) => t + 1).join(',') });
 const panel = mountComposerPanel({
-  // 自動作曲の係がいるおもちゃだけ（サンプラーは自分の音で作るので入れない）
+  // 自動作曲の係がいるおもちゃだけ（いまは全部）
   choices: lineup.map((id, i) => ({ toy: i, kind: KINDS[id], name: `${i + 1}.${toys[i].title.split(' ')[0]}` })).filter((c) => PART_COMPOSERS[c.kind]),
   defaultToys: lineup.map((_, i) => i).filter((i) => PART_COMPOSERS[KINDS[lineup[i]]]),
   storeKey: 'bentpc.compose.studio',
@@ -293,7 +293,7 @@ const webmBtn = arr.addButton('WebM', '曲を最初から最後まで再生し�
   onSongEnd = () => setTimeout(() => vrec?.state === 'recording' && vrec.stop(), 1200);
 });
 arr.addButton('MIDI', '曲を MIDI ファイルに書き出す（チャンネル = ラックの番号：トイPC = 1 … TELEKEY = 6。将来の VST 用）', () =>
-  exportMidi(arr.song, lineup.map((id, i) => ({ title: toys[i].title, channel: id, noteOf: (k: number) => (id === 6 ? 36 + (k % 16) : Math.min(127, (id === 5 ? 24 : 36) + k)), paramDefs: toys[i].paramDefs }))));
+  exportMidi(arr.song, lineup.map((id, i) => ({ title: toys[i].title, channel: id, noteOf: (k: number) => (id === 6 ? (k < 160 ? 36 + (k % 16) : k < 208 ? 48 + (k - 160) : 12 + (k - 208)) : Math.min(127, (id === 5 ? 24 : 36) + k)), paramDefs: toys[i].paramDefs }))));
 
 // ---- おもちゃを選ぶ（並べ直すとページを開き直す） ----
 {

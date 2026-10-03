@@ -16,6 +16,6 @@ export const TOY_ENGINES: ((sampleRate: number, seed?: number) => ToyEngine)[] =
   (sr, seed) => new VroomEngine(sr, seed),
   (sr, seed) => new TypoEngine(sr, seed),
   (sr, seed) => new TeleEngine(sr, seed),
-  // 7 台目：サンプラー PAKU-PAKU 16（スタジオに並べる用。ラックには出さない）
+  // 7 台目：サンプラー PAKU-PAKU 16（音の作り込みは専用のページ sampler.html）
   (sr) => new SamplerToy(sr),
 ];

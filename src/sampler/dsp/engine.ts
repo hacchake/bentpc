@@ -169,7 +169,7 @@ export class SamplerEngine {
     // 同じパッドの押し直し（POLY でなければ前の音を止める）・ミュートグループ
     for (const v of this.voices) {
       if (!v.active) continue;
-      if ((v.pad === pad && !p.poly) || (p.mute > 0 && v.pad !== pad && this.pads[v.pad].mute === p.mute)) v.release(this.killCoef);
+      if ((v.pad === pad && !p.poly && !mod?.poly) || (p.mute > 0 && v.pad !== pad && this.pads[v.pad].mute === p.mute)) v.release(this.killCoef);
     }
     const len = buf.ch[0].length;
     let lo = Math.floor(Math.max(0, Math.min(1, p.start)) * len);

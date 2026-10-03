@@ -11,7 +11,7 @@ export interface PartDef {
 
 export interface ToyManual {
   id: string; // 画像のファイル名・data の鍵
-  index: number; // ラックの番号（0〜5）
+  index: number; // ラックの番号（0〜6）
   title: string;
   catch: string; // ひとこと
   desc: string;
@@ -145,6 +145,22 @@ export const TOYS: ToyManual[] = [
       { find: { sel: '.tk-key.role-inst' }, name: 'Z〜＼：楽器キー', what: 'ビープ・ノイズ・キック・スネア・ハット・ドローン・ザップ・ブリップ・ブザー・チャープ（音階つき）。' },
       { find: { sel: '.tk-key.role-cue' }, name: '1〜0：キューポイント', what: '映像の 10%〜90%・0% へ飛ぶ。Shift＋数字で今の位置を登録。' },
       { find: { text: 'FREEZE' }, name: 'Space：FREEZE', what: '押している間、今の映像と音をつかんで繰り返す。' },
+    ],
+  },
+  {
+    id: 'pkt', index: 6, title: 'PAKU-PAKU 16', catch: '音を食べて、切って、並べろ！',
+    desc: '子ども用の録音おもちゃ（ワニの口のスピーカー付き）を魔改造したサンプラー。16 パッド × 10 バンクに、録った声・読み込んだ音・最初から入っている 32 音を入れて叩く。ラックとスタジオではこの小さい版で叩いて録って自動作曲、音の作り込み（録音・チョップ・エフェクト・ベンド・パターン）は専用のページ（サンプラー編）で！',
+    power: '左上の赤いボタン（パクッ、パクッと鳴って起動）。電源 OFF のときは Enter でも入る',
+    parts: [
+      { find: { sel: '[data-id="power"]' }, name: 'POWER', what: '電源の入／切。入れると「パクッ、パクッ」と鳴って、パッドが明るくなる。', tip: '電源 OFF のときは Enter キーでも入る' },
+      { find: { sel: '.pkt-lcd' }, name: '液晶', what: 'いま選んでいるパッドと音の名前、入っている音の数。' },
+      { find: { sel: '[data-a="melo"]' }, name: '♪ MELO / BASS', what: 'いま選んでいるパッドを、メロディ用・ベース用にする。シーケンサーの「♪」「BASS」の行で、そのパッドの音を音程を変えて弾ける。自動作曲もこれでメロディとベースを作る。', tip: '最初は B-09 TOY PNO と B-02 BASS C。自分で録った声をメロディにすると楽しい' },
+      { find: { sel: '[data-id="bend"]' }, name: 'BEND', what: '上げるほど基板のジャンパー線が増えて、再生がカクカク・ザリザリに壊れる（0 ならサンプラーのページの設定）。', tip: 'MIDI の CC1（モジュレーション）でも動く' },
+      { find: { sel: '[data-id="vol"]' }, name: 'VOL', what: '音量。' },
+      { find: { sel: '[data-a="reload"]' }, name: '↻ 読み直す・サンプラーを開く', what: 'サンプラーのページで作った音（このブラウザに保存したもの）を読み直す／サンプラーのページを別のタブで開く。' },
+      { find: { sel: '[data-a="stop"]' }, name: 'STOP', what: '鳴っている音を全部止める（ループしている音も）。' },
+      { find: { sel: '.pkt-banks' }, name: 'バンク A〜J', what: '16 パッドの組を切り替える。音の入っているバンクは水色。', tip: 'PC の [ ]' },
+      { find: { sel: '.pkt-pads' }, name: 'パッド 16 個', what: '左下が 1。押すと鳴る。♪ と BASS の印はメロディ用・ベース用のパッド。', tip: 'PC の Z X C V・A S D F・Q W E R・1 2 3 4 がパッドと同じ並び' },
     ],
   },
 ];

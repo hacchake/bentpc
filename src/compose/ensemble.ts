@@ -8,9 +8,9 @@ import type { Part } from './context';
 import type { ComposeToy, ToyKind } from './types';
 
 /** ビートを刻むパート（おもちゃごと）。1 台だけ残す。上から順に優先 */
-const BEAT_PARTS: [ToyKind, string][] = [['tele', 'tele:beat'], ['typo', 'typo:drums'], ['piko', 'piko:rhythm'], ['dj', 'dj:rhythm']];
+const BEAT_PARTS: [ToyKind, string][] = [['tele', 'tele:beat'], ['sampler', 'sampler:drums'], ['typo', 'typo:drums'], ['piko', 'piko:rhythm'], ['dj', 'dj:rhythm']];
 /** メロディのパート（掛け合いをする） */
-const MELODY_PARTS = ['blippy:melody', 'piko:lead', 'dj:keys', 'typo:notes'];
+const MELODY_PARTS = ['blippy:melody', 'piko:lead', 'dj:keys', 'typo:notes', 'sampler:melody'];
 
 export function arrangeEnsemble(plan: Plan, toys: ComposeToy[], parts: Part[]): Part[] {
   if (toys.length < 2) return parts;

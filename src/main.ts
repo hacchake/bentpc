@@ -14,26 +14,26 @@ import type { ToyKind } from './compose/types';
 import { emptySong } from './core/song';
 import { startMidi } from './host/midi';
 import { download, encodeWav } from './host/wav';
-import { RACK_TOYS, TOY_UIS } from './toys/uis';
+import { TOY_UIS } from './toys/uis';
 
 const $ = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
-const audio = new AudioHost({ toys: Array.from({ length: RACK_TOYS }, (_, i) => i) });
+const audio = new AudioHost();
 const stage = $('stage');
 
 const COMMON_HELP = `
 <h3>アプリ全体</h3>
 <table>
-  <tr><td>上のタブ / F1〜F6</td><td>おもちゃの切り替え（裏のおもちゃも鳴り続けます）。TYPOTRON・TELEKEY 表示中は F キーが楽器の機能なので、タブで切り替え</td></tr>
+  <tr><td>上のタブ / F1〜F7</td><td>おもちゃの切り替え（裏のおもちゃも鳴り続けます）。TYPOTRON・TELEKEY 表示中は F キーが楽器の機能なので、タブで切り替え</td></tr>
   <tr><td>REC</td><td>全部のおもちゃの音を録音。もう一度押すと WAV をダウンロード</td></tr>
   <tr><td>☰ SEQ</td><td>シーケンサー：演奏の操作を録音（重ね録り）して、あとから手直しできる。WAV / MIDI で書き出し</td></tr>
   <tr><td>AUTO COMPOSER</td><td>おもちゃの右の緑の基板：「自動作曲」を押すと、曲を作ってシーケンサーに書き込み、鳴らす（STYLE 26 種類・参加するおもちゃ・壊れ度・LENGTH・BPM・SEED）。参加ボタンで何台かを 1 つの曲に</td></tr>
-  <tr><td>MIDI</td><td>チャンネル n → n 台目（1〜6）、それ以外→表示中のおもちゃ</td></tr>
+  <tr><td>MIDI</td><td>チャンネル n → n 台目（1〜7）、それ以外→表示中のおもちゃ</td></tr>
 </table>
 <p><button class="guide-again" type="button">電源の案内をもう一度見る</button></p>
 <p>ノブ：上下にドラッグ（Shift で細かく）、ホイール、ダブルクリックで初期値</p>`;
 
 // ---- おもちゃを並べる ----
-const toys: ToyUI[] = TOY_UIS.slice(0, RACK_TOYS).map((make, toy) =>
+const toys: ToyUI[] = TOY_UIS.map((make, toy) =>
   make({
     post: (m) => audio.post({ ...m, toy }),
     start: () => audio.start(),
@@ -56,7 +56,7 @@ const tabEls = toys.map((t, i) => {
 });
 
 // ---- 自動作曲ユニット（作曲係のあるおもちゃだけ、右側に付ける） ----
-const KINDS: ToyKind[] = ['blippy', 'piko', 'dj', 'vroom', 'typo', 'tele'];
+const KINDS: ToyKind[] = ['blippy', 'piko', 'dj', 'vroom', 'typo', 'tele', 'sampler'];
 const PANEL_GAP = 50;
 const panelScale = (h: number) => Math.max(0.9, Math.min(1.4, h / 820));
 // 何台かで 1 つの曲も作れる（参加ボタン）。パネルの付いたおもちゃはいつも参加
@@ -236,7 +236,8 @@ const wavBtn = arr.addButton('WAV', '曲を最初から最後まで WAV に書�
   if (wavBtn.disabled) return;
   wavBtn.disabled = true;
   try {
-    await exportWav(arr.song, (f) => { wavBtn.textContent = `WAV ${Math.round(f * 100)}%`; }, RACK_IDS);
+    const customs = toys.flatMap((t, i) => (t.customData?.() ?? []).map((c) => ({ toy: i, data: c.data })));
+    await exportWav(arr.song, (f) => { wavBtn.textContent = `WAV ${Math.round(f * 100)}%`; }, RACK_IDS, 48000, customs);
   } catch (e) {
     alert(`WAV を書き出せませんでした：${(e as Error).message}`);
   }
@@ -244,7 +245,7 @@ const wavBtn = arr.addButton('WAV', '曲を最初から最後まで WAV に書�
   wavBtn.disabled = false;
 });
 arr.addButton('MIDI', '曲を MIDI ファイルに書き出す（チャンネル n = n 台目）', () =>
-  exportMidi(arr.song, toys.map((t, i) => ({ title: t.title, channel: i, noteOf: (k: number) => Math.min(127, (i === 5 ? 24 : 36) + k), paramDefs: t.paramDefs }))));
+  exportMidi(arr.song, toys.map((t, i) => ({ title: t.title, channel: i, noteOf: (k: number) => (i === 6 ? (k < 160 ? 36 + (k % 16) : k < 208 ? 48 + (k - 160) : 12 + (k - 208)) : Math.min(127, (i === 5 ? 24 : 36) + k)), paramDefs: t.paramDefs }))));
 
 // ---- PC キーボード（表示中のおもちゃへ） ----
 window.addEventListener('keydown', (e) => {
