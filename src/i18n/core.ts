@@ -22,7 +22,7 @@ export function compileKey(key: string): Compiled {
 }
 
 const norm = (s: string) => s.replace(/\s+/g, ' ').trim();
-const JPRE = /[぀-ヿ一-鿿！-｠]/;
+const JPRE = /[、-〿぀-ヿ一-鿿！-｠]/;
 
 /** 辞書と {n} の形だけで訳す（無ければ null） */
 function lookup(n: string): string | null {
@@ -42,7 +42,7 @@ function lookup(n: string): string | null {
 /** 区切りの記号 → 英語の書き方 */
 const PUNCT: Record<string, string> = { '／': ' / ', '・': ' · ', '＝': ' = ', '：': ': ', '、': ', ', '。': '. ', '（': ' (', '）': ')', '「': '"', '」': '"', '〜': '–', '＋': '+', '→': ' → ' };
 /** 大きい区切りから順に切って試す（「A＝B：C／D＝E」は、まず ／ で切って「A＝B：C」ごと訳す） */
-const LEVELS = [/(／)/, /(。)/, /(＝)/, /([（）「」])/, /(：)/, /(、)/, /(・)/, /(〜|→)/, /(\s+)/];
+const LEVELS = [/(／)/, /(＋)/, /(。)/, /(＝)/, /([（）「」])/, /(：)/, /(、)/, /(・)/, /(〜|→)/, /(\s+)/];
 
 /** 日本語 → いまの言語 */
 export function tr(s: string): string {

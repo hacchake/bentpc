@@ -6,16 +6,22 @@ import { chromium, type Page } from 'playwright-core';
 import { createServer } from 'vite';
 import { TOYS, type PartDef } from './parts';
 import { COMPOSER_PARTS, SAMPLER_PARTS, SEQ_PARTS } from './extra-parts';
+import { translateHtml } from './i18n-html';
+
+const trEn = (t: string) => translateHtml(t);
 
 const CHROME = process.env.CHROME ?? 'C:/Program Files/Google/Chrome/Application/chrome.exe';
-const OUT = 'public/manual/img';
+let OUT = 'public/manual/img';
+let LANG: 'ja' | 'en' = 'ja';
 const PORT = 5199;
 
 type Pos = { x: number; y: number } | null;
-const callouts: Record<string, Pos[]> = {};
+let callouts: Record<string, Pos[]> = {};
 
 /** 部品の中心を、基準の要素の中の割合（0〜1）で */
 async function locate(page: Page, rootSel: string, finds: PartDef['find'][]): Promise<Pos[]> {
+  // 英語の画面では、文字で探す部品は英語の文字で探す
+  if (LANG === 'en') finds = finds.map((f) => (f.text ? { ...f, text: trEn(f.text) } : f));
   return page.evaluate(([rs, fs]) => {
     const root = document.querySelector(rs as string) as HTMLElement;
     const R = root.getBoundingClientRect();
@@ -35,14 +41,19 @@ async function locate(page: Page, rootSel: string, finds: PartDef['find'][]): Pr
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-async function main(): Promise<void> {
+async function main(lang: 'ja' | 'en'): Promise<void> {
+  LANG = lang;
+  OUT = lang === 'en' ? 'public/manual/img/en' : 'public/manual/img';
+  callouts = {};
   mkdirSync(OUT, { recursive: true });
+  console.log(lang === 'en' ? '---- 英語の画面 ----' : '---- 日本語の画面 ----');
   const server = await createServer({ server: { port: PORT, strictPort: true }, logLevel: 'error' });
   await server.listen();
   const base = `http://localhost:${PORT}/`;
   const browser = await chromium.launch({ executablePath: CHROME, args: ['--autoplay-policy=no-user-gesture-required', '--mute-audio'] });
   try {
     const ctx = await browser.newContext({ viewport: { width: 1700, height: 1080 }, deviceScaleFactor: 1.5 });
+    await ctx.addInitScript((l) => { localStorage.setItem('bentpc.lang', l); }, lang);
     await ctx.addInitScript(() => {
       localStorage.setItem('bentpc.powerGuide.done', '1');
     });
@@ -82,6 +93,7 @@ async function main(): Promise<void> {
 
     // ---- 最初の電源の案内（初めて開いたとき） ----
     const ctx2 = await browser.newContext({ viewport: { width: 1500, height: 900 }, deviceScaleFactor: 1 });
+    await ctx2.addInitScript((l) => { localStorage.setItem('bentpc.lang', l); }, lang);
     await ctx2.addInitScript(() => { localStorage.setItem('bentpc.activeToy', '0'); });
     const p2 = await ctx2.newPage();
     await p2.goto(base);
@@ -111,6 +123,7 @@ async function main(): Promise<void> {
 
     // ---- サンプラー PAKU-PAKU 16 ----
     const ctx3 = await browser.newContext({ viewport: { width: 1500, height: 920 }, deviceScaleFactor: 1.3 });
+    await ctx3.addInitScript((l) => { localStorage.setItem('bentpc.lang', l); }, lang);
     const sp = await ctx3.newPage();
     sp.on('pageerror', (e) => console.log('ページのエラー', e.message));
     await sp.goto(`${base}sampler.html`);
@@ -158,6 +171,7 @@ async function main(): Promise<void> {
     console.log('サンプラー：撮影 OK');
     // スマホ（縦）
     const ctx4 = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true });
+    await ctx4.addInitScript((l) => { localStorage.setItem('bentpc.lang', l); }, lang);
     const ph = await ctx4.newPage();
     await ph.goto(`${base}sampler.html`);
     await sleep(1500);
@@ -178,4 +192,4 @@ async function main(): Promise<void> {
   }
 }
 
-main().catch((e) => { console.error(e); process.exit(1); });
+(async () => { await main('ja'); await main('en'); })().catch((e) => { console.error(e); process.exit(1); });
