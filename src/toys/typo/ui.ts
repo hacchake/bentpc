@@ -11,9 +11,9 @@ import {
 import type { TypoDisplay } from './dsp/engine';
 
 const W = 1780;
-const H = 850;
-const U = 62; // キー 1 個の幅
-const X0 = 209; // キーボードの左端
+const H = 800;
+const U = 70; // キー 1 個の幅（ケースいっぱいに）
+const X0 = 198; // キーボードの左端
 const Y0 = 292; // F キーの段の上端
 const NOTE_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
 
@@ -64,7 +64,11 @@ export function mountTypo(api: HostApi): ToyUI {
   root.innerHTML = `
     <div class="tt-plate">
       <div class="tt-brand">TYPOTRON <b>TT-109</b><i>circuit bent</i></div>
-      <div class="tt-lcd"><div class="tt-line" data-id="line"></div><div class="tt-info" data-id="info"></div></div>
+      <div class="tt-lcd">
+        <div class="tt-line" data-id="line"></div>
+        <div class="tt-mid"><canvas class="tt-scope" data-id="scope" width="440" height="66"></canvas><div class="tt-notes"><b data-id="notes">—</b><span data-id="step"></span></div></div>
+        <div class="tt-info" data-id="info"></div>
+      </div>
     </div>
     <div class="tt-case"></div>
     <div class="tt-keys" data-id="keys"></div>`;
@@ -99,11 +103,11 @@ export function mountTypo(api: HostApi): ToyUI {
   let poweredNow = false;
   const powerOn = () => void api.start().then(() => api.post({ type: 'power', on: true }));
   const powerOff = () => api.post({ type: 'power', on: false });
-  const powerLed = b.place('led green', 120, 368);
-  const powerBtn = b.place('dome green big power', 120, 430);
+  const powerLed = b.place('led green', 108, 368);
+  const powerBtn = b.place('dome green big power', 108, 430);
   momentary(powerBtn, () => (poweredNow ? powerOff() : powerOn()));
-  b.label('POWER', 120, 478, 'power-label');
-  const hints = new PowerHints(root, powerBtn, powerLed, { x: 176, y: 430, side: 'right' });
+  b.label('POWER', 108, 478, 'power-label');
+  const hints = new PowerHints(root, powerBtn, powerLed, { x: 164, y: 430, side: 'right' });
 
   // ================= キーボード =================
   const keysEl = $('keys');
@@ -155,20 +159,58 @@ export function mountTypo(api: HostApi): ToyUI {
   relabel();
 
   // ================= 画面の液晶 =================
+  // 1 段目：打った行（入りきらなくなったら横に流れる。ループ中は鳴っている所を追いかける）
+  // 2 段目：いまの音の波形（オシロスコープ）と、鳴っている音の名前・ループの位置
+  // 3 段目：波形・音階・テンポ・オクターブ・移調・LATCH・上書き
   const lineEl = $('line');
   const infoEl = $('info');
-  const showDisplay = (d: TypoDisplay) => {
+  const scopeEl = $('scope') as unknown as HTMLCanvasElement;
+  const sg = scopeEl.getContext('2d')!;
+  const FIT = 30; // 1 段目に入る文字数
+  let lastLine = '', lastCursor = -2;
+  const showLine = (line: string, cursor: number) => {
+    if (line === lastLine && cursor === lastCursor) return;
+    lastLine = line; lastCursor = cursor;
+    const chars = [...line];
+    const room = FIT - 1; // 最後の _ の分
+    // 見せる範囲：ループ中は鳴っている文字が真ん中あたり、止まっているときは打った最後の所
+    let from = Math.max(0, chars.length - room);
+    if (cursor >= 0) from = Math.max(0, Math.min(chars.length - room, cursor - Math.floor(room / 2)));
+    from = Math.max(0, from);
+    const to = Math.min(chars.length, from + room);
     lineEl.innerHTML = '';
-    [...d.line].forEach((ch, i) => {
+    if (from > 0) { const m = document.createElement('i'); m.className = 'more'; m.textContent = `◀${from}`; lineEl.appendChild(m); }
+    for (let i = from; i < to; i++) {
       const s = document.createElement('span');
-      s.textContent = ch;
-      if (i === d.cursor) s.className = 'cur';
+      s.textContent = chars[i];
+      if (i === cursor) s.className = 'cur';
       lineEl.appendChild(s);
+    }
+    if (to < chars.length) { const m = document.createElement('i'); m.className = 'more'; m.textContent = `${chars.length - to}▶`; lineEl.appendChild(m); }
+    else if (cursor < 0) { const caret = document.createElement('span'); caret.className = 'caret'; caret.textContent = '_'; lineEl.appendChild(caret); }
+  };
+  const drawScope = (sc?: number[]) => {
+    const w = scopeEl.width, h = scopeEl.height;
+    sg.clearRect(0, 0, w, h);
+    sg.fillStyle = 'rgba(23,36,15,.12)';
+    for (let x = 0; x < w; x += 22) sg.fillRect(x, 0, 1, h);
+    sg.fillRect(0, h / 2, w, 1);
+    if (!sc || !sc.length) return;
+    sg.strokeStyle = '#17240f';
+    sg.lineWidth = 2.5;
+    sg.beginPath();
+    sc.forEach((v, i) => {
+      const x = (i / (sc.length - 1)) * w, y = h / 2 - Math.max(-1, Math.min(1, v * 1.6)) * (h / 2 - 3);
+      if (i) sg.lineTo(x, y); else sg.moveTo(x, y);
     });
-    const caret = document.createElement('span');
-    caret.className = 'caret';
-    caret.textContent = '_';
-    lineEl.appendChild(caret);
+    sg.stroke();
+  };
+  const showDisplay = (d: TypoDisplay) => {
+    showLine(d.line, d.cursor);
+    drawScope(d.scope);
+    $('notes').textContent = d.notes && d.notes.length ? d.notes.slice(0, 4).map((n) => noteName(n)).join(' ') + (d.notes.length > 4 ? ` +${d.notes.length - 4}` : '') : '—';
+    const len = [...d.line].length;
+    $('step').textContent = d.cursor >= 0 ? `LOOP ${d.cursor + 1}/${len}` : len ? `LEN ${len}` : '';
     infoEl.textContent = d.info || 'POWER ボタン（Enter）で電源 ON';
   };
   showDisplay({ line: '', cursor: -1, info: '' });

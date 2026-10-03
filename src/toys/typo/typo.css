@@ -14,23 +14,29 @@
 .tt-brand b { color: #d21f1f; }
 .tt-brand i { margin-left: 14px; font-size: 12px; font-style: normal; background: #d21f1f; color: #fff; padding: 2px 8px; letter-spacing: 2px; vertical-align: 3px; }
 .tt-lcd {
-  position: absolute; left: 36px; top: 56px; width: 680px; height: 150px;
+  position: absolute; left: 30px; top: 50px; width: 700px; height: 172px; box-sizing: border-box;
   border-radius: 8px;
   background: linear-gradient(180deg, #9ec48a, #86ad73);
   box-shadow: inset 0 4px 10px rgba(0,0,0,.45), 0 0 0 8px #2a2a2a;
-  padding: 14px 18px;
+  padding: 8px 14px;
   color: #17240f;
   overflow: hidden;
 }
-.tt-line { font-size: 38px; letter-spacing: 3px; white-space: nowrap; overflow: hidden; height: 52px; }
+.tt-line { font-size: 30px; letter-spacing: 2px; white-space: nowrap; overflow: hidden; height: 40px; line-height: 40px; }
+.tt-line .more { font-style: normal; font-size: 16px; background: #17240f; color: #9ec48a; padding: 0 4px; margin: 0 4px; vertical-align: 5px; letter-spacing: 0; }
+.tt-mid { display: flex; gap: 10px; align-items: stretch; height: 70px; border-top: 2px dashed rgba(23,36,15,.4); border-bottom: 2px dashed rgba(23,36,15,.4); padding: 3px 0; }
+.tt-scope { width: 440px; height: 66px; }
+.tt-notes { flex: 1; display: flex; flex-direction: column; justify-content: center; overflow: hidden; }
+.tt-notes b { font-size: 24px; white-space: nowrap; overflow: hidden; }
+.tt-notes span { font-size: 14px; letter-spacing: 1px; }
 .tt-line span.cur { background: #17240f; color: #9ec48a; }
 .tt-line .caret { animation: tt-blink 1s steps(2) infinite; }
 @keyframes tt-blink { 50% { opacity: 0; } }
-.tt-info { margin-top: 26px; font-size: 18px; letter-spacing: 2px; border-top: 2px dashed rgba(23,36,15,.4); padding-top: 12px; }
+.tt-info { margin-top: 6px; font-size: 16px; letter-spacing: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .toy-typo .tt-lbl { color: #222; font-size: 10px; transform: translate(-50%, -50%); font-weight: 700; letter-spacing: 1px; }
 
 .tt-case {
-  position: absolute; left: 20px; top: 270px; width: 1740px; height: 565px;
+  position: absolute; left: 20px; top: 270px; width: 1740px; height: 512px;
   border-radius: 14px 14px 24px 24px;
   background: linear-gradient(180deg, #e9e3d2, #d9d2bd 40%, #c7bfa7);
   box-shadow: inset 0 3px 0 #fff, inset 0 -8px 0 rgba(0,0,0,.15), 0 24px 50px rgba(0,0,0,.6);
@@ -45,8 +51,8 @@
   box-shadow: 0 5px 0 #9e9680, 0 6px 6px rgba(0,0,0,.35), inset 0 0 0 1px rgba(0,0,0,.12);
   transition: transform .03s, box-shadow .03s;
 }
-.tt-key .top { position: absolute; left: 7px; top: 4px; font: 700 15px 'Fredoka', sans-serif; color: #333; }
-.tt-key .fn { position: absolute; left: 6px; right: 4px; bottom: 5px; font-size: 9.5px; font-weight: 700; color: #1f5fe0; white-space: nowrap; overflow: hidden; }
+.tt-key .top { position: absolute; left: 8px; top: 5px; font: 700 17px 'Fredoka', sans-serif; color: #333; }
+.tt-key .fn { position: absolute; left: 7px; right: 4px; bottom: 6px; font-size: 11px; font-weight: 700; color: #1f5fe0; white-space: nowrap; overflow: hidden; }
 .tt-key.down { transform: translateY(4px); box-shadow: 0 1px 0 #9e9680, inset 0 0 0 1px rgba(0,0,0,.12); background: linear-gradient(180deg, #fff6b0, #ffe066); }
 
 /* 段ごとに少しずつ色を変える（音の高さの目印） */

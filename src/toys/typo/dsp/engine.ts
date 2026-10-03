@@ -38,6 +38,10 @@ export interface TypoDisplay {
   line: string; // 打った行（キーの文字）
   cursor: number; // ループで今鳴っている位置（-1 = 止まっている）
   info: string;
+  /** 液晶の波形（いまの出口の音・-1〜1 を 160 点。電源 OFF なら無し） */
+  scope?: number[];
+  /** いま鳴っている音（MIDI ノート番号） */
+  notes?: number[];
 }
 
 export class TypoEngine implements ToyEngine<TypoDisplay> {
@@ -90,6 +94,11 @@ export class TypoEngine implements ToyEngine<TypoDisplay> {
   private dcY = 0;
   display: TypoDisplay = { line: '', cursor: -1, info: '' };
   displayVersion = 0;
+  // 液晶の波形：出口の音を 2 つに 1 つ覚えておき、ときどき液晶へ送る
+  private scopeBuf = new Float32Array(1024);
+  private scopeW = 0;
+  private scopeBlocks = 0;
+  private scopeLive = false;
 
   constructor(readonly sampleRate: number, readonly seed = TYPO_SEED) {
     this.rng = new Rng(hashSeed(seed, 'typo'));
@@ -169,7 +178,7 @@ export class TypoEngine implements ToyEngine<TypoDisplay> {
     const line = this.line.map((x) => x.ch).join('');
     const cursor = this.looping ? this.loopStep : -1;
     if (info !== this.display.info || line !== this.display.line || cursor !== this.display.cursor) {
-      this.display = { line, cursor, info };
+      this.display = { ...this.display, line, cursor, info };
       this.displayVersion++;
     }
   }
@@ -457,7 +466,31 @@ export class TypoEngine implements ToyEngine<TypoDisplay> {
       this.dcX = x;
       this.dcY = y;
       out[i] = Math.tanh(y) * this.vol * this.gate;
+      if (i & 1) { this.scopeBuf[this.scopeW] = out[i]; this.scopeW = (this.scopeW + 1) & 1023; }
     }
     if (changed) this.updateInfo();
+    this.updateScope();
+  }
+
+  /** 約 30ms ごとに、液晶の波形と鳴っている音を送る（波の頭をそろえて、止まって見えるように） */
+  private updateScope(): void {
+    if (++this.scopeBlocks < 12) return;
+    this.scopeBlocks = 0;
+    if (!this.powered) {
+      if (this.scopeLive) { this.scopeLive = false; this.display = { ...this.display, scope: undefined, notes: [] }; this.displayVersion++; }
+      return;
+    }
+    this.scopeLive = true;
+    const N = 160, b = this.scopeBuf;
+    let start = (this.scopeW - N - 200 + 2048) & 1023;
+    for (let k = 0; k < 200; k++) {
+      const a = b[(start + k) & 1023], c = b[(start + k + 1) & 1023];
+      if (a < 0 && c >= 0) { start = (start + k + 1) & 1023; break; }
+    }
+    const scope: number[] = [];
+    for (let k = 0; k < N; k++) scope.push(Math.round(b[(start + k) & 1023] * 100) / 100);
+    const notes = [...new Set(this.v.filter((v) => v.stage !== 'off' && v.lvl > 0.05).map((v) => Math.round(v.note)))].sort((x, y) => x - y);
+    this.display = { ...this.display, scope, notes };
+    this.displayVersion++;
   }
 }
