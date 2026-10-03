@@ -52,6 +52,8 @@ export interface ToyUI {
   keyKind?(key: number): 'play' | 'button';
   /** テスト映像の時計（スタジオの再生位置とセクション名）。渡すとテスト映像に切り替える */
   setTestClock?(clock: { beat: number; bpm: number; label: string } | null): void;
+  /** エンジンに送った専用データ（WAV の書き出しで、同じ音を作るのに使う） */
+  customData?(): { key: string; data: unknown }[];
 }
 
 /** 音符のキー番号の表示名（ボタン・システム操作も） */

@@ -19,14 +19,22 @@ export const songSeconds = (song: Song, tail = 1) => (songBeats(song) * 60) / so
 export function renderSong(
   song: Song,
   sr: number,
-  opts: { toys?: number[]; tail?: number; onProgress?: (f: number) => void; userSamples?: { toy: number; key: number; data: Float32Array }[] } = {},
+  opts: {
+    toys?: number[]; tail?: number; onProgress?: (f: number) => void; userSamples?: { toy: number; key: number; data: Float32Array }[];
+    /** おもちゃ専用のデータ（サンプラーの音など） */
+    customs?: { toy: number; data: unknown }[];
+  } = {},
 ): Float32Array {
   const ids = opts.toys ?? STUDIO_TOYS;
   const make = (seed?: number) => ids.map((id) => TOY_ENGINES[id](sr, seed === undefined ? undefined : hashSeed(seed, id) >>> 0));
   const sig = new TestSignal(sr);
   const toys = make();
   // 自分の声（トイPC の MY VOICE）も入れる
-  const voices = () => opts.userSamples?.forEach((u) => toys[u.toy]?.setUserSample?.(u.key, u.data));
+  const voices = () => {
+    opts.userSamples?.forEach((u) => toys[u.toy]?.setUserSample?.(u.key, u.data));
+    opts.customs?.forEach((c) => toys[c.toy]?.custom?.(c.data));
+  };
+  voices();
   const seq = new Sequencer(sr, toys, { onTake: () => {}, onEnd: () => {}, onRebuild: () => { sig.reset(); voices(); } }, make);
   const s = cloneSong(song);
   s.metronome = false;

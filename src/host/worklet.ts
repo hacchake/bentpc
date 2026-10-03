@@ -25,6 +25,7 @@ class ToyRackProcessor extends AudioWorkletProcessor {
   private sentVersion: number[];
   private lastStatus: string[];
   private userSamples: Map<number, Float32Array | null>[]; // 作り直したときに戻すため
+  private customs: Map<string, unknown>[]; // おもちゃ専用のデータ（作り直したときに戻すため）
   private statusCounter = 0;
   private tmp = new Float32Array(128);
   private click = new Float32Array(128);
@@ -53,6 +54,7 @@ class ToyRackProcessor extends AudioWorkletProcessor {
     this.lastStatus = this.toys.map(() => '');
     this.signalOn = this.toys.map(() => false);
     this.userSamples = this.toys.map(() => new Map());
+    this.customs = this.toys.map(() => new Map());
     this.seq = new Sequencer(sampleRate, this.toys, {
       onTake: (take, data) => this.send({ type: 'seqTake', take, data }),
       onEnd: () => this.send({ type: 'seqEnd' }),
@@ -61,6 +63,7 @@ class ToyRackProcessor extends AudioWorkletProcessor {
         this.lastStatus.fill('');
         this.signal.reset();
         this.userSamples.forEach((m, toy) => m.forEach((buf, key) => this.toys[toy].setUserSample?.(key, buf)));
+        this.customs.forEach((m, toy) => m.forEach((d) => this.toys[toy].custom?.(d)));
       },
     }, make);
     this.port.onmessage = (e: MessageEvent<ToEngine>) => {
@@ -91,6 +94,7 @@ class ToyRackProcessor extends AudioWorkletProcessor {
           break;
         }
         case 'signal': this.signalOn[m.toy] = m.on; break;
+        case 'custom': this.customs[m.toy].set(m.key, m.data); t.custom?.(m.data); break;
       }
     };
   }

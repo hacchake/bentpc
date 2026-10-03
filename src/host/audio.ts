@@ -45,6 +45,10 @@ export class AudioHost {
       this.pending = this.pending.filter((p) => !(p.type === 'param' && p.toy === m.toy && p.index === m.index));
       this.pending.push(m);
     } else if (m.type === 'userSample') this.pending.push(m);
+    else if (m.type === 'custom') {
+      this.pending = this.pending.filter((p) => !(p.type === 'custom' && p.toy === m.toy && p.key === m.key));
+      this.pending.push(m);
+    }
     else if (m.type === 'signal') {
       this.pending = this.pending.filter((p) => !(p.type === 'signal' && p.toy === m.toy));
       this.pending.push(m);

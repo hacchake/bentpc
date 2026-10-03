@@ -24,7 +24,7 @@ export interface ComposeToy {
   kind: ToyKind;
 }
 
-export type ToyKind = 'blippy' | 'piko' | 'dj' | 'vroom' | 'typo' | 'tele';
+export type ToyKind = 'blippy' | 'piko' | 'dj' | 'vroom' | 'typo' | 'tele' | 'sampler';
 
 export interface ComposeRequest {
   settings: ComposeSettings;

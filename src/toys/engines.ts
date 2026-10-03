@@ -6,6 +6,7 @@ import { PikoEngine } from './piko/dsp/engine';
 import { TeleEngine } from './tele/dsp/engine';
 import { TypoEngine } from './typo/dsp/engine';
 import { VroomEngine } from './vroom/dsp/engine';
+import { SamplerToy } from '../sampler/toy/engine';
 
 // seed を渡すと、そのシードの乱数で作る（スタジオの「同じ曲なら毎回同じ音」用）
 export const TOY_ENGINES: ((sampleRate: number, seed?: number) => ToyEngine)[] = [
@@ -15,4 +16,6 @@ export const TOY_ENGINES: ((sampleRate: number, seed?: number) => ToyEngine)[] =
   (sr, seed) => new VroomEngine(sr, seed),
   (sr, seed) => new TypoEngine(sr, seed),
   (sr, seed) => new TeleEngine(sr, seed),
+  // 7 台目：サンプラー PAKU-PAKU 16（スタジオに並べる用。ラックには出さない）
+  (sr) => new SamplerToy(sr),
 ];

@@ -11,7 +11,9 @@ export type ToyMsg =
   /** 保存しておいた自分の声を戻す（8kHz・8bit、null で消す） */
   | { type: 'userSample'; key: number; data: Int8Array | null }
   /** 映像入力の代わりにテスト信号（音）を使う（テスト映像のとき） */
-  | { type: 'signal'; on: boolean };
+  | { type: 'signal'; on: boolean }
+  /** おもちゃ専用のデータ（サンプラーの音と設定など）。key ごとに最新のものを覚えて、作り直したときに送り直す */
+  | { type: 'custom'; key: string; data: unknown };
 
 export type ToEngine =
   | (ToyMsg & { toy: number })

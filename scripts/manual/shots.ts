@@ -5,7 +5,7 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 import { chromium, type Page } from 'playwright-core';
 import { createServer } from 'vite';
 import { TOYS, type PartDef } from './parts';
-import { COMPOSER_PARTS, SEQ_PARTS } from './extra-parts';
+import { COMPOSER_PARTS, SAMPLER_PARTS, SEQ_PARTS } from './extra-parts';
 
 const CHROME = process.env.CHROME ?? 'C:/Program Files/Google/Chrome/Application/chrome.exe';
 const OUT = 'public/manual/img';
@@ -108,6 +108,68 @@ async function main(): Promise<void> {
     await sleep(1500);
     await page.locator('#deck').screenshot({ path: `${OUT}/studio3.jpg`, type: 'jpeg', quality: 84 });
     console.log('スタジオ 3 台：撮影 OK');
+
+    // ---- サンプラー PAKU-PAKU 16 ----
+    const ctx3 = await browser.newContext({ viewport: { width: 1500, height: 920 }, deviceScaleFactor: 1.3 });
+    const sp = await ctx3.newPage();
+    sp.on('pageerror', (e) => console.log('ページのエラー', e.message));
+    await sp.goto(`${base}sampler.html`);
+    await sleep(1500);
+    await sp.locator('#pk-cover').click();
+    await sleep(500);
+    await sp.locator('.pk-pad').nth(12).click(); // KICK
+    await sleep(300);
+    callouts.sampler = await locate(sp, '.paku', SAMPLER_PARTS.map((p) => p.find));
+    await sp.locator('.paku').screenshot({ path: `${OUT}/sampler.jpg`, type: 'jpeg', quality: 86 });
+    // パターン：ステップでビートを置いたところ
+    await sp.locator('.pk-tabs [data-tab="ptn"]').click();
+    const steps = async (padDom: number, list: number[]) => {
+      await sp.locator('#pk-step').click(); // いまのパッドで STEP
+      for (const s of list) await sp.locator('.pk-pad').nth(s).click();
+      await sp.locator('#pk-step').click();
+      void padDom;
+    };
+    await steps(12, [0, 4, 8, 12, 10]);
+    await sp.locator('.pk-pad').nth(13).click(); // SNARE を選ぶ
+    await steps(13, [4, 12]);
+    await sp.locator('.pk-pad').nth(14).click(); // CL HAT
+    await steps(14, [0, 2, 4, 6, 8, 10, 12, 14]);
+    await sp.locator('#pk-pplay').click();
+    await sleep(1300);
+    await sp.locator('.paku').screenshot({ path: `${OUT}/sampler-ptn.jpg`, type: 'jpeg', quality: 86 });
+    await sp.locator('#pk-pplay').click();
+    // チョップ（バンク B のループ）
+    await sp.locator('.pk-tabs [data-tab="edit"]').click();
+    await sp.locator('.pk-bank[data-bank="1"]').click();
+    await sp.locator('.pk-pad').nth(12).click();
+    await sp.locator('#pk-stop').click();
+    await sp.locator('#pk-ed-chop').click();
+    await sleep(400);
+    await sp.locator('.pk-ed-body button[data-c="auto"]').click();
+    await sleep(300);
+    await sp.locator('.paku').screenshot({ path: `${OUT}/sampler-chop.jpg`, type: 'jpeg', quality: 86 });
+    await sp.locator('.pk-ed-x').click();
+    // ベンド
+    await sp.locator('.pk-tabs [data-tab="bend"]').click();
+    for (const i of [0, 3, 5]) await sp.locator('.pk-wire').nth(i).click();
+    await sleep(300);
+    await sp.locator('.pk-funcs').screenshot({ path: `${OUT}/sampler-bend.jpg`, type: 'jpeg', quality: 88 });
+    await sp.locator('#pk-unplug').click();
+    console.log('サンプラー：撮影 OK');
+    // スマホ（縦）
+    const ctx4 = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true });
+    const ph = await ctx4.newPage();
+    await ph.goto(`${base}sampler.html`);
+    await sleep(1500);
+    await ph.locator('#pk-cover').tap();
+    await sleep(500);
+    await ph.screenshot({ path: `${OUT}/sampler-phone.jpg`, type: 'jpeg', quality: 84 });
+    console.log('サンプラー（スマホ）：撮影 OK');
+    // スタジオにトイPC とサンプラーを並べる
+    await page.goto(`${base}studio.html?toys=0,6`);
+    await sleep(2000);
+    await page.locator('#deck').screenshot({ path: `${OUT}/studio-sampler.jpg`, type: 'jpeg', quality: 84 });
+    console.log('スタジオ＋サンプラー：撮影 OK');
 
     writeFileSync(`${OUT}/callouts.json`, JSON.stringify(callouts, null, 1));
   } finally {

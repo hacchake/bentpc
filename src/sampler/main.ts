@@ -11,7 +11,8 @@ import {
 import { SamplerHost } from './host';
 import { FX_LIST, SLOT_NAMES, defaultSlots, type FxSlot } from './dsp/fx';
 import { WIRES, defaultBend, type BendState } from './dsp/bend';
-import { PATTERNS, QUANTS, QUANT_NAMES, emptyPattern, type Pattern, type SongStep } from './dsp/seq';
+import { PATTERNS, QUANTS, QUANT_NAMES, emptyPattern, swingT, type Pattern, type SongStep } from './dsp/seq';
+import type { Song } from '../core/song';
 import { midiBytes, packProject, renderOffline, sampleWav, unpackProject, wavBytes, type RenderSetup } from './dsp/export';
 import { loadAll, loadMeta, saveMeta, savePads, type StoredPad } from './store';
 import { openEditor, type EditorApi } from './editor';
@@ -108,7 +109,7 @@ dev.innerHTML = `
     <div class="pk-tab" data-tab="song">
       <div class="pk-chain" id="pk-chain"></div>
       <div class="pk-grp"><button class="pk-btn orange" id="pk-sadd">＋ P01</button><button class="pk-btn gray" id="pk-sdel">削除</button><button class="pk-btn gray" id="pk-srep-">×−</button><button class="pk-btn gray" id="pk-srep+">×＋</button><button class="pk-btn mode" id="pk-splay">${lamp}▶ SONG</button></div>
-      <div class="pk-grp"><button class="pk-btn gray" id="pk-xwp">⤓ WAV パターン</button><button class="pk-btn gray" id="pk-xws">⤓ WAV ソング</button><button class="pk-btn gray" id="pk-xmid">⤓ MIDI</button><button class="pk-btn gray" id="pk-xsave">💾 保存</button><button class="pk-btn gray" id="pk-xload">📂 読込</button></div>
+      <div class="pk-grp"><button class="pk-btn gray" id="pk-xwp">⤓ WAV パターン</button><button class="pk-btn gray" id="pk-xws">⤓ WAV ソング</button><button class="pk-btn gray" id="pk-xmid">⤓ MIDI</button><button class="pk-btn gray" id="pk-xsave">💾 保存</button><button class="pk-btn gray" id="pk-xload">📂 読込</button><button class="pk-btn orange" id="pk-xstudio" title="ソング（無ければいまのパターン）を、スタジオのシーケンサーに入れて開く">→ STUDIO</button></div>
     </div>
     <div class="pk-side">
       <div class="pk-vol"><div class="knob red" id="pk-master"><div class="cap"></div></div><span>VOL</span></div>
@@ -1111,6 +1112,39 @@ projIn.addEventListener('change', async () => {
   }
 });
 
+// ---------------- → STUDIO：ソングをスタジオ（DAW）のシーケンサーへ ----------------
+/** スタジオでサンプラーだけを並べたときの曲の置き場所（スタジオの決まりと同じ名前） */
+const STUDIO_KEY = 'bentpc.studio.song.v1.6';
+click('pk-xstudio', () => {
+  const steps = meta.song.length ? meta.song : [{ ptn: meta.ptn, reps: 1 }];
+  const notes: Song['tracks'][number]['notes'] = [];
+  const sections: { name: string; start: number }[] = [];
+  let base = 0;
+  for (const st of steps) {
+    const p = meta.patterns[st.ptn];
+    sections.push({ name: ptnName(st.ptn), start: base });
+    for (let r = 0; r < Math.max(1, st.reps); r++) {
+      for (const e of p.events) notes.push({ key: e.pad, start: base + swingT(e.t, meta.swing), len: Math.max(0.05, e.len), take: 0 });
+      base += p.bars * 4;
+    }
+  }
+  if (!notes.length) { msg('パターンがからっぽです', 2500); return; }
+  if (!confirm('スタジオ（PAKU-PAKU 16 だけを並べた画面）の曲を、このソングで置き換えて開きます。よろしいですか？')) return;
+  const bars = Math.ceil(base / 4);
+  const song: Song = {
+    version: 1, title: `PAKU-PAKU ${meta.song.length ? 'SONG' : ptnName(meta.ptn)}`, bpm: meta.bpm, bars, metronome: false, seed: 1616, ramp: true,
+    loop: { on: false, start: 0, end: bars * 4 }, sections,
+    tracks: [{ toy: 0, name: 'PAKU-PAKU 16', mute: false, notes: notes.sort((a, b) => a.start - b.start), autos: [], rec: true }],
+  };
+  try {
+    localStorage.setItem(STUDIO_KEY, JSON.stringify(song));
+  } catch {
+    msg('保存できませんでした', 3000);
+    return;
+  }
+  location.href = 'studio.html?toys=6';
+});
+
 /** パッド以外の設定（テンポ・エフェクト・ベンド・パターン）をエンジンと画面に反映 */
 function applyMeta(): void {
   if (!Array.isArray(meta.fx) || meta.fx.length !== 3) meta.fx = defaultSlots();
@@ -1221,6 +1255,7 @@ $('pk-help').innerHTML = `
     <tr><td>SWING</td><td>ノブ（SEQ ページ）。16 分の裏を遅らせて跳ねさせる（50〜75%）</td></tr>
     <tr><td colspan="2"><b>SONG タブ</b></td></tr>
     <tr><td>＋ / 削除 / × ± / ▶ SONG</td><td>いまのパターンを、選んだ所の後ろにつなぐ・くり返し回数・ソングを鳴らす</td></tr>
+    <tr><td>→ STUDIO</td><td>ソング（無ければいまのパターン）をスタジオのシーケンサーに入れて開く。スタジオではほかのおもちゃといっしょに鳴らせる（強さは各パッドの設定どおり）</td></tr>
     <tr><td>書き出し</td><td>WAV（パターンは 2 回分・ソングは全部）・MIDI（ソングが無ければパターン）・💾 プロジェクト丸ごと（.paku）を保存／📂 読み込み。パッド 1 つの WAV は EDIT タブ</td></tr>
     <tr><td>PC のキー</td><td>Z X C V・A S D F・Q W E R・1 2 3 4 がパッド（下の段から）。スペースで STOP</td></tr>
     <tr><td>MIDI</td><td>上の MIDI を押すと、MIDI 機器のノート 36〜51 でパッド 1〜16</td></tr>

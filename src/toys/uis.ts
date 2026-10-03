@@ -6,5 +6,8 @@ import { mountPiko } from './piko/ui';
 import { mountTele } from './tele/ui';
 import { mountTypo } from './typo/ui';
 import { mountVroom } from './vroom/ui';
+import { mountSamplerToy } from '../sampler/toy/ui';
 
-export const TOY_UIS: ToyUIFactory[] = [mountBlippy, mountPiko, mountDj, mountVroom, mountTypo, mountTele];
+export const TOY_UIS: ToyUIFactory[] = [mountBlippy, mountPiko, mountDj, mountVroom, mountTypo, mountTele, mountSamplerToy];
+/** ラックに並べるおもちゃの数（7 台目のサンプラーは、ラックでは専用のページ sampler.html） */
+export const RACK_TOYS = 6;

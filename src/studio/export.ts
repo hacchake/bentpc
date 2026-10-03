@@ -25,7 +25,7 @@ function userSamples(): { toy: number; key: number; data: Float32Array }[] {
 
 /** WAV：曲を最初から最後まで（実際の時間より速く）鳴らして書き出す。progress は 0〜1 */
 /** toys：曲のおもちゃ番号 → エンジンの番号（スタジオは [0, 5]、ラックは全部） */
-export function exportWav(song: Song, progress: (f: number) => void, toys?: number[], sr = 48000): Promise<void> {
+export function exportWav(song: Song, progress: (f: number) => void, toys?: number[], sr = 48000, customs: { toy: number; data: unknown }[] = []): Promise<void> {
   return new Promise((resolve, reject) => {
     const w = new RenderWorker();
     w.onmessage = (e: MessageEvent<{ type: 'progress'; f: number } | { type: 'done'; data: Float32Array }>) => {
@@ -35,7 +35,7 @@ export function exportWav(song: Song, progress: (f: number) => void, toys?: numb
       resolve();
     };
     w.onerror = (e) => { w.terminate(); reject(new Error(e.message)); };
-    w.postMessage({ song: JSON.parse(JSON.stringify(song)), sr, toys, userSamples: userSamples() });
+    w.postMessage({ song: JSON.parse(JSON.stringify(song)), sr, toys, userSamples: userSamples(), customs });
   });
 }
 

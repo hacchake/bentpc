@@ -32,4 +32,6 @@ export interface ToyEngine<Display = unknown> {
   setUserSample?(key: number, buf: Float32Array | null): void;
   /** 全部止めて元に戻す（シーケンサーのクラッシュからの復帰で使う） */
   reset?(): void;
+  /** おもちゃ専用のデータ（サンプラーの音など）。作り直したときも同じ順に送り直される */
+  custom?(data: unknown): void;
 }

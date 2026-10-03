@@ -9,7 +9,9 @@ import { DRUM_NAMES, SFX_NAMES } from '../../src/toys/blippy/dsp/soundbank';
 import { BASE_NAMES, BURSTS, GLITCHES, TELE_LAYOUT, TELE_NAV } from '../../src/toys/tele/params';
 import { styleOf, STYLE_IDS } from '../../src/compose/styles';
 import { TOYS, type PartDef } from './parts';
-import { COMPOSER_PARTS, SEQ_PARTS } from './extra-parts';
+import { COMPOSER_PARTS, SAMPLER_PARTS, SEQ_PARTS } from './extra-parts';
+import { FX_LIST } from '../../src/sampler/dsp/fx';
+import { WIRES } from '../../src/sampler/dsp/bend';
 import { BLIPPY_GLITCH, BURST_WHAT, COMBOS, GLOSSARY, QA, TRICKS } from './content';
 
 const IMG = 'public/manual/img';
@@ -118,7 +120,7 @@ const body = [
   `<section class="cover">
     <div class="cover-band">完全攻略本</div>
     <h1>BENT TOY RACK<small>ベント・トイ・ラック</small></h1>
-    <p class="cover-sub">魔改造おもちゃ 6 機種 ＋ スタジオ ＋ 自動作曲 まるごと対応！</p>
+    <p class="cover-sub">魔改造おもちゃ 6 機種 ＋ サンプラー ＋ スタジオ ＋ 自動作曲 まるごと対応！</p>
     <div class="cover-grid">${TOYS.map((t) => `<img src="img/${t.id}.jpg" alt="${t.title}">`).join('')}</div>
     <div class="cover-stars">★ 全ボタン図解 ★ グリッチ 50 種データ ★ 必殺コンボ ★ クラッシュ攻略 ★ おすすめシード ★</div>
   </section>`,
@@ -127,7 +129,7 @@ const body = [
     <li><a href="#intro">はじめに：魔改造おもちゃとは？</a></li><li><a href="#power">まずは電源を入れよう！</a></li>
     <li><a href="#parts">各パーツ完全解説</a></li><li><a href="#keys">モード・キー全データ</a></li>
     <li><a href="#glitch">グリッチ大全</a></li><li><a href="#combo">必殺コンボ集</a></li><li><a href="#crash">クラッシュ攻略</a></li>
-    <li><a href="#video">映像マシン編</a></li><li><a href="#seq">シーケンサー＆自動作曲編</a></li><li><a href="#seeds">おすすめシード値コレクション</a></li>
+    <li><a href="#video">映像マシン編</a></li><li><a href="#seq">シーケンサー＆自動作曲編</a></li><li><a href="#sampler">サンプラー編</a></li><li><a href="#seeds">おすすめシード値コレクション</a></li>
     <li><a href="#tricks">裏技・隠し要素</a></li><li><a href="#qa">困ったときは（Q&amp;A）</a></li><li><a href="#words">用語集</a></li><li><a href="#rights">権利に関する注意</a></li></ol></nav>`,
 
   chapter('はじめに：魔改造おもちゃとは？', 'ようこそ、壊れた音の世界へ！', `
@@ -219,6 +221,35 @@ const body = [
     <figure class="shot"><div class="frame"><img src="img/studio3.jpg" alt=""></div><figcaption>「おもちゃを選ぶ」でトイPC・PIKOTONE・TYPOTRON を並べたところ</figcaption></figure>
     <p>スタジオの右端の自動作曲ユニットは、並べたおもちゃ（最初は全部）で 1 曲を作る。<b>ビートは 1 台だけが刻み</b>、Aメロでは<b>2 小節ずつ交代で掛け合い</b>、クラッシュは<b>全員同時</b>、ブレイクでは<b>1 台だけが残る</b>。</p>
     ${bubble('改造おじさん', '「🔗 URL をコピー」で、その曲の URL を友だちに送れる。開いた人のブラウザで、同じおもちゃの並び・同じ曲がもう一度作られるんだ。')}`, 'seq'),
+
+  chapter('サンプラー編', 'PAKU-PAKU 16 で音を食べて、切って、並べろ！', `
+    <p>子ども用の録音おもちゃ（ワニの口のスピーカー付き）を魔改造したサンプラー。<b>スマホ・タブレット・パソコン</b>のブラウザで使える。ラック・スタジオの上のバーの <b>SAMPLER</b> から。</p>
+    ${figure('sampler.jpg', 'sampler', SAMPLER_PARTS, 'PAKU-PAKU 16（横長の画面。縦長の画面ではパッドが下に来る）', 'wide-shot')}
+    <figure class="shot narrow-shot"><div class="frame"><img src="img/sampler-phone.jpg" alt=""></div><figcaption>スマホの縦の画面</figcaption></figure>
+    <h3>1 曲できるまで</h3>
+    <div class="flow"><div class="flow-step"><b>1</b><p><b>音を入れる</b>：REC（マイク）・RESAMPLE（自分の音）・📂 FILE。最初からドラムとおもちゃの音が 32 個入っている</p></div><div class="flow-step"><b>2</b><p><b>切る</b>：EDIT タブの ✂ CHOP で、ループを切り分けて空いているバンクに並べる</p></div><div class="flow-step"><b>3</b><p><b>録る</b>：PATTERN タブの ● REC で叩いて録る。STEP で 16 分のマスに置いてもよい</p></div><div class="flow-step"><b>4</b><p><b>つなぐ</b>：SONG タブで、パターンを ＋ でつなぐ</p></div><div class="flow-step"><b>5</b><p><b>出す</b>：WAV・MIDI・プロジェクト保存。→ STUDIO でスタジオのシーケンサーへ</p></div></div>
+    <h3>タブごとの機能</h3>
+    <table class="grid"><tr><th>タブ</th><th>できること</th></tr>
+      <tr><td><b>PAD</b></td><td>REC（AUTO：音が来てから録音）・RESAMPLE・MON（入力を聞く）・GATE・LOOP・REV・POLY・📂 FILE（PC はパッドにファイルを落としても）・COPY・DEL・FIXED VEL（いつも最大の強さ）</td></tr>
+      <tr><td><b>PLAY</b></td><td>ROLL（押している間 1/4〜1/32・3 連でくり返す）・SUB PAD（最後のパッドをもう一度）・16 LEVELS（1 つの音を 16 パッドに：音程・強さ・こもり具合・立ち上がり・鳴らし始め）・TEMPO と TAP</td></tr>
+      <tr><td><b>EDIT</b></td><td>〰 WAVE EDIT（START・END・LOOP の印をドラッグ・0 SNAP・ZOOM）・✂ CHOP（等分・立ち上がりで自動・手で）・⏱ TEMPO FIT（BPM を推定して、音程そのままで伸び縮み／速さだけ合わせる）・NORMALIZE・REVERSE・TRIM・UNDO・⤓ WAV</td></tr>
+      <tr><td><b>FX</b></td><td>BUS 1・BUS 2（パッドごとに送り先）・MASTER に 24 種から 1 つずつ（下の表）</td></tr>
+      <tr><td><b>BEND</b></td><td>むき出しの基板にジャンパー線 6 本。熱がたまると暴発（外せば冷める）</td></tr>
+      <tr><td><b>PATTERN</b></td><td>▶ PLAY・● REC（重ね録り・QUANT でそろえる）・METRO・ERASE・↶・PATTERN（P01〜P16 をパッドで選ぶ）・小節 1〜8・CLEAR・STEP・SWING（ノブ）</td></tr>
+      <tr><td><b>SONG</b></td><td>パターンをつなぐ・くり返し回数・▶ SONG・⤓ WAV（パターン／ソング）・⤓ MIDI・💾 保存／📂 読込（.paku）・→ STUDIO</td></tr></table>
+    <figure class="shot wide-shot"><div class="frame"><img src="img/sampler-ptn.jpg" alt=""></div><figcaption>STEP で置いたビート（液晶の横 = 時間、行 = パッド。赤い線が再生位置）</figcaption></figure>
+    <figure class="shot wide-shot"><div class="frame"><img src="img/sampler-chop.jpg" alt=""></div><figcaption>✂ CHOP：バンク B のループを、音の立ち上がりで自動で切ったところ（黄色い線が切れ目）</figcaption></figure>
+    <h3>エフェクト 24 種</h3>
+    <table class="grid"><tr><th>#</th><th>エフェクト</th><th>ノブ 1〜4</th></tr>${FX_LIST.map((f, i) => `<tr><td class="c">${i + 1}</td><td><b>${f.name}</b></td><td>${f.knobs.map((k) => k[0]).filter((n) => n !== '—').join('・')}</td></tr>`).join('')}</table>
+    <h3>サーキットベンド（BEND タブ）</h3>
+    <figure class="shot wide-shot"><div class="frame"><img src="img/sampler-bend.jpg" alt=""></div><figcaption>CLOCK・BIT ROT・SAG の線をつないだところ</figcaption></figure>
+    <table class="grid"><tr><th>線</th><th>起こること</th></tr>${WIRES.map((w) => `<tr><td><b>${w.name}</b></td><td>${esc(w.desc)}</td></tr>`).join('')}</table>
+    ${point('ベンドのコツ', '<p>ノブの <b>AMOUNT</b> が強さ、<b>SPEED</b> が起こる頻度。線をたくさんつないで大きい音を出すほど<b>熱</b>がたまり、本体が赤く光ると<b>暴発</b>（全部の線が一時的に強く効く）。外せば冷める。WAV に書き出しても同じ壊れ方になる。</p>')}
+    <h3>スタジオ（DAW）といっしょに</h3>
+    <figure class="shot"><div class="frame"><img src="img/studio-sampler.jpg" alt=""></div><figcaption>スタジオに BLIPPY BOOK 30 と PAKU-PAKU 16 を並べたところ</figcaption></figure>
+    <p>スタジオの「おもちゃを選ぶ」で <b>PAKU-PAKU 16（サンプラー）</b>を並べられる。サンプラーのページで作った音（このブラウザに保存されたもの）がそのまま鳴り、シーケンサーでは A-01〜J-16 の行になる。サンプラーの SONG タブの <b>→ STUDIO</b> を押すと、作ったソングをスタジオのシーケンサーに入れて開く。音を変えたら、スタジオのサンプラーの「↻ 読み直す」。</p>
+    ${warn('マイクで録るとき', '<p>ブラウザが「マイクを使ってよいか」を聞いてくるので<b>許可</b>する。スマホは公開ページ（https）で開くこと。スピーカーから音を出しながら MON を点けると、ハウリングすることがある（イヤホン推奨）。</p>')}
+    ${bubble('改造おじさん', 'PC なら Z X C V・A S D F・Q W E R・1 2 3 4 がパッドの並びと同じ形。MIDI のパッド機ならノート 36〜51 で叩けるぞ。')}`, 'sampler'),
 
   chapter('おすすめシード値コレクション', 'このシードを聞いてみろ！', `
     <p>自動作曲でできた曲の中から、盛り上がりがはっきりしていて、音割れの少ないものを選んだ。リンクを開くと同じ曲が作られる（「▶」で再生）。</p>

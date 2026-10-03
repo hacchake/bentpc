@@ -53,7 +53,7 @@ body {
 }
 .paku.land {
   grid-template-columns: 560px minmax(0, 1fr);
-  grid-template-rows: 112px 180px 178px 1fr;
+  grid-template-rows: 112px 166px 166px 1fr;
   grid-template-areas: "head banks" "lcd pads" "knobs pads" "funcs pads";
 }
 .paku.port {
@@ -145,7 +145,8 @@ body {
 .pk-tab { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
 .pk-tab[hidden] { display: none; }
 .pk-side { display: flex; flex-direction: column; align-items: center; gap: 8px; }
-.pk-grp { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+.pk-grp { display: flex; gap: 6px 5px; flex-wrap: wrap; align-items: center; }
+.paku.land .pk-tab { gap: 6px; }
 .pk-seg { display: inline-flex; border: 3px solid #2b2118; border-radius: 10px; overflow: hidden; box-shadow: 0 3px 0 #2b2118; }
 .pk-seg button { font: 700 14px 'Share Tech Mono', monospace; padding: 8px 9px; border: 0; border-right: 2px solid #2b2118; background: #f4efe0; color: #2b2118; cursor: pointer; touch-action: manipulation; }
 .pk-seg button:last-child { border-right: 0; }
@@ -158,7 +159,7 @@ body {
 .paku.levels .pk-pad .nm { font-size: 18px; color: rgba(0,0,0,.75); }
 .paku.levels .pk-pads { box-shadow: inset 0 0 0 4px #ffd43b, inset 0 6px 12px rgba(0,0,0,.6); }
 .pk-btn {
-  position: relative; font: 700 13px 'Fredoka', sans-serif; letter-spacing: .5px; padding: 9px 12px 9px 26px; border-radius: 12px; cursor: pointer;
+  position: relative; font: 700 13px 'Fredoka', sans-serif; letter-spacing: .3px; padding: 8px 10px 8px 25px; border-radius: 12px; cursor: pointer;
   color: #fff; border: 3px solid #2b2118; box-shadow: 0 4px 0 #2b2118; touch-action: manipulation; white-space: nowrap;
   background: linear-gradient(180deg, #5c95ff, #2b62d9);
 }

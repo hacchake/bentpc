@@ -15,12 +15,13 @@ import { demoSong } from './demo';
 import { exportMidi, exportWav, makeCompositor, safeName } from './export';
 import { STUDIO_TOYS, blankStudioSong } from './songs';
 import { PANEL_H, PANEL_W, mountComposerPanel } from '../compose/panel';
+import { PART_COMPOSERS } from '../compose/rules';
 import { copyText, setPageQuery, settingsFromQuery, settingsToQuery, toast } from '../compose/share';
 import type { ToyKind } from '../compose/types';
 
 const $ = (id: string) => document.getElementById(id) as HTMLElement;
-const KINDS: ToyKind[] = ['blippy', 'piko', 'dj', 'vroom', 'typo', 'tele'];
-const TOY_NAMES = ['BLIPPY BOOK 30（トイPC）', 'PIKOTONE PT-32', 'SPIN-TOT DJ-28', 'VROOMBOX VR-5', 'TYPOTRON TT-109', 'TELEKEY TK-6（映像）'];
+const KINDS: ToyKind[] = ['blippy', 'piko', 'dj', 'vroom', 'typo', 'tele', 'sampler'];
+const TOY_NAMES = ['BLIPPY BOOK 30（トイPC）', 'PIKOTONE PT-32', 'SPIN-TOT DJ-28', 'VROOMBOX VR-5', 'TYPOTRON TT-109', 'TELEKEY TK-6（映像）', 'PAKU-PAKU 16（サンプラー）'];
 const query = new URLSearchParams(location.search);
 
 // ---- 並べるおもちゃ：URL（?toys=0,5）→ 前回の並び → トイPC と TELEKEY ----
@@ -77,8 +78,9 @@ $('deck').appendChild(composeSlot);
 // with = 参加するおもちゃ（並びの何番目か、1 から）。全部のときは付けない
 const lineupQuery = (with_: number[]): Record<string, string> => (with_.length === lineup.length ? { toys: lineup.join(',') } : { toys: lineup.join(','), with: with_.map((t) => t + 1).join(',') });
 const panel = mountComposerPanel({
-  choices: lineup.map((id, i) => ({ toy: i, kind: KINDS[id], name: `${i + 1}.${toys[i].title.split(' ')[0]}` })),
-  defaultToys: lineup.map((_, i) => i),
+  // 自動作曲の係がいるおもちゃだけ（サンプラーは自分の音で作るので入れない）
+  choices: lineup.map((id, i) => ({ toy: i, kind: KINDS[id], name: `${i + 1}.${toys[i].title.split(' ')[0]}` })).filter((c) => PART_COMPOSERS[c.kind]),
+  defaultToys: lineup.map((_, i) => i).filter((i) => PART_COMPOSERS[KINDS[lineup[i]]]),
   storeKey: 'bentpc.compose.studio',
   song: () => arr.song,
   load: (song, play) => { arr.setSong(song); if (play) void transport(true, 0); },
@@ -237,7 +239,9 @@ const wavBtn = arr.addButton('WAV', '曲を最初から最後まで WAV（音声
   if (wavBtn.disabled) return;
   wavBtn.disabled = true;
   try {
-    await exportWav(arr.song, (f) => { wavBtn.textContent = `WAV ${Math.round(f * 100)}%`; }, lineup);
+    // サンプラーの音など、おもちゃ専用のデータも渡す（書き出しでも同じ音に）
+    const customs = toys.flatMap((t, i) => (t.customData?.() ?? []).map((c) => ({ toy: i, data: c.data })));
+    await exportWav(arr.song, (f) => { wavBtn.textContent = `WAV ${Math.round(f * 100)}%`; }, lineup, 48000, customs);
   } catch (e) {
     alert(`WAV を書き出せませんでした：${(e as Error).message}`);
   }
@@ -289,7 +293,7 @@ const webmBtn = arr.addButton('WebM', '曲を最初から最後まで再生し�
   onSongEnd = () => setTimeout(() => vrec?.state === 'recording' && vrec.stop(), 1200);
 });
 arr.addButton('MIDI', '曲を MIDI ファイルに書き出す（チャンネル = ラックの番号：トイPC = 1 … TELEKEY = 6。将来の VST 用）', () =>
-  exportMidi(arr.song, lineup.map((id, i) => ({ title: toys[i].title, channel: id, noteOf: (k: number) => Math.min(127, (id === 5 ? 24 : 36) + k), paramDefs: toys[i].paramDefs }))));
+  exportMidi(arr.song, lineup.map((id, i) => ({ title: toys[i].title, channel: id, noteOf: (k: number) => (id === 6 ? 36 + (k % 16) : Math.min(127, (id === 5 ? 24 : 36) + k)), paramDefs: toys[i].paramDefs }))));
 
 // ---- おもちゃを選ぶ（並べ直すとページを開き直す） ----
 {

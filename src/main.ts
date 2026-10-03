@@ -14,10 +14,10 @@ import type { ToyKind } from './compose/types';
 import { emptySong } from './core/song';
 import { startMidi } from './host/midi';
 import { download, encodeWav } from './host/wav';
-import { TOY_UIS } from './toys/uis';
+import { RACK_TOYS, TOY_UIS } from './toys/uis';
 
 const $ = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
-const audio = new AudioHost();
+const audio = new AudioHost({ toys: Array.from({ length: RACK_TOYS }, (_, i) => i) });
 const stage = $('stage');
 
 const COMMON_HELP = `
@@ -33,7 +33,7 @@ const COMMON_HELP = `
 <p>ノブ：上下にドラッグ（Shift で細かく）、ホイール、ダブルクリックで初期値</p>`;
 
 // ---- おもちゃを並べる ----
-const toys: ToyUI[] = TOY_UIS.map((make, toy) =>
+const toys: ToyUI[] = TOY_UIS.slice(0, RACK_TOYS).map((make, toy) =>
   make({
     post: (m) => audio.post({ ...m, toy }),
     start: () => audio.start(),
