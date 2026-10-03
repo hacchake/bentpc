@@ -15,6 +15,7 @@ class SamplerProcessor extends AudioWorkletProcessor {
 
   constructor() {
     super();
+    this.eng.onSeqAdd = (ptn, ev) => this.send({ type: 'seqAdd', ptn, ev });
     this.port.onmessage = (e: MessageEvent<ToSampler>) => {
       const m = e.data;
       const eng = this.eng;
@@ -25,6 +26,12 @@ class SamplerProcessor extends AudioWorkletProcessor {
         case 'roll': eng.setRoll(m.on, m.rate); break;
         case 'bpm': eng.bpm = m.bpm; break;
         case 'fx': eng.setFx(m.slot, m.fx); break;
+        case 'pattern': eng.seq.setPattern(m.i, m.p); break;
+        case 'song': eng.seq.song = m.steps.map((x) => ({ ...x })); break;
+        case 'transport': eng.transport(m.play, m.mode, m.ptn, m.rec); break;
+        case 'seqRec': eng.seq.recording = m.on && eng.seq.playing && eng.seq.mode === 'pattern'; break;
+        case 'seqSet': eng.seq.quant = m.quant; eng.seq.setSwing(m.swing); eng.seq.metro = m.metro; break;
+        case 'selPtn': eng.seq.select(m.i); break;
         case 'bend': eng.bender.st = { ...m.bend, wires: [...m.bend.wires] }; break;
         case 'release': eng.releasePad(m.pad); break;
         case 'stopAll': eng.stopAll(); break;
@@ -57,6 +64,8 @@ class SamplerProcessor extends AudioWorkletProcessor {
       this.counter = 0;
       const e = this.eng;
       this.send({ type: 'meter', inPeak: e.inPeak, outPeak: e.outPeak, rec: e.recording ? e.recSeconds : -1, waiting: e.recWaitingForSound, heat: e.bender.heat });
+      const sq = e.seq;
+      this.send({ type: 'seq', playing: sq.playing, recording: sq.recording, pos: sq.pos, ptn: sq.cur, step: sq.step, mode: sq.mode });
       const pads = e.playing();
       const key = pads.map((p) => `${p[0]}:${p[1].toFixed(3)}`).join(',');
       if (key !== this.lastPlay) {

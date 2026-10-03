@@ -11,6 +11,8 @@ import {
 import { SamplerHost } from './host';
 import { FX_LIST, SLOT_NAMES, defaultSlots, type FxSlot } from './dsp/fx';
 import { WIRES, defaultBend, type BendState } from './dsp/bend';
+import { PATTERNS, QUANTS, QUANT_NAMES, emptyPattern, type Pattern, type SongStep } from './dsp/seq';
+import { midiBytes, packProject, renderOffline, sampleWav, unpackProject, wavBytes, type RenderSetup } from './dsp/export';
 import { loadAll, loadMeta, saveMeta, savePads, type StoredPad } from './store';
 import { openEditor, type EditorApi } from './editor';
 import { normalize as edNormalize, reverse as edReverse, trim as edTrim } from './dsp/edit';
@@ -22,8 +24,15 @@ const host = new SamplerHost();
 const params: PadParams[] = Array.from({ length: PAD_COUNT }, defaultPad);
 const samples: (SampleBuf | null)[] = Array.from({ length: PAD_COUNT }, () => null);
 const names: string[] = Array.from({ length: PAD_COUNT }, () => '');
-interface Meta { bpm: number; rollRate: number; lvParam: number; fx: FxSlot[]; fxSel: number; bend: BendState }
-const meta: Meta = { bpm: 120, rollRate: 2, lvParam: 0, fx: defaultSlots(), fxSel: 0, bend: defaultBend() };
+interface Meta {
+  bpm: number; rollRate: number; lvParam: number; fx: FxSlot[]; fxSel: number; bend: BendState;
+  patterns: Pattern[]; song: SongStep[]; ptn: number; quant: number; swing: number; metro: boolean;
+}
+const newMeta = (): Meta => ({
+  bpm: 120, rollRate: 2, lvParam: 0, fx: defaultSlots(), fxSel: 0, bend: defaultBend(),
+  patterns: Array.from({ length: PATTERNS }, emptyPattern), song: [], ptn: 0, quant: 2, swing: 0.5, metro: true,
+});
+const meta: Meta = newMeta();
 let bank = 0;
 let cur = 0; // いまのパッド（0〜159）
 
@@ -78,7 +87,7 @@ dev.innerHTML = `
     </div>
     <div class="pk-tab" data-tab="edit">
       <div class="pk-grp"><button class="pk-btn mode" id="pk-ed-wave">〰 WAVE EDIT</button><button class="pk-btn orange" id="pk-ed-chop">✂ CHOP</button><button class="pk-btn mode" id="pk-ed-fit">⏱ TEMPO FIT</button></div>
-      <div class="pk-grp"><button class="pk-btn gray" id="pk-ed-norm">NORMALIZE</button><button class="pk-btn gray" id="pk-ed-rev">REVERSE</button><button class="pk-btn gray" id="pk-ed-trim" title="START〜END だけ残す">TRIM</button><button class="pk-btn gray" id="pk-ed-undo">↶ UNDO</button></div>
+      <div class="pk-grp"><button class="pk-btn gray" id="pk-ed-norm">NORMALIZE</button><button class="pk-btn gray" id="pk-ed-rev">REVERSE</button><button class="pk-btn gray" id="pk-ed-trim" title="START〜END だけ残す">TRIM</button><button class="pk-btn gray" id="pk-ed-undo">↶ UNDO</button><button class="pk-btn gray" id="pk-ed-wav" title="いまのパッドの音を WAV で保存">⤓ WAV</button></div>
       <div class="pk-note">いまのパッドの音を編集します（UNDO で 1 回だけ戻せる）</div>
     </div>
     <div class="pk-tab" data-tab="fx">
@@ -90,6 +99,16 @@ dev.innerHTML = `
       <div class="pk-bendboard" id="pk-wires">${WIRES.map((w, i) => `<button class="pk-wire" data-i="${i}" title="${w.desc}"><i></i><b>${w.name}</b></button>`).join('')}</div>
       <div class="pk-grp"><span class="pk-lbl">熱</span><span class="pk-heat"><u id="pk-heat"></u></span><button class="pk-btn gray" id="pk-unplug">ぜんぶ外す</button></div>
       <div class="pk-note" id="pk-bendnote">線をつなぐと壊れる。熱がたまると暴発（離せば冷める）</div>
+    </div>
+    <div class="pk-tab" data-tab="ptn">
+      <div class="pk-grp"><button class="pk-btn mode" id="pk-pplay">${lamp}▶ PLAY</button><button class="pk-btn red" id="pk-prec">${lamp}● REC</button><button class="pk-btn small" id="pk-metro">${lamp}METRO</button><button class="pk-btn gray" id="pk-erase">${lamp}ERASE</button><button class="pk-btn gray" id="pk-pundo">↶</button></div>
+      <div class="pk-grp"><button class="pk-btn orange" id="pk-psel">${lamp}PATTERN</button><span class="pk-num" id="pk-ptn">P01</span><span class="pk-lbl">小節</span><button class="pk-btn gray" id="pk-bars-">−</button><span class="pk-num" id="pk-bars">2</span><button class="pk-btn gray" id="pk-bars+">＋</button><button class="pk-btn gray" id="pk-pclear">CLEAR</button></div>
+      <div class="pk-grp"><button class="pk-btn mode" id="pk-step">${lamp}STEP</button><button class="pk-btn gray" id="pk-sbar-">◀</button><span class="pk-num" id="pk-sbar">1/2</span><button class="pk-btn gray" id="pk-sbar+">▶</button><span class="pk-seg" id="pk-quant">${QUANT_NAMES.map((n, i) => `<button data-i="${i}">${n}</button>`).join('')}</span></div>
+    </div>
+    <div class="pk-tab" data-tab="song">
+      <div class="pk-chain" id="pk-chain"></div>
+      <div class="pk-grp"><button class="pk-btn orange" id="pk-sadd">＋ P01</button><button class="pk-btn gray" id="pk-sdel">削除</button><button class="pk-btn gray" id="pk-srep-">×−</button><button class="pk-btn gray" id="pk-srep+">×＋</button><button class="pk-btn mode" id="pk-splay">${lamp}▶ SONG</button></div>
+      <div class="pk-grp"><button class="pk-btn gray" id="pk-xwp">⤓ WAV パターン</button><button class="pk-btn gray" id="pk-xws">⤓ WAV ソング</button><button class="pk-btn gray" id="pk-xmid">⤓ MIDI</button><button class="pk-btn gray" id="pk-xsave">💾 保存</button><button class="pk-btn gray" id="pk-xload">📂 読込</button></div>
     </div>
     <div class="pk-side">
       <div class="pk-vol"><div class="knob red" id="pk-master"><div class="cap"></div></div><span>VOL</span></div>
@@ -138,15 +157,20 @@ window.addEventListener('resize', fit);
 fit();
 
 // ---------------- 機能タブ ----------------
-const TABS = [['pad', 'PAD'], ['play', 'PLAY'], ['edit', 'EDIT'], ['fx', 'FX'], ['bend', 'BEND']] as const;
+const TABS = [['pad', 'PAD'], ['play', 'PLAY'], ['edit', 'EDIT'], ['fx', 'FX'], ['bend', 'BEND'], ['ptn', 'PATTERN'], ['song', 'SONG']] as const;
 let tab = 'pad';
 q('pk-tabs').innerHTML = TABS.map(([id, n]) => `<button data-tab="${id}">${n}</button>`).join('');
 function setTab(t: string): void {
   tab = t;
   // FX・BEND を開いたら、ノブもそのページに
-  if (t === 'fx') { page = PAGES.findIndex((x) => x[0] === 'FX'); showKnobs(); showFx(); }
-  else if (t === 'bend') { page = PAGES.findIndex((x) => x[0] === 'BEND'); showKnobs(); showBend(); }
-  else if (PAGES[page][0] === 'FX' || PAGES[page][0] === 'BEND') { page = 0; showKnobs(); }
+  const want = ({ fx: 'FX', bend: 'BEND', ptn: 'SEQ', song: 'SEQ' } as Record<string, string>)[t];
+  if (want) { page = PAGES.findIndex((x) => x[0] === want); showKnobs(); }
+  else if (['FX', 'BEND', 'SEQ'].includes(PAGES[page][0])) { page = 0; showKnobs(); }
+  if (t === 'fx') showFx();
+  if (t === 'bend') showBend();
+  if (t !== 'ptn' && padMode !== 'normal') setPadMode('normal');
+  if (t === 'ptn' || t === 'song') showSeq();
+  drawWave();
   dev.querySelectorAll<HTMLElement>('.pk-tabs button').forEach((b) => b.classList.toggle('on', b.dataset.tab === t));
   dev.querySelectorAll<HTMLElement>('.pk-tab').forEach((x) => (x.hidden = x.dataset.tab !== t));
 }
@@ -201,6 +225,11 @@ const PAGES: [string, KDef[]][] = [
     set: (k) => { const f = meta.fx[meta.fxSel]; f.k[i] = k; sendFx(meta.fxSel); },
     fmt: () => FX_LIST[meta.fx[meta.fxSel].type].knobs[i][1](meta.fx[meta.fxSel].k[i], { bpm: meta.bpm }),
   }))],
+  ['SEQ', [
+    { name: 'SWING', def: 0, get: () => (meta.swing - 0.5) / 0.25, set: (k) => { meta.swing = 0.5 + k * 0.25; sendSeqSet(); }, fmt: () => `${Math.round(meta.swing * 100)}%` },
+    { name: 'BARS', def: 1 / 7, get: () => (curPattern().bars - 1) / 7, set: (k) => setBars(1 + Math.round(k * 7)), fmt: () => `${curPattern().bars}` },
+    NONE, NONE,
+  ]],
   ['BEND', [
     { name: 'AMOUNT', def: 0.5, get: () => meta.bend.amount, set: (k) => { meta.bend.amount = k; sendBend(); }, fmt: () => pct(meta.bend.amount) },
     { name: 'SPEED', def: 0.5, get: () => meta.bend.speed, set: (k) => { meta.bend.speed = k; sendBend(); }, fmt: () => pct(meta.bend.speed) },
@@ -354,10 +383,32 @@ function levelOf(i: number): { vel?: number; mod: TrigMod; label: string } {
   }
 }
 
+/** パッドの見た目の位置 → ステップ番号（左上が 1、右下が 16） */
+const stepOfPad = (i: number) => (3 - Math.floor(i / 4)) * 4 + (i % 4);
 function renderPads(): void {
+  dev.classList.toggle('pmode-psel', padMode === 'psel');
+  dev.classList.toggle('pmode-step', padMode === 'step');
+  dev.classList.toggle('pmode-erase', padMode === 'erase');
   for (let i = 0; i < PADS; i++) {
     const pad = bank * PADS + i;
     const el = padEls[i];
+    el.classList.remove('stepon', 'ptnhas');
+    if (padMode === 'psel') {
+      el.classList.remove('empty');
+      el.classList.toggle('sel', i === meta.ptn);
+      el.classList.toggle('ptnhas', meta.patterns[i].events.length > 0);
+      (el.querySelector('.nm') as HTMLElement).textContent = `P${String(i + 1).padStart(2, '0')}${meta.patterns[i].events.length ? ` (${meta.patterns[i].events.length})` : ''}`;
+      continue;
+    }
+    if (padMode === 'step') {
+      const st = stepOfPad(i), t = stepBar * 4 + st * 0.25;
+      const on = curPattern().events.some((e) => e.pad === stepPad && Math.abs(e.t - t) < 0.01);
+      el.classList.remove('empty');
+      el.classList.toggle('sel', false);
+      el.classList.toggle('stepon', on);
+      (el.querySelector('.nm') as HTMLElement).textContent = `${st + 1}`;
+      continue;
+    }
     if (lvSrc >= 0) {
       el.classList.remove('empty');
       el.classList.toggle('sel', false);
@@ -421,6 +472,7 @@ function computePeaks(s: SampleBuf, W: number, a: number, b: number): Float32Arr
   return pk;
 }
 function drawWave(): void {
+  if (tab === 'ptn' || tab === 'song') { drawPattern(); return; }
   const W = wave.width, H = wave.height, c = wctx;
   c.fillStyle = '#a9c98a';
   c.fillRect(0, 0, W, H);
@@ -516,6 +568,21 @@ host.onMessage = (m: FromSampler) => {
     }
     drawWave();
     editor?.drawPlay(playPos);
+  } else if (m.type === 'seq') {
+    seqState = m;
+    if (m.ptn !== meta.ptn && m.playing) { meta.ptn = m.ptn; showSeq(); }
+    q('pk-pplay').classList.toggle('lit', m.playing && m.mode === 'pattern');
+    q('pk-splay').classList.toggle('lit', m.playing && m.mode === 'song');
+    q('pk-prec').classList.toggle('lit', m.recording);
+    q('pk-recled').classList.toggle('on', m.recording || mode === 'recording' || mode === 'resampling');
+    if (tab === 'ptn' || tab === 'song') drawPattern();
+    if (tab === 'song') showChainPos();
+  } else if (m.type === 'seqAdd') {
+    const p = meta.patterns[m.ptn];
+    p.events.push(m.ev);
+    p.events.sort((a, b) => a.t - b.t);
+    markMeta();
+    if (padMode === 'psel') renderPads();
   } else if (m.type === 'recorded') {
     const pad = recPad;
     recPad = -1;
@@ -546,6 +613,7 @@ function trimSilence(s: SampleBuf): SampleBuf {
 const held = new Map<number, number>(); // pointerId → パッド（0〜15）
 /** 実際に鳴らす（16 レベル中は元のパッドを変化させて） */
 function play(i: number, vel: number): number {
+  if (padMode !== 'normal' && padMode !== 'erase') return -1;
   if (lvSrc >= 0) {
     const lv = levelOf(i);
     host.post({ type: 'trig', pad: lvSrc, vel: lv.vel ?? (fixedVel ? 1 : vel), mod: lv.mod });
@@ -558,6 +626,9 @@ function play(i: number, vel: number): number {
 }
 function padDown(i: number, vel: number): void {
   const pad = bank * PADS + i;
+  if (padMode === 'psel') { selectPattern(i); setPadMode('normal'); return; }
+  if (padMode === 'step') { toggleStep(i); return; }
+  if (padMode === 'erase') { erasePad(pad); return; }
   if (lvSrc < 0) switch (mode) {
     case 'recPick':
     case 'resPick': {
@@ -590,9 +661,10 @@ function padDown(i: number, vel: number): void {
   const played = play(i, vel);
   padEls[i].classList.add('hit');
   setTimeout(() => padEls[i].classList.remove('hit'), 90);
-  if (lvSrc < 0 && played !== cur) select(played);
+  if (lvSrc < 0 && played >= 0 && played !== cur) select(played);
 }
 function padUp(i: number): void {
+  if (padMode === 'psel' || padMode === 'step' || padMode === 'erase') return;
   host.post({ type: 'release', pad: lvSrc >= 0 ? lvSrc : bank * PADS + i });
 }
 const whenReady = (f: () => void) => { if (host.running) f(); else void host.start().then(f); };
@@ -786,6 +858,277 @@ click('pk-ed-undo', () => {
   msg('ひとつ戻しました', 2000);
 });
 
+click('pk-ed-wav', () => {
+  const smp = samples[cur];
+  if (!smp) { msg('からっぽのパッドです', 2000); return; }
+  download(sampleWav(smp), `paku16-${padLabel(cur)}-${(names[cur] || 'pad').replace(/[^\w-]+/g, '_')}.wav`, 'audio/wav');
+});
+
+// ---------------- PATTERN タブ：パターンの録音・ステップ入力 ----------------
+type PadMode = 'normal' | 'psel' | 'step' | 'erase';
+let padMode: PadMode = 'normal';
+let stepBar = 0;
+let stepPad = 0;
+let seqState: { playing: boolean; recording: boolean; pos: number; ptn: number; step: number; mode: 'pattern' | 'song' } = { playing: false, recording: false, pos: 0, ptn: 0, step: 0, mode: 'pattern' };
+let pundo: { i: number; p: Pattern } | null = null;
+const curPattern = () => meta.patterns[meta.ptn];
+const ptnName = (i: number) => `P${String(i + 1).padStart(2, '0')}`;
+function setPadMode(m: PadMode): void {
+  padMode = m;
+  if (m === 'step') { stepPad = cur; stepBar = Math.min(stepBar, curPattern().bars - 1); }
+  if (m !== 'normal' && lvSrc >= 0) setLevels(false);
+  q('pk-psel').classList.toggle('lit', m === 'psel');
+  q('pk-step').classList.toggle('lit', m === 'step');
+  q('pk-erase').classList.toggle('lit', m === 'erase');
+  renderPads();
+  showSeq();
+  msg(m === 'psel' ? 'パターンをパッドで選ぶ（P01〜P16）' : m === 'step' ? `STEP：${padLabel(stepPad)} ${names[stepPad]} を 16 分で置く（パッド = ステップ、左上が 1）` : m === 'erase' ? 'ERASE：消したい音のパッドを押す（そのパッドの音が全部消える）' : HINT);
+}
+function sendPattern(i: number): void {
+  host.post({ type: 'pattern', i, p: meta.patterns[i] });
+  markMeta();
+  if (tab === 'ptn' || tab === 'song') drawPattern();
+}
+function sendSeqSet(): void {
+  host.post({ type: 'seqSet', quant: QUANTS[meta.quant], swing: meta.swing, metro: meta.metro });
+  markMeta();
+  showSeq();
+}
+function editPattern(f: (p: Pattern) => void): void {
+  pundo = { i: meta.ptn, p: { bars: curPattern().bars, events: curPattern().events.map((e) => ({ ...e })) } };
+  f(curPattern());
+  sendPattern(meta.ptn);
+  renderPads();
+}
+function setBars(b: number): void {
+  b = Math.max(1, Math.min(8, b));
+  if (b === curPattern().bars) return;
+  editPattern((p) => { p.bars = b; });
+  stepBar = Math.min(stepBar, b - 1);
+  showSeq();
+  showKnobs();
+}
+function selectPattern(i: number): void {
+  meta.ptn = i;
+  host.post({ type: 'selPtn', i });
+  markMeta();
+  stepBar = 0;
+  showSeq();
+  msg(`${ptnName(i)}${seqState.playing ? '（いまのパターンの終わりで替わる）' : ''}`, 2000);
+}
+function toggleStep(i: number): void {
+  const t = stepBar * 4 + stepOfPad(i) * 0.25;
+  editPattern((p) => {
+    const k = p.events.findIndex((e) => e.pad === stepPad && Math.abs(e.t - t) < 0.01);
+    if (k >= 0) p.events.splice(k, 1);
+    else { p.events.push({ t, pad: stepPad, vel: fixedVel ? 1 : 0.85, len: 0.25 }); p.events.sort((a, b) => a.t - b.t); }
+  });
+  if (!curPattern().events.some((e) => e.pad === stepPad && Math.abs(e.t - t) < 0.01)) return;
+  whenReady(() => { host.post({ type: 'trig', pad: stepPad, vel: 0.85 }); setTimeout(() => host.post({ type: 'release', pad: stepPad }), 120); });
+}
+function erasePad(pad: number): void {
+  const n = curPattern().events.filter((e) => e.pad === pad).length;
+  if (!n) { msg(`${padLabel(pad)} の音はこのパターンにありません`, 2000); return; }
+  editPattern((p) => { p.events = p.events.filter((e) => e.pad !== pad); });
+  msg(`${padLabel(pad)} の音を ${n} 個消しました`, 2000);
+}
+function showSeq(): void {
+  q('pk-ptn').textContent = ptnName(meta.ptn);
+  q('pk-bars').textContent = String(curPattern().bars);
+  q('pk-sbar').textContent = `${stepBar + 1}/${curPattern().bars}`;
+  q('pk-metro').classList.toggle('lit', meta.metro);
+  q('pk-quant').querySelectorAll<HTMLElement>('button').forEach((b) => b.classList.toggle('on', Number(b.dataset.i) === meta.quant));
+  q('pk-sadd').textContent = `＋ ${ptnName(meta.ptn)}`;
+  renderChain();
+  if (tab === 'ptn' || tab === 'song') drawPattern();
+}
+/** 液晶：パターンの中身（行 = パッド、横 = 時間） */
+function drawPattern(): void {
+  const W = wave.width, H = wave.height, c = wctx;
+  c.fillStyle = '#a9c98a';
+  c.fillRect(0, 0, W, H);
+  const p = meta.patterns[seqState.playing ? seqState.ptn : meta.ptn];
+  const L = p.bars * 4;
+  const rows = [...new Set(p.events.map((e) => e.pad))].sort((a, b) => a - b);
+  const X = (t: number) => (t / L) * W;
+  for (let b = 0; b <= L * 4; b++) {
+    c.fillStyle = b % 16 === 0 ? 'rgba(32,48,26,.6)' : b % 4 === 0 ? 'rgba(32,48,26,.3)' : 'rgba(32,48,26,.08)';
+    c.fillRect(X(b / 4), 0, 1, H);
+  }
+  if (padMode === 'step') { c.fillStyle = 'rgba(255,246,176,.5)'; c.fillRect(X(stepBar * 4), 0, X(4), H); }
+  const rh = Math.min(16, (H - 4) / Math.max(1, rows.length));
+  c.font = '700 10px "Share Tech Mono", monospace';
+  rows.forEach((pad, r) => {
+    const y = 2 + r * rh;
+    c.fillStyle = 'rgba(32,48,26,.12)';
+    c.fillRect(0, y, W, rh - 1);
+    c.fillStyle = '#20301a';
+    for (const e of p.events) if (e.pad === pad) c.fillRect(X(e.t), y + 1, Math.max(3, X(Math.min(e.len, L - e.t))), rh - 3);
+    c.fillStyle = '#5a6a3a';
+    c.fillText(padLabel(pad), W - 34, y + rh - 4);
+  });
+  if (!rows.length) {
+    c.fillStyle = '#2b3a1c';
+    c.font = '700 16px "Share Tech Mono", monospace';
+    c.textAlign = 'center';
+    c.fillText(`${ptnName(meta.ptn)}：からっぽ（● REC か STEP で入れる）`, W / 2, H / 2 + 6);
+    c.textAlign = 'left';
+  }
+  if (seqState.playing) { c.fillStyle = '#c0281c'; c.fillRect(X(seqState.pos), 0, 2, H); }
+}
+click('pk-pplay', () => {
+  if (seqState.playing) host.post({ type: 'transport', play: false });
+  else host.post({ type: 'transport', play: true, mode: 'pattern', ptn: meta.ptn });
+});
+click('pk-prec', () => {
+  if (!seqState.playing) {
+    pundo = { i: meta.ptn, p: { bars: curPattern().bars, events: curPattern().events.map((e) => ({ ...e })) } };
+    host.post({ type: 'transport', play: true, mode: 'pattern', ptn: meta.ptn, rec: true });
+    msg('● 録音中：パッドを叩くと重なっていく（● REC でやめる・■ で止める）', 3000);
+  } else {
+    if (!seqState.recording) pundo = { i: meta.ptn, p: { bars: curPattern().bars, events: curPattern().events.map((e) => ({ ...e })) } };
+    host.post({ type: 'seqRec', on: !seqState.recording });
+  }
+});
+click('pk-metro', () => { meta.metro = !meta.metro; sendSeqSet(); });
+click('pk-erase', () => setPadMode(padMode === 'erase' ? 'normal' : 'erase'));
+click('pk-pundo', () => {
+  if (!pundo) { msg('戻せるものがありません', 2000); return; }
+  meta.patterns[pundo.i] = pundo.p;
+  sendPattern(pundo.i);
+  pundo = null;
+  renderPads();
+  showSeq();
+  msg('パターンを 1 つ戻しました', 2000);
+});
+click('pk-psel', () => setPadMode(padMode === 'psel' ? 'normal' : 'psel'));
+click('pk-bars-', () => setBars(curPattern().bars - 1));
+click('pk-bars+', () => setBars(curPattern().bars + 1));
+click('pk-pclear', () => { if (curPattern().events.length && confirm(`${ptnName(meta.ptn)} の音を全部消しますか？（↶ で戻せる）`)) editPattern((p) => { p.events = []; }); });
+click('pk-step', () => setPadMode(padMode === 'step' ? 'normal' : 'step'));
+click('pk-sbar-', () => { stepBar = (stepBar - 1 + curPattern().bars) % curPattern().bars; renderPads(); showSeq(); });
+click('pk-sbar+', () => { stepBar = (stepBar + 1) % curPattern().bars; renderPads(); showSeq(); });
+q('pk-quant').querySelectorAll<HTMLElement>('button').forEach((b) => b.addEventListener('click', () => { meta.quant = Number(b.dataset.i); sendSeqSet(); }));
+
+// ---------------- SONG タブ：パターンをつなぐ・書き出し ----------------
+let songSel = -1;
+function sendSong(): void {
+  host.post({ type: 'song', steps: meta.song });
+  markMeta();
+  renderChain();
+}
+function renderChain(): void {
+  const el = q('pk-chain');
+  el.innerHTML = meta.song.length
+    ? meta.song.map((x, i) => `<button data-i="${i}" class="${i === songSel ? 'on' : ''}">${ptnName(x.ptn)}<small>×${x.reps}</small></button>`).join('<i>→</i>')
+    : '<span>（パターンを ＋ でつないで 1 曲に）</span>';
+  el.querySelectorAll<HTMLElement>('button').forEach((b) => b.addEventListener('click', () => { songSel = Number(b.dataset.i); renderChain(); }));
+  showChainPos();
+}
+function showChainPos(): void {
+  q('pk-chain').querySelectorAll<HTMLElement>('button').forEach((b) => b.classList.toggle('now', seqState.playing && seqState.mode === 'song' && Number(b.dataset.i) === seqState.step));
+}
+click('pk-sadd', () => {
+  const at = songSel >= 0 ? songSel + 1 : meta.song.length;
+  meta.song.splice(at, 0, { ptn: meta.ptn, reps: 1 });
+  songSel = at;
+  sendSong();
+});
+click('pk-sdel', () => { if (songSel < 0 || songSel >= meta.song.length) return; meta.song.splice(songSel, 1); songSel = Math.min(songSel, meta.song.length - 1); sendSong(); });
+click('pk-srep-', () => { const x = meta.song[songSel]; if (x) { x.reps = Math.max(1, x.reps - 1); sendSong(); } });
+click('pk-srep+', () => { const x = meta.song[songSel]; if (x) { x.reps = Math.min(16, x.reps + 1); sendSong(); } });
+click('pk-splay', () => {
+  if (seqState.playing) { host.post({ type: 'transport', play: false }); return; }
+  if (!meta.song.length) { msg('先にパターンを ＋ でつないでね', 2500); return; }
+  host.post({ type: 'transport', play: true, mode: 'song' });
+});
+
+function download(bytes: Uint8Array, name: string, type: string): void {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([bytes as BlobPart], { type }));
+  a.download = name;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 20000);
+}
+const setup = (): RenderSetup => ({ samples, params, fx: meta.fx, bend: meta.bend, bpm: meta.bpm, swing: meta.swing, patterns: meta.patterns, song: meta.song });
+let exporting = false;
+function exportWav(m: 'pattern' | 'song'): void {
+  if (exporting) return;
+  if (m === 'song' && !meta.song.length) { msg('ソングがからっぽです', 2500); return; }
+  if (m === 'pattern' && !curPattern().events.length) { msg('パターンがからっぽです', 2500); return; }
+  exporting = true;
+  const g = renderOffline(setup(), m, meta.ptn, 44100, m === 'pattern' ? 2 : 1);
+  const tick = () => {
+    const t0 = performance.now();
+    let r = g.next();
+    while (!r.done && performance.now() - t0 < 30) r = g.next();
+    if (!r.done) { msg(`書き出し中… ${Math.round(r.value * 100)}%`); setTimeout(tick, 0); return; }
+    const [L, R] = r.value;
+    download(wavBytes(L, R, 44100), m === 'pattern' ? `paku16-${ptnName(meta.ptn)}.wav` : 'paku16-song.wav', 'audio/wav');
+    exporting = false;
+    msg(`WAV を書き出しました（${(L.length / 44100).toFixed(1)} 秒${m === 'pattern' ? '・2 回くり返し' : ''}）`, 3000);
+  };
+  tick();
+}
+click('pk-xwp', () => exportWav('pattern'));
+click('pk-xws', () => exportWav('song'));
+click('pk-xmid', () => {
+  const m = meta.song.length ? 'song' : 'pattern';
+  download(midiBytes(setup(), m, meta.ptn), m === 'song' ? 'paku16-song.mid' : `paku16-${ptnName(meta.ptn)}.mid`, 'audio/midi');
+  msg(`MIDI を書き出しました（${m === 'song' ? 'ソング' : ptnName(meta.ptn)}。バンク A〜J = チャンネル 1〜10、パッド 1〜16 = ノート 36〜51）`, 4000);
+});
+click('pk-xsave', () => {
+  const pads = Array.from({ length: PAD_COUNT }, (_, i) => ({ pad: i, name: names[i], params: params[i], sample: samples[i] }));
+  const bytes = packProject(meta, pads);
+  download(bytes, 'paku16-project.paku', 'application/octet-stream');
+  msg(`プロジェクトを保存しました（${(bytes.length / 1048576).toFixed(1)}MB）`, 3000);
+});
+const projIn = document.createElement('input');
+projIn.type = 'file';
+projIn.accept = '.paku';
+projIn.hidden = true;
+document.body.appendChild(projIn);
+click('pk-xload', () => projIn.click());
+projIn.addEventListener('change', async () => {
+  const f = projIn.files?.[0];
+  projIn.value = '';
+  if (!f) return;
+  try {
+    const { meta: m, pads } = unpackProject<Meta>(new Uint8Array(await f.arrayBuffer()));
+    if (!confirm('いまの音・パターン・ソングは全部、このファイルの中身に置き換わります。よろしいですか？')) return;
+    host.post({ type: 'transport', play: false });
+    const got = new Map(pads.map((p) => [p.pad, p]));
+    for (let i = 0; i < PAD_COUNT; i++) {
+      const p = got.get(i);
+      setPad(i, p?.name ?? '', p?.sample ?? null, { ...defaultPad(), ...(p?.params ?? {}) });
+    }
+    Object.assign(meta, newMeta(), m);
+    applyMeta();
+    setBank(0);
+    msg(`「${f.name}」を読み込みました`, 3000);
+  } catch (e) {
+    msg(e instanceof Error ? e.message : 'このファイルは読めませんでした', 3500);
+  }
+});
+
+/** パッド以外の設定（テンポ・エフェクト・ベンド・パターン）をエンジンと画面に反映 */
+function applyMeta(): void {
+  if (!Array.isArray(meta.fx) || meta.fx.length !== 3) meta.fx = defaultSlots();
+  meta.bend = { ...defaultBend(), ...meta.bend };
+  if (!Array.isArray(meta.patterns) || meta.patterns.length !== PATTERNS) meta.patterns = Array.from({ length: PATTERNS }, emptyPattern);
+  if (!Array.isArray(meta.song)) meta.song = [];
+  setBpm(meta.bpm);
+  sendRoll();
+  meta.fx.forEach((_, i) => host.post({ type: 'fx', slot: i, fx: meta.fx[i] }));
+  host.post({ type: 'bend', bend: meta.bend });
+  meta.patterns.forEach((_, i) => host.post({ type: 'pattern', i, p: meta.patterns[i] }));
+  host.post({ type: 'song', steps: meta.song });
+  host.post({ type: 'selPtn', i: meta.ptn });
+  sendSeqSet();
+  showBend();
+  markMeta();
+}
+
 // ---------------- PC のキー ----------------
 // Z X C V = 1〜4、A S D F = 5〜8、Q W E R = 9〜12、1 2 3 4 = 13〜16（パッドの並びと同じ形）
 const KEYMAP: Record<string, number> = {
@@ -803,7 +1146,7 @@ window.addEventListener('keydown', (e) => {
   }
   if (e.code === 'BracketLeft') setBank(bank - 1);
   else if (e.code === 'BracketRight') setBank(bank + 1);
-  else if (e.code === 'Space') { e.preventDefault(); host.post({ type: 'stopAll' }); }
+  else if (e.code === 'Space') { e.preventDefault(); if (seqState.playing) host.post({ type: 'transport', play: false }); else host.post({ type: 'stopAll' }); }
 });
 window.addEventListener('keyup', (e) => {
   const i = KEYMAP[e.code];
@@ -870,6 +1213,15 @@ $('pk-help').innerHTML = `
     <tr><td>24 種類</td><td>${FX_LIST.map((f) => f.name).join('・')}</td></tr>
     <tr><td colspan="2"><b>BEND タブ</b></td></tr>
     <tr><td>ジャンパー線 6 本</td><td>${WIRES.map((w) => `${w.name}＝${w.desc}`).join('／')}。ノブの AMOUNT（強さ）・SPEED（頻度）。熱がたまると暴発する（外せば冷める）</td></tr>
+    <tr><td colspan="2"><b>PATTERN タブ</b></td></tr>
+    <tr><td>▶ PLAY / ● REC</td><td>いまのパターンをくり返し鳴らす／叩いた音を録音（重ね録り、QUANT でそろえる）。METRO はクリック、↶ で 1 つ戻す</td></tr>
+    <tr><td>PATTERN</td><td>押してから、パッドで P01〜P16 を選ぶ（再生中は、いまのパターンの終わりで替わる）。小節は 1〜8、CLEAR で全部消す</td></tr>
+    <tr><td>STEP</td><td>選んでいたパッドの音を、16 分のマス（パッド = ステップ、左上が 1）で置く／消す。◀ ▶ で小節</td></tr>
+    <tr><td>ERASE</td><td>点けてからパッドを押すと、そのパッドの音がパターンから全部消える</td></tr>
+    <tr><td>SWING</td><td>ノブ（SEQ ページ）。16 分の裏を遅らせて跳ねさせる（50〜75%）</td></tr>
+    <tr><td colspan="2"><b>SONG タブ</b></td></tr>
+    <tr><td>＋ / 削除 / × ± / ▶ SONG</td><td>いまのパターンを、選んだ所の後ろにつなぐ・くり返し回数・ソングを鳴らす</td></tr>
+    <tr><td>書き出し</td><td>WAV（パターンは 2 回分・ソングは全部）・MIDI（ソングが無ければパターン）・💾 プロジェクト丸ごと（.paku）を保存／📂 読み込み。パッド 1 つの WAV は EDIT タブ</td></tr>
     <tr><td>PC のキー</td><td>Z X C V・A S D F・Q W E R・1 2 3 4 がパッド（下の段から）。スペースで STOP</td></tr>
     <tr><td>MIDI</td><td>上の MIDI を押すと、MIDI 機器のノート 36〜51 でパッド 1〜16</td></tr>
   </table>
@@ -885,13 +1237,7 @@ $('pk-cover').addEventListener('pointerdown', () => {
 (async () => {
   const [stored, savedMeta] = await Promise.all([loadAll(), loadMeta<Partial<Meta>>()]);
   if (savedMeta) Object.assign(meta, savedMeta);
-  if (!Array.isArray(meta.fx) || meta.fx.length !== 3) meta.fx = defaultSlots();
-  meta.bend = { ...defaultBend(), ...meta.bend };
-  setBpm(meta.bpm);
-  sendRoll();
-  meta.fx.forEach((_, i) => host.post({ type: 'fx', slot: i, fx: meta.fx[i] }));
-  host.post({ type: 'bend', bend: meta.bend });
-  showBend();
+  applyMeta();
   if (stored && stored.length) {
     for (const s of stored) {
       if (s.pad < 0 || s.pad >= PAD_COUNT) continue;

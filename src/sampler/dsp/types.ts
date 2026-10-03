@@ -84,6 +84,7 @@ export const ROLL_NAMES = ['1/4', '1/8', '1/16', '1/32', '1/8T', '1/16T'];
 
 import type { FxSlot } from './fx';
 import type { BendState } from './bend';
+import type { Pattern, SeqEvent, SongStep } from './seq';
 
 /** 画面 ⇔ AudioWorklet のメッセージ */
 export type ToSampler =
@@ -102,10 +103,20 @@ export type ToSampler =
   | { type: 'bpm'; bpm: number }
   /** エフェクト：slot 0 = BUS 1、1 = BUS 2、2 = MASTER */
   | { type: 'fx'; slot: number; fx: FxSlot }
-  | { type: 'bend'; bend: BendState };
+  | { type: 'bend'; bend: BendState }
+  // ---- パターン・ソング ----
+  | { type: 'pattern'; i: number; p: Pattern }
+  | { type: 'song'; steps: SongStep[] }
+  /** 再生／停止。rec = 録音しながら */
+  | { type: 'transport'; play: boolean; mode?: 'pattern' | 'song'; ptn?: number; rec?: boolean }
+  | { type: 'seqRec'; on: boolean }
+  | { type: 'seqSet'; quant: number; swing: number; metro: boolean }
+  | { type: 'selPtn'; i: number };
 
 export type FromSampler =
   | { type: 'meter'; inPeak: number; outPeak: number; rec: number; waiting: boolean; heat: number }
   /** 鳴っているパッドと、その再生位置（サンプル全体の 0〜1） */
   | { type: 'play'; pads: [number, number][] }
-  | { type: 'recorded'; data: SampleBuf | null };
+  | { type: 'recorded'; data: SampleBuf | null }
+  | { type: 'seq'; playing: boolean; recording: boolean; pos: number; ptn: number; step: number; mode: 'pattern' | 'song' }
+  | { type: 'seqAdd'; ptn: number; ev: SeqEvent };

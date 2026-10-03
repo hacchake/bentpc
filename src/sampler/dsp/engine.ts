@@ -1,6 +1,7 @@
 // サンプラーの音の中心（DOM 非依存）。160 パッドの音と設定を持ち、32 ボイスで鳴らして、ステレオで出す。
 // 録音（マイク入力・リサンプル）もここでする。
 import { Bender } from './bend';
+import { PatternPlayer, type SeqEvent } from './seq';
 import { FX_LIST, defaultSlots, type Effect, type FxSlot } from './fx';
 import { PADS, PAD_COUNT, REC_MAX_SEC, attackSec, cutoffHz, defaultPad, releaseSec, volGain, type PadParams, type SampleBuf, type TrigMod } from './types';
 
@@ -71,10 +72,31 @@ export class SamplerEngine {
   readonly bender: Bender;
   private bufs: Float32Array[] = [];
 
+  // パターンシーケンサー
+  readonly seq: PatternPlayer;
+  /** 録音した音（画面へ知らせる） */
+  onSeqAdd: (ptn: number, ev: SeqEvent) => void = () => {};
+  private clickLeft = 0;
+  private clickPh = 0;
+  private clickHz = 1000;
+
   constructor(readonly sr: number) {
     this.killCoef = Math.exp(-1 / (KILL_SEC * sr));
     this.fx = this.slots.map((s) => FX_LIST[s.type].make(sr));
     this.bender = new Bender(sr);
+    this.seq = new PatternPlayer({
+      fire: (pad, vel, mod) => this.fire(pad, vel, mod),
+      release: (pad) => this.releaseVoices(pad),
+      click: (accent) => { this.clickLeft = Math.round(this.sr * 0.03); this.clickPh = 0; this.clickHz = accent ? 1600 : 1000; },
+      added: (ptn, ev) => this.onSeqAdd(ptn, ev),
+    });
+  }
+
+  /** 再生／停止（rec = 録音しながら） */
+  transport(play: boolean, mode: 'pattern' | 'song' = 'pattern', ptn = this.seq.cur, rec = false): void {
+    if (!play) { this.seq.stop(); return; }
+    this.seq.start(mode, ptn);
+    this.seq.recording = rec && mode === 'pattern';
   }
 
   setFx(slot: number, f: FxSlot): void {
@@ -85,7 +107,7 @@ export class SamplerEngine {
 
   /** いまの拍（テンポに合わせるエフェクト用。止まっていても時計で進む） */
   beatNow(): number {
-    return (this.clock * this.bpm) / 60 / this.sr;
+    return this.seq.playing ? this.seq.played : (this.clock * this.bpm) / 60 / this.sr;
   }
 
   setSample(pad: number, data: SampleBuf | null): void {
@@ -121,6 +143,7 @@ export class SamplerEngine {
 
   /** パッドを鳴らす。vel は 0〜1、mod は 16 レベルの変化。ロール中は押している間くり返す */
   trigger(pad: number, vel = 1, mod?: TrigMod): void {
+    this.seq.noteOn(pad, vel, mod);
     if (this.roll.on) this.held.set(pad, { vel, mod, next: this.clock + this.rollFrames() });
     this.fire(pad, vel, mod);
   }
@@ -180,13 +203,25 @@ export class SamplerEngine {
   /** パッドを離した（GATE のパッドだけ止まる・ロールも止まる） */
   releasePad(pad: number): void {
     this.held.delete(pad);
+    this.seq.noteOff(pad);
+    this.releaseVoices(pad);
+  }
+
+  /** GATE のパッドの音を止める（シーケンサーの音の終わりにも使う） */
+  private releaseVoices(pad: number): void {
     for (const v of this.voices) {
       if (v.active && v.pad === pad && v.gate && v.stage !== 2) v.release(Math.exp(-1 / (releaseSec(this.pads[pad].release) * this.sr)));
     }
   }
 
+  /** くり返している音（LOOP）だけ、余韻を残して止める（書き出しの終わり） */
+  stopLoops(): void {
+    for (const v of this.voices) if (v.active && v.loop) v.release(Math.exp(-1 / (0.05 * this.sr)));
+  }
+
   stopAll(): void {
     this.held.clear();
+    this.seq.stop();
     for (const v of this.voices) if (v.active) v.release(this.killCoef);
   }
 
@@ -286,16 +321,29 @@ export class SamplerEngine {
     const mul = this.bender.active ? this.bender.rateMul(n) : 1;
     // 予定（ロールなど）の時刻で区切って鳴らす（ブロックの途中でも、ぴったりの時刻に）
     let off = 0;
+    const fpb = (60 / this.bpm) * this.sr; // 1 拍のサンプル数
     while (off < n) {
       this.fireDue();
-      const len = Math.max(1, this.untilNext(n - off));
+      this.seq.fireDue();
+      let len = Math.max(1, this.untilNext(n - off));
+      if (this.seq.playing) len = Math.max(1, Math.min(len, Math.ceil(this.seq.untilNext((n - off) / fpb) * fpb - 1e-6)));
       for (const v of this.voices) {
         if (!v.active) continue;
         const bl = this.bufs[v.bus * 2], br = this.bufs[v.bus * 2 + 1];
         this.renderVoice(v, bl.subarray(off, off + len), br.subarray(off, off + len), len, mul);
       }
+      // メトロノーム（そのまま出す）
+      if (this.clickLeft > 0) {
+        const bl = this.bufs[0], br = this.bufs[1];
+        for (let i = off; i < off + len && this.clickLeft > 0; i++, this.clickLeft--) {
+          this.clickPh += this.clickHz / this.sr;
+          const v = Math.sin(this.clickPh * Math.PI * 2) * 0.35 * (this.clickLeft / (this.sr * 0.03));
+          bl[i] += v; br[i] += v;
+        }
+      }
       off += len;
       this.clock += len;
+      this.seq.advance(len / fpb);
     }
     // エフェクト：BUS 1・BUS 2 → 足す → MASTER
     const ctx = { sr: this.sr, bpm: this.bpm, beat: beat0 };
