@@ -1,6 +1,7 @@
 // PAKU-PAKU 16（音を食べるサンプラー）の画面。
 // 子ども用の録音おもちゃを魔改造した見た目。16 パッド × 10 バンク。
 // 下の機能ボタンはタブで切り替える：PAD（録音・再生のしかた）／PLAY（ロール・サブパッド・16 レベル・テンポ）／EDIT（波形・チョップ・テンポ合わせ）
+import { setupLang } from '../i18n';
 import './sampler.css';
 import { Knob } from '../core/controls';
 import { factoryBank, factoryParams } from './dsp/factory';
@@ -1289,3 +1290,6 @@ $('pk-cover').addEventListener('pointerdown', () => {
 })();
 setTab('pad');
 select(0);
+
+// 言語の切り替え（EN / 日本語）。英語なら画面を置き換える
+setupLang(document.getElementById('pk-top'));

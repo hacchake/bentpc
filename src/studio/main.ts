@@ -1,6 +1,7 @@
 // スタジオ：好きなおもちゃ（最初はトイPC と TELEKEY）を 1 ページに並べ、下のシーケンサーでいっしょに曲を作る。
 // 自動作曲ユニットで、並べたおもちゃ全部の合同の曲を作れる（URL で共有できる）。
 // 再生するとキーが光り、ノブやスイッチも動いて見える。
+import { setupLang } from '../i18n';
 import '../core/parts.css';
 import '../host/host.css';
 import './studio.css';
@@ -326,3 +327,6 @@ arr.addButton('MIDI', '曲を MIDI ファイルに書き出す（チャンネル
 }
 // 調べもの用（ブラウザの開発ツールから触れる）
 (window as unknown as { studio: unknown }).studio = { arr, audio, toys };
+
+// 言語の切り替え（EN / 日本語）。英語なら画面を置き換える
+setupLang(document.getElementById('s-top'));

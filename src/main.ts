@@ -1,4 +1,5 @@
 // アプリ本体：おもちゃを並べるラック。上のタブで表示するおもちゃを切り替える（裏のおもちゃも鳴り続ける）。
+import { setupLang } from './i18n';
 import './core/parts.css';
 import './host/host.css';
 import type { ToyUI } from './core/ui';
@@ -301,3 +302,6 @@ if (shared && panels[sharedToy]) {
 }
 show(Math.min(saved, toys.length - 1));
 guide.showIfFirst();
+
+// 言語の切り替え（EN / 日本語）。英語なら画面を置き換える
+setupLang(document.getElementById('topbar'));

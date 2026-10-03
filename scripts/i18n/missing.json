@@ -1,0 +1,2834 @@
+[
+ [
+  "0.25〜0.66 倍にゆっくり、低く（押した瞬間に決まる）",
+  "scripts\\manual\\content.ts"
+ ],
+ [
+  "1 ADDR（読む場所が壊れる）",
+  "scripts\\manual\\content.ts"
+ ],
+ [
+  "1 分間の拍の数。曲の速さ。",
+  "scripts\\manual\\content.ts"
+ ],
+ [
+  "1 台だけが残る",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "1 曲できるまで",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "1 音ずつしか鳴らない。新しいキーを押すと、前の音は止まる（本物のおもちゃと同じ）。長い「K IS FOR KING」の途中で別のキーを押すと切れてしまうぞ。",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "1.5〜4 倍に速く、高く（押した瞬間に決まる）",
+  "scripts\\manual\\content.ts"
+ ],
+ [
+  "16 パッド × 10 バンク = 160 音。音の入っているバンクは水色。",
+  "scripts\\manual\\extra-parts.ts"
+ ],
+ [
+  "16 パッドの組を切り替える。音の入っているバンクは水色。",
+  "scripts\\manual\\parts.ts"
+ ],
+ [
+  "1〜0：キューポイント",
+  "scripts\\manual\\parts.ts"
+ ],
+ [
+  "2 DATA（音のデータが壊れる）",
+  "scripts\\manual\\content.ts"
+ ],
+ [
+  "2 小節ずつ交代で掛け合い",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "26 種類：演歌・音頭・レゲエ・スカ・ボサノバ・ジャズ・ハウス・ドラムンベース・IDM など。◀ ▶ で順に、まん中を押すと一覧から選べる。下にそのスタイルの説明（→ 9 章の表）。",
+  "scripts\\manual\\extra-parts.ts"
+ ],
+ [
+  "3 CLOCK（速さが壊れる）",
+  "scripts\\manual\\content.ts"
+ ],
+ [
+  "32 鍵。いくつも同時に鳴る。",
+  "scripts\\manual\\parts.ts"
+ ],
+ [
+  "32 鍵のミニキーボードに、リズムマシンと 8 つの音色（ORCHESTRA）。上には別のエフェクトユニットをつなぎ、左には電圧 Starve（わざと電気を減らす）ツマミとタッチポイントを増設した魔改造機だ！",
+  "scripts\\manual\\parts.ts"
+ ],
+ [
+  "4 BEEP（ブザーが混ざる）",
+  "scripts\\manual\\content.ts"
+ ],
+ [
+  "5 VOICE（別の声に化ける）",
+  "scripts\\manual\\content.ts"
+ ],
+ [
+  "6 つの効果音。EFFECT SELECTION で音のセットを変える。",
+  "scripts\\manual\\parts.ts"
+ ],
+ [
+  "8 つの気筒のスイッチ。点火を間引くと、低い回転でリズムになる。CAM で点火パターンの長さ（3〜8）を変える。",
+  "scripts\\manual\\parts.ts"
+ ],
+ [
+  "? 決まり文句をしゃべる",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "ABC / WORD / TUNE / PIANO / DRUM / SFX / QUIZ / SAY の 8 モード。液晶の横の絵のボタンでも選べる。",
+  "scripts\\manual\\parts.ts"
+ ],
+ [
+  "ACCEL（ペダル）",
+  "scripts\\manual\\parts.ts"
+ ],
+ [
+  "BASE 5（VOICE）の MISREAD・SCRAMBLE・GARBAGE 中は、声だけでなく液晶の文字とキャラも「誤読みしたキー」のものに変わる。",
+  "scripts\\manual\\content.ts"
+ ],
+ [
+  "BASE を 3（CLOCK）に",
+  "scripts\\manual\\content.ts"
+ ],
+ [
+  "BASE を 4（BEEP）に",
+  "scripts\\manual\\content.ts"
+ ],
+ [
+  "BASE を 5（VOICE）に",
+  "scripts\\manual\\content.ts"
+ ],
+ [
+  "BEAT {0}（1 小節のリズム）",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "BENT TOY RACK 完全攻略本",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "BENT TOY RACK 完全攻略本 ／ 画面はすべて実物のスクリーンショット（自動撮影）です。",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "BS（RELEASE）で全部止める",
+  "scripts\\manual\\content.ts"
+ ],
+ [
+  "BUS 1・BUS 2（パッドごとに送り先）・MASTER に 24 種から 1 つずつ（下の表）",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "Backspace（STOP）を押したり離したり",
+  "scripts\\manual\\content.ts"
+ ],
+ [
+  "CLOCK・BIT ROT・SAG の線をつないだところ",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "CPU POWER をゆっくり下げる",
+  "scripts\\manual\\content.ts"
+ ],
+ [
+  "CPU が止まって電源が切れた状態になる（熱も 0 に戻る）。もう一度 POWER で起動し直す。",
+  "scripts\\manual\\parts.ts"
+ ],
+ [
+  "CRASH の間：音が張り付いたあと無音になり、画面が固まって「SYSTEM HALTED」。終わると ① RESET → ② POWER で自動で再起動する",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "Caps（LATCH）を ON",
+  "scripts\\manual\\content.ts"
+ ],
+ [
+  "Chrome の画面で",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "Ctrl+C・Ctrl+V（再生位置に）・Ctrl+D（すぐ後ろに）",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "C〜C の 13 鍵。INSTRUMENT で 10 種の音色、PATTERN 2 でアルペジオ。",
+  "scripts\\manual\\parts.ts"
+ ],
+ [
+  "DIST = かたよった歪み、DIST 2 = 整流してオクターブ上が混ざる荒い歪み。それぞれ ON/OFF とツマミ。",
+  "scripts\\manual\\parts.ts"
+ ],
+ [
+  "DIST = 歪み、FIZZ = シュワシュワしたノイズ、HIPASS = 低い音を削る（RESO で「ミョン」とくせをつける）。",
+  "scripts\\manual\\parts.ts"
+ ],
+ [
+  "DIST を上げて FOLD に",
+  "scripts\\manual\\content.ts"
+ ],
+ [
+  "DIST（ツマミ・CLIP / FOLD）",
+  "scripts\\manual\\parts.ts"
+ ],
+ [
+  "Enter で DEMO",
+  "scripts\\manual\\content.ts"
+ ],
+ [
+  "Enter で電源 ON → もう一度 Enter を押し続けてエンジンをかける",
+  "scripts\\manual\\content.ts"
+ ],
+ [
+  "E（{0}）と G（{1}）を押している瞬間",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "F キーが効かない",
+  "scripts\\manual\\content.ts"
+ ],
+ [
+  "F10 で BASE 5（MELTDOWN）",
+  "scripts\\manual\\content.ts"
+ ],
+ [
+  "F10 で SCAN、F11 で BOUNCE",
+  "scripts\\manual\\content.ts"
+ ],
+ [
+  "F12 で CROSSTALK を ON",
+  "scripts\\manual\\content.ts"
+ ],
+ [
+  "F5 で CHAOS",
+  "scripts\\manual\\content.ts"
+ ],
+ [
+  "F6・F7・F11・F12 などは、ブラウザが先に使ってしまうことがある。そのときは画面のキーをマウスでクリックしよう。",
+  "scripts\\manual\\content.ts"
+ ],
+ [
+  "F9〜F12：キーボードの故障",
+  "scripts\\manual\\parts.ts"
+ ],
+ [
+  "FEEDBACK = 音が自分に返ってこだまする（SHORT = 4ms のビリビリ、LONG = 280ms のこだま）。PITCH = スイッチ ON で全体の音程を ±1 オクターブ変える。",
+  "scripts\\manual\\parts.ts"
+ ],
+ [
+  "FEEDBACK を上げて LONG に",
+  "scripts\\manual\\content.ts"
+ ],
+ [
+  "FIRING ORDER のスイッチをいくつか OFF",
+  "scripts\\manual\\content.ts"
+ ],
+ [
+  "GHOST = 隣のキーも勝手に鳴る、SCAN = 押しているキーを順番に読み取る（アルペジオに）、BOUNCE = チャタリングで連打、OVERFLOW = 行があふれて暴走。",
+  "scripts\\manual\\parts.ts"
+ ],
+ [
+  "GLITCH 1 個押しっぱなし → 約 18 秒で暴発、2 個 → 約 4 秒、3 個 → 約 2 秒",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "GLITCH 1（MISREAD）を押しながら文字キー",
+  "scripts\\manual\\content.ts"
+ ],
+ [
+  "GLITCH 4（STAIRS）を押しながら、文字キーでリズムを刻む",
+  "scripts\\manual\\content.ts"
+ ],
+ [
+  "GLITCH 5（FEEDBACK）と GLITCH 1（RUNAWAY）を同時押し",
+  "scripts\\manual\\content.ts"
+ ],
+ [
+  "GLITCH × BASE の全 50 種を凶暴度つきで！",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "GLITCH ボタン",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "GLITCH ボタン 1〜5",
+  "scripts\\manual\\parts.ts"
+ ],
+ [
+  "GLITCH ボタンを押し続けるほど（2 個・3 個と増やすとぐんと速い）。BASE が高いほど、DIST・LOOP・STRETCH 中ほど、グリッチ中にキーを連打するほど",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "HEAT の LED",
+  "scripts\\manual\\parts.ts"
+ ],
+ [
+  "HOLD = 今効いているグリッチをつかんで、キーを離しても続ける。RELEASE = 全部止める。",
+  "scripts\\manual\\parts.ts"
+ ],
+ [
+  "HOLD で映像と音の壊れ方を固定したまま、両手で別のことができる。",
+  "scripts\\manual\\content.ts"
+ ],
+ [
+  "HOLD ボタンで、今鳴っている所の 50ms をつかんで繰り返す。RELEASE で放す。スイッチ：上 = 自動でつかむ、中 = ふつう、下 = MUTE（音が出ない。電源も入らない！）。",
+  "scripts\\manual\\parts.ts"
+ ],
+ [
+  "LFO DEPTH と LFO RATE を上げる → サイレンのようにうねる",
+  "scripts\\manual\\content.ts"
+ ],
+ [
+  "LFO はループ中だけ効き、ループ中は STRETCH より LOOP が優先。だから「うねり → 放した瞬間にカクカク」の二段変化になる。",
+  "scripts\\manual\\content.ts"
+ ],
+ [
+  "LIGHT スイッチ ON のとき、左右の丸いレンズにマウスを近づけると影になって音程が下がる。押さえるとまっ暗。",
+  "scripts\\manual\\parts.ts"
+ ],
+ [
+  "LOOP HOLD → LFO 全開 → STRETCH",
+  "scripts\\manual\\content.ts"
+ ],
+ [
+  "LOOP HOLD と組み合わせる。単体では効かない",
+  "scripts\\manual\\parts.ts"
+ ],
+ [
+  "LOOP RELEASE（Enter）で放すと、今度は STRETCH が引き継いでカクカク進む",
+  "scripts\\manual\\content.ts"
+ ],
+ [
+  "LOOP（スイッチ・HOLD・RELEASE）",
+  "scripts\\manual\\parts.ts"
+ ],
+ [
+  "MAJOR・MINOR・PENTA・BENT（わざと少し狂った音階）。",
+  "scripts\\manual\\parts.ts"
+ ],
+ [
+  "MARCH・RHUMBA・DISCO・POP・BALLAD・WALTZ・TANGO・SWING の 8 種類。START で鳴らし、STOP で止める。",
+  "scripts\\manual\\parts.ts"
+ ],
+ [
+  "MELTDOWN の CHAOS",
+  "scripts\\manual\\content.ts"
+ ],
+ [
+  "MIDI の CC1（モジュレーション）でも動く",
+  "scripts\\manual\\parts.ts"
+ ],
+ [
+  "MODE を DRUM に",
+  "scripts\\manual\\content.ts"
+ ],
+ [
+  "MODE を SAY に",
+  "scripts\\manual\\content.ts"
+ ],
+ [
+  "MODE を WORD に",
+  "scripts\\manual\\content.ts"
+ ],
+ [
+  "MODE ダイヤル",
+  "scripts\\manual\\parts.ts"
+ ],
+ [
+  "N・1〜5。ギアが高いほど回転がゆっくり追いつく。変えた瞬間、回転がガクッと変わる。",
+  "scripts\\manual\\parts.ts"
+ ],
+ [
+  "ON にするとリズムが壊れる：スネアのたびに「ピーッ」と発振し、ときどき同じ所を繰り返し、キックの音程がばらつく（パッドも）。",
+  "scripts\\manual\\parts.ts"
+ ],
+ [
+  "ON のとき、点火 1 回ぶん遅れた音を返して、回転に合わせて響く金属音になる。",
+  "scripts\\manual\\parts.ts"
+ ],
+ [
+  "ON の間、音を「普通に進む」と「25ms の粒を繰り返す」の交互にする。HOLD ツマミで粒を繰り返す長さ（15〜900ms）、REL ツマミで進む長さ（8〜400ms）。",
+  "scripts\\manual\\parts.ts"
+ ],
+ [
+  "PAD（録音・再生のしかた）・PLAY（ロール・16 レベル・テンポ）・EDIT（波形・チョップ）・FX・BEND・PATTERN・SONG で、下のボタンが替わる。",
+  "scripts\\manual\\extra-parts.ts"
+ ],
+ [
+  "PAKU-PAKU 16 で音を食べて、切って、並べろ！",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "PAKU-PAKU 16（横長の画面。縦長の画面ではパッドが下に来る）",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "PC なら Z X C V・A S D F・Q W E R・1 2 3 4 がパッドの並びと同じ形。MIDI のパッド機ならノート 36〜51 で叩けるぞ。",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "PC の , . / ; : キー。押しっぱなしにすると熱がたまる",
+  "scripts\\manual\\parts.ts"
+ ],
+ [
+  "PC の - ^ @ [",
+  "scripts\\manual\\parts.ts"
+ ],
+ [
+  "PC の . / で前・逆に回す（押している間）",
+  "scripts\\manual\\parts.ts"
+ ],
+ [
+  "PC の 1 2 3 4。押すたびに次へ",
+  "scripts\\manual\\parts.ts"
+ ],
+ [
+  "PC の 1〜0 キー",
+  "scripts\\manual\\parts.ts"
+ ],
+ [
+  "PC の 1〜8、R で局を切り替え",
+  "scripts\\manual\\parts.ts"
+ ],
+ [
+  "PC の 5 6 7",
+  "scripts\\manual\\parts.ts"
+ ],
+ [
+  "PC の A W S E D F T G Y H U J K、← → で音色、Tab でパターン",
+  "scripts\\manual\\parts.ts"
+ ],
+ [
+  "PC の Backspace",
+  "scripts\\manual\\parts.ts"
+ ],
+ [
+  "PC の Backspace で ON/OFF。読み上げがロボットみたいにカクカクになる",
+  "scripts\\manual\\parts.ts"
+ ],
+ [
+  "PC の Enter / BS",
+  "scripts\\manual\\parts.ts"
+ ],
+ [
+  "PC の Enter（押している間セルが回る）",
+  "scripts\\manual\\parts.ts"
+ ],
+ [
+  "PC の Enter（電源 OFF のとき）、PgUp / PgDn",
+  "scripts\\manual\\parts.ts"
+ ],
+ [
+  "PC の Esc。熱くなりすぎたときの最終手段",
+  "scripts\\manual\\parts.ts"
+ ],
+ [
+  "PC の F1〜F5",
+  "scripts\\manual\\parts.ts"
+ ],
+ [
+  "PC の F6〜F10",
+  "scripts\\manual\\parts.ts"
+ ],
+ [
+  "PC の L でスイッチ",
+  "scripts\\manual\\parts.ts"
+ ],
+ [
+  "PC の P でスイッチ",
+  "scripts\\manual\\parts.ts"
+ ],
+ [
+  "PC の PgUp / PgDn でも",
+  "scripts\\manual\\parts.ts"
+ ],
+ [
+  "PC の S / V / B / C",
+  "scripts\\manual\\parts.ts"
+ ],
+ [
+  "PC の Space = HOLD、Enter = RELEASE、Tab = スイッチ",
+  "scripts\\manual\\parts.ts"
+ ],
+ [
+  "PC の Space で PLAY / PAUSE、Enter で EFFECT",
+  "scripts\\manual\\parts.ts"
+ ],
+ [
+  "PC の T",
+  "scripts\\manual\\parts.ts"
+ ],
+ [
+  "PC の Tab で ENV / HOLD",
+  "scripts\\manual\\parts.ts"
+ ],
+ [
+  "PC の Tab・F11・F12",
+  "scripts\\manual\\parts.ts"
+ ],
+ [
+  "PC の U で TUNE、H で HIJACK",
+  "scripts\\manual\\parts.ts"
+ ],
+ [
+  "PC の Z / X",
+  "scripts\\manual\\parts.ts"
+ ],
+ [
+  "PC の Z X C V B N、セットは 8 9 0 - ^",
+  "scripts\\manual\\parts.ts"
+ ],
+ [
+  "PC の Z X C V・A S D F・Q W E R・1 2 3 4 がパッドと同じ並び",
+  "scripts\\manual\\parts.ts"
+ ],
+ [
+  "PC の Z〜/（白鍵）・A〜（黒鍵）、Q〜P（高い白鍵）・2〜9（黒鍵）",
+  "scripts\\manual\\parts.ts"
+ ],
+ [
+  "PC の [ ]",
+  "scripts\\manual\\parts.ts"
+ ],
+ [
+  "PC の ← →",
+  "scripts\\manual\\parts.ts"
+ ],
+ [
+  "PC の ← → で音色、Enter で DEMO",
+  "scripts\\manual\\parts.ts"
+ ],
+ [
+  "PC の ← →、Space でホーン",
+  "scripts\\manual\\parts.ts"
+ ],
+ [
+  "PC の ↑ ↓",
+  "scripts\\manual\\parts.ts"
+ ],
+ [
+  "PC の ↑ ↓ で選び、Space で START / STOP",
+  "scripts\\manual\\parts.ts"
+ ],
+ [
+  "PC の ↑ または W",
+  "scripts\\manual\\parts.ts"
+ ],
+ [
+  "PC キーボードそのものを楽器に改造した（オリジナル設計）。全部のキーに役目があり、文字の段が音階、テンキーがドラム、F キーが波形・音階・「キーボードの故障」。上にはツマミを 12 個増設した魔改造機だ！",
+  "scripts\\manual\\parts.ts"
+ ],
+ [
+  "PC キーボードの A〜Z がそのまま文字キー。- ^ @ [ が ♪ ? ★ OK",
+  "scripts\\manual\\parts.ts"
+ ],
+ [
+  "PIKOTONE の INST HOLD は、楽器を選ぶ線を押さえた改造。ON にした音色の波形が混ざり合う。",
+  "scripts\\manual\\content.ts"
+ ],
+ [
+  "PITCH（スイッチ・COARSE・FINE）",
+  "scripts\\manual\\parts.ts"
+ ],
+ [
+  "POWER の場所",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "POWER・LOOP・LATCH・OVR・STUT・CORRUPT・GHOST・SCAN・BOUNCE・OVERFLOW のどれが効いているか。",
+  "scripts\\manual\\parts.ts"
+ ],
+ [
+  "POWER（イグニッションキー）",
+  "scripts\\manual\\parts.ts"
+ ],
+ [
+  "PULSE・SAW・BELL・NOISE の 4 つの波形。",
+  "scripts\\manual\\parts.ts"
+ ],
+ [
+  "QUIZ モード：液晶のキャラの文字を押すと「RIGHT!」→ 次の問題。違う文字だと「NO!」か「TRY AGAIN」。TUNE モードの「メロディ」は文字ごとに違う短い曲。",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "Q〜［・A〜］：グリッチキー",
+  "scripts\\manual\\parts.ts"
+ ],
+ [
+  "REC → 録るパッドを押す → 声や音を入れる → REC で止める。RESAMPLE は自分が鳴らしている音を録る。",
+  "scripts\\manual\\extra-parts.ts"
+ ],
+ [
+  "REC（AUTO：音が来てから録音）・RESAMPLE・MON（入力を聞く）・GATE・LOOP・REV・POLY・📂 FILE（PC はパッドにファイルを落としても）・COPY・DEL・FIXED VEL（いつも最大の強さ）",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "REDLINE = 回転の上限を上げる（0 のままだとリミッターで点火が飛ぶ。上げるほど高く回る）、SPARK = 点火ごとにバチッとノイズ、RADIO BLEED = ラジオとエンジンが掛け算で混ざる。",
+  "scripts\\manual\\parts.ts"
+ ],
+ [
+  "ROLL（押している間 1/4〜1/32・3 連でくり返す）・SUB PAD（最後のパッドをもう一度）・16 LEVELS（1 つの音を 16 パッドに：音程・強さ・こもり具合・立ち上がり・鳴らし始め）・TEMPO と TAP",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "SOUND（音量・パン・音程・微調整）・FILTER・ENV・SAMPLE（START・END・LOOP・強さの効き）・MIX（ミュートグループ・送り先・音の BPM）・FX・SEQ・BEND。",
+  "scripts\\manual\\extra-parts.ts"
+ ],
+ [
+  "SPIN-TOT の隠しリズム 22〜28",
+  "scripts\\manual\\content.ts"
+ ],
+ [
+  "STEP で置いたビート（液晶の横 = 時間、行 = パッド。赤い線が再生位置）",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "STOP は音程ごと落ちていくテープ止め。こするスクラッチと合わせると DJ っぽい。",
+  "scripts\\manual\\content.ts"
+ ],
+ [
+  "STOP（移動停止）",
+  "scripts\\manual\\parts.ts"
+ ],
+ [
+  "STRETCH を ON にしておく",
+  "scripts\\manual\\content.ts"
+ ],
+ [
+  "STRETCH を ON（HOLD のツマミを上げ気味に）",
+  "scripts\\manual\\content.ts"
+ ],
+ [
+  "STRETCH（スイッチ・HOLD・REL）",
+  "scripts\\manual\\parts.ts"
+ ],
+ [
+  "Space = 音を伸ばす。Enter = 打った「行」をループ、Tab = STUTTER、Caps = LATCH（鳴りっぱなし）、Del = CORRUPT、Ins = 上書き。",
+  "scripts\\manual\\parts.ts"
+ ],
+ [
+  "Space：SUSTAIN・その他の機能キー",
+  "scripts\\manual\\parts.ts"
+ ],
+ [
+  "TAB を取り込む（別のタブの映像と音）・FILE（動画ファイル）・CAM（Web カメラ）・TEST（自動で作るテスト映像）・✕（外す）。→ 8 章",
+  "scripts\\manual\\parts.ts"
+ ],
+ [
+  "TAPE・DIGITAL・SIGNAL・BEEP・MELTDOWN の 5 段。一発グリッチの種類が変わる。",
+  "scripts\\manual\\parts.ts"
+ ],
+ [
+  "TELEKEY TK-6 で映像を壊せ！",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "TELEKEY TK-6 は、タブ共有・動画ファイル・Web カメラの映像と音を取り込んで、加工・録画できます。",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "TELEKEY で Shift＋数字を押すと、その数字キーに今の位置を登録できる。",
+  "scripts\\manual\\content.ts"
+ ],
+ [
+  "TELEKEY のモニターの下の",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "TELEKEY の起動音",
+  "scripts\\manual\\content.ts"
+ ],
+ [
+  "TELEKEY は WebGL2 を使う。モニターに「WebGL2 が使えません」と出たら、ブラウザの設定で「ハードウェア アクセラレーション」がオンか確かめるか、Chrome の新しい版で開こう。ページを読み込み直す（F5）のも効く。",
+  "scripts\\manual\\content.ts"
+ ],
+ [
+  "TELEKEY：GLITCH ボタン（F1〜F5）× BASE（F6〜F10）＝ 25 種の一発グリッチ",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "TUNE = 回転数が音階にそろう、HIJACK = ラジオのボタンでエンジンを弾く、HORN BEND = ホーンが曲がる、GRIND = ギアを変えるたびにガリガリ。",
+  "scripts\\manual\\parts.ts"
+ ],
+ [
+  "TYPOTRON で Enter の行ループ中に Ins（上書き）を ON にして打つと、今鳴っている所が書き換わる。",
+  "scripts\\manual\\content.ts"
+ ],
+ [
+  "URL をコピー",
+  "scripts\\manual\\extra-parts.ts"
+ ],
+ [
+  "VOL と STOP",
+  "scripts\\manual\\extra-parts.ts"
+ ],
+ [
+  "VROOMBOX の PRESET HIJACK を ON にすると、ラジオのプリセット 1〜8 がエンジンの音階（ド〜ド）になる。",
+  "scripts\\manual\\content.ts"
+ ],
+ [
+  "WAV は音のファイル、WebM は映像と音のファイル。",
+  "scripts\\manual\\content.ts"
+ ],
+ [
+  "Web カメラ",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "Z 段がいちばん低く、1 段上がるごとに約 4 度上。Shift を押している間はオクターブ下（左）・上（右）。",
+  "scripts\\manual\\parts.ts"
+ ],
+ [
+  "Z〜＼：楽器キー",
+  "scripts\\manual\\parts.ts"
+ ],
+ [
+  "public/manual/index.html を作りました（{0} KB）",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "{0}（電源を入れたところ）",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "← ラックへ",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "→ 7 章",
+  "scripts\\manual\\parts.ts"
+ ],
+ [
+  "↻（読み直す）・SAMPLER ↗",
+  "scripts\\manual\\parts.ts"
+ ],
+ [
+  "⇄ の行の点の上でホイール",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "▶ PLAY・● REC（重ね録り・QUANT でそろえる）・METRO・ERASE・↶・PATTERN（P01〜P16 をパッドで選ぶ）・小節 1〜8・CLEAR・STEP・SWING（ノブ）",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "● REC を押す（止まっていれば再生も始まる）",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "◠ ノブの行をダブルクリックで点を足し、ドラッグで動かす（点と点の間はなめらかにつながる）",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "★ 全ボタン図解 ★ グリッチ 50 種データ ★ 必殺コンボ ★ クラッシュ攻略 ★ おすすめシード ★",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "★ 効果音",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "♪ MUSIC（そのモードのメロディ）",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "✂ CHOP：バンク B のループを、音の立ち上がりで自動で切ったところ（黄色い線が切れ目）",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "、Aメロでは",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "、クラッシュは",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "、ブレイクでは",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "。そのかわり「熱（ストレス）」がある！",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "。たとえば「ビートは気に入ったから残して、メロディだけ作り直す」ができる。「このセクションだけ作り直す」は、選んだセクション（サビなど）以外を 1 音も変えずに作り直す。",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "。自動作曲ユニットも付いていて、バンク A をドラム、♪ MELO と BASS のパッドでメロディとベースを作る（ほかのおもちゃといっしょの合同の曲にも入れる）。サンプラーのページで作った音（このブラウザに保存されたもの）がそのまま鳴り、シーケンサーでは A-01〜J-16 の行になる。サンプラーの SONG タブの",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "「K IS FOR KING」が 25ms の粒で引き伸ばされて、カクカクのロボット声になる。",
+  "scripts\\manual\\content.ts"
+ ],
+ [
+  "「KING」のはずが別の単語に化ける。液晶のキャラまで化けるので見た目もおかしい。",
+  "scripts\\manual\\content.ts"
+ ],
+ [
+  "「TAB を取り込む」",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "「おもちゃを選ぶ」でトイPC・PIKOTONE・TYPOTRON を並べたところ",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "「そのまま・止まる・無音」が細かく切り替わる",
+  "scripts\\manual\\content.ts"
+ ],
+ [
+  "「キーボードの故障」の強さ（GHOST の出やすさ・SCAN の速さ・BOUNCE の回数）と、キーを打つカチッという音の大きさ。",
+  "scripts\\manual\\parts.ts"
+ ],
+ [
+  "「タブ」",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "「共有」",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "「盛り上がり」は、いちばん静かなセクションといちばんにぎやかなセクションの音量の差のめやす。選び方：各スタイル 4 個の候補を実際に鳴らして、音量の差・ちょうど良い大きさ・音割れの少なさで点数をつけた。",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "「🔗 URL をコピー」で、その曲の URL を友だちに送れる。開いた人のブラウザで、同じおもちゃの並び・同じ曲がもう一度作られるんだ。",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "〰 WAVE EDIT（START・END・LOOP の印をドラッグ・0 SNAP・ZOOM）・✂ CHOP（等分・立ち上がりで自動・手で）・⏱ TEMPO FIT（BPM を推定して、音程そのままで伸び縮み／速さだけ合わせる）・NORMALIZE・REVERSE・TRIM・UNDO・⤓ WAV",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "あちこちの断片にばらまく",
+  "scripts\\manual\\content.ts"
+ ],
+ [
+  "ありません！",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "あわてずに読もう",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "いちばん上のビットが固定されて、音がひっくり返ったような爆音に",
+  "scripts\\manual\\content.ts"
+ ],
+ [
+  "いまのパッド（A-01 など）・音の名前と長さ・波形（赤い線が START と END）。下の段はお知らせ・テンポ・入っているエフェクト・入力と出力の音の大きさ。PATTERN・SONG タブではパターンの中身になる。",
+  "scripts\\manual\\extra-parts.ts"
+ ],
+ [
+  "いまの曲のシード（種）の番号。数字を入れて Enter で、そのシードの曲を作る。",
+  "scripts\\manual\\extra-parts.ts"
+ ],
+ [
+  "いま選んでいるパッドと音の名前、入っている音の数。下は波形：赤い線が鳴らす範囲（START・END）、明るい線が再生位置。",
+  "scripts\\manual\\parts.ts"
+ ],
+ [
+  "いま選んでいるパッドを、メロディ用・ベース用にする。シーケンサーの「♪」「BASS」の行で、そのパッドの音を音程を変えて弾ける。自動作曲もこれでメロディとベースを作る。",
+  "scripts\\manual\\parts.ts"
+ ],
+ [
+  "おすすめシード値コレクション",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "おもちゃの中の回路を、わざとつなぎ変えたり、ボタンやツマミを後から付け足したりして、作った人が思ってもみなかった音を出す遊びを",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "おもちゃや電子機器の回路を、わざとつなぎ変えたり部品を足したりして、設計者が思ってもみなかった音を出す遊び。このアプリは、それをパソコンの中でまねしたもの。",
+  "scripts\\manual\\content.ts"
+ ],
+ [
+  "おもちゃを弾く。キーもボタンもツマミの動きも記録される",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "かかるグリッチ：{0}",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "から。ラックの 7 台目・スタジオに並べる小さい版（3 章）は、ほかのおもちゃと同じように叩いて録って、自動作曲もできる。",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "がたまり、本体が赤く光ると",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "が強さ、",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "が起こる頻度。線をたくさんつないで大きい音を出すほど",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "ここがポイント！",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "ここは、ガラクタ市で拾ってきた子供向けのおもちゃ楽器を、とことん改造した「魔改造おもちゃ」が並ぶラックだ！",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "こすれ！ 止めろ！ 暗くしろ！",
+  "scripts\\manual\\parts.ts"
+ ],
+ [
+  "このアプリに付いている",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "このアプリのおもちゃは、弾いているだけで勝手に固まることは",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "このシードを聞いてみろ！",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "このトイPC は全部のキーで必ず何か鳴るように作ってある。QUIZ モードで違う文字を押しても「NO!」「TRY AGAIN」としゃべる。",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "このブラウザに保存される",
+  "scripts\\manual\\parts.ts"
+ ],
+ [
+  "このブラウザの中に自動で保存される（別のパソコンやブラウザには無い）。シーケンサーの「保存」で JSON ファイルにできる。「読込」で戻せる。",
+  "scripts\\manual\\content.ts"
+ ],
+ [
+  "この曲の URL をコピー。送った相手が開くと、同じ曲が作られる。",
+  "scripts\\manual\\extra-parts.ts"
+ ],
+ [
+  "この機械のキモ！ ゆっくり下げてみよう",
+  "scripts\\manual\\parts.ts"
+ ],
+ [
+  "この機械のキモ！ 間引いてからアクセルを少しだけ",
+  "scripts\\manual\\parts.ts"
+ ],
+ [
+  "この組み合わせを覚えろ！",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "しゃべる！ 歌う！ まちがえる！ 魔改造トイPC",
+  "scripts\\manual\\parts.ts"
+ ],
+ [
+  "する。スマホは公開ページ（https）で開くこと。スピーカーから音を出しながら MON を点けると、ハウリングすることがある（イヤホン推奨）。",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "そのまま Enter（HOLD）",
+  "scripts\\manual\\content.ts"
+ ],
+ [
+  "そのまま残る",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "つかんで離す",
+  "scripts\\manual\\content.ts"
+ ],
+ [
+  "つなぐ",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "で、壊した後の映像と音を WebM で保存できる。もう一度押すと止めて保存。音だけなら上のバーの REC（WAV）。",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "できること",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "では好きなおもちゃを並べて、いっしょに曲を作れる。",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "でも電源が入る（電源 OFF のとき）。",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "で再生しておく",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "という。 このアプリは、その魔改造おもちゃを 7 台（サンプラー入り）、パソコンの中にまるごと作ったものだ。本物と違って、どれだけいじっても壊れないし、感電もしない！",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "とても大事なことです",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "どのモードでも、ドレミの音（{3}）",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "どれも「読み上げがまちがう」「電気が足りなくてよれる」「エンジンで音階を弾く」みたいに、ちゃんと壊れ方にクセがあるんだ。1 台ずつ、クセをつかむのがうまくなる近道だぞ！",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "どんな曲",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "ない",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "なし",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "のブラウザで使える。ラック・スタジオの上のバーの",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "の音符を置くと、その長さの間、わざとクラッシュさせられる。自動作曲では、壊れ度が高いとブレイクに入り、「崩壊」スタイルでは必ず最後に入る。",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "は、プログラムで自動生成したもので、自由に使えます。 おもちゃの演奏そのもの（キー・グリッチ・自動作曲）で作った音も、自由に使えます。",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "はじめに：魔改造おもちゃとは？",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "ふたに液晶、本体に文字キー 26 個とドレミの数字キーがついた子供向けパソコン。8 つのモードで、文字の読み上げ・単語・メロディ・ピアノ・ドラム・効果音・クイズになる。そこへ GLITCH ボタンや LOOP・STRETCH・DIST を後付けした、読み上げが壊れる魔改造機だ！",
+  "scripts\\manual\\parts.ts"
+ ],
+ [
+  "まず POWER（電源）が入っているか見よう（ボタンの横の LED が緑に光る）。ブラウザは「最初に画面を操作するまで音を出さない」決まりなので、POWER を押すか Enter で電源を入れると音の準備もできる。音量のツマミ・パソコンの音量・ブラウザのタブがミュートになっていないかも確認。トイPC は LOOP スイッチが MUTE（いちばん下）だと音が出ない。",
+  "scripts\\manual\\content.ts"
+ ],
+ [
+  "まずは電源を入れよう！",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "まとめて選ぶ",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "むき出しの基板にジャンパー線 6 本。熱がたまると暴発（外せば冷める）",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "むずかしい言葉を 1 行で",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "めやす",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "もう一度自動作曲",
+  "scripts\\manual\\content.ts"
+ ],
+ [
+  "もくじ",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "やまびこの量と間隔（30〜750ms）。",
+  "scripts\\manual\\parts.ts"
+ ],
+ [
+  "やりすぎると上がる、見えない値。上がりすぎると勝手にグリッチが暴れる（暴発）。手を離すと冷める。",
+  "scripts\\manual\\content.ts"
+ ],
+ [
+  "やりたいこと",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "ゆっくり揺れる波（Low Frequency Oscillator）。音程や強さを自動でうねらせる。",
+  "scripts\\manual\\content.ts"
+ ],
+ [
+  "ようこそ、壊れた音の世界へ！",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "わざと電気を足りなくすること。音が遅く・低く・よれて、最後は止まる。",
+  "scripts\\manual\\content.ts"
+ ],
+ [
+  "を押して光らせると、そのおもちゃも同じ曲に入る（ラックでは、パネルの付いたおもちゃはいつも参加）。ラックでは表示していないおもちゃも裏で鳴るので、上のタブで切り替えながら聞ける。",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "を押す。取り込んだタブの音は自動で止まり、壊した音だけ聞こえる",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "を押すと、作ったソングをスタジオのシーケンサーに入れて開く。音を変えたら、スタジオのサンプラーの「↻ 読み直す」。",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "を選び、そのタブを選ぶ",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "アクセルを少しだけ踏み、TUNE を ON",
+  "scripts\\manual\\content.ts"
+ ],
+ [
+  "エフェクト",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "エフェクト 24 種",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "エフェクトユニット：ENV LEN・ENV/HOLD",
+  "scripts\\manual\\parts.ts"
+ ],
+ [
+  "エンジンの爆発を、音階で弾け！",
+  "scripts\\manual\\parts.ts"
+ ],
+ [
+  "エンジン・ドラム",
+  "scripts\\manual\\content.ts"
+ ],
+ [
+  "オートメーション",
+  "scripts\\manual\\content.ts"
+ ],
+ [
+  "オーバーダブ",
+  "scripts\\manual\\content.ts"
+ ],
+ [
+  "キックやスネアの音程が階段みたいに飛んで、壊れたリズムマシンになる。",
+  "scripts\\manual\\content.ts"
+ ],
+ [
+  "キック・スネア・ハット・タム。",
+  "scripts\\manual\\parts.ts"
+ ],
+ [
+  "キュー",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "キューポイント",
+  "scripts\\manual\\content.ts"
+ ],
+ [
+  "キューポイントの登録",
+  "scripts\\manual\\content.ts"
+ ],
+ [
+  "キーを押しても反応しない",
+  "scripts\\manual\\content.ts"
+ ],
+ [
+  "キーを離して、楽器キー（Z〜）でリズムを弾く",
+  "scripts\\manual\\content.ts"
+ ],
+ [
+  "キーボードの Enter",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "キーボードの Enter でも入る（電源 OFF のとき）",
+  "scripts\\manual\\parts.ts"
+ ],
+ [
+  "キーボードの左上の大きな緑のボタン（押すたびに ON / OFF）",
+  "scripts\\manual\\parts.ts"
+ ],
+ [
+  "キーボードを、楽器として叩け！",
+  "scripts\\manual\\parts.ts"
+ ],
+ [
+  "キー配置マップ",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "ギリギリで粘るコツ",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "クラッシュ",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "クラッシュから戻らない",
+  "scripts\\manual\\content.ts"
+ ],
+ [
+  "クラッシュ中",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "クラッシュ攻略",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "クリックで電源 ON（キーが ON の位置へ）。ON のままクリックしている間セルが回り、エンジンがかかる。KEY OFF で切る。",
+  "scripts\\manual\\parts.ts"
+ ],
+ [
+  "グリッチ",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "グリッチの強さ・うねりの速さ・深さ・映像も音も自分に返るフィードバック。",
+  "scripts\\manual\\parts.ts"
+ ],
+ [
+  "グリッチの種類の段（1 ADDR・2 DATA・3 CLOCK・4 BEEP・5 VOICE）。",
+  "scripts\\manual\\parts.ts"
+ ],
+ [
+  "グリッチの種類を切り替えるツマミ。同じボタンでも BASE が変わると別のグリッチになる。",
+  "scripts\\manual\\content.ts"
+ ],
+ [
+  "グリッチは「押しっぱなし」より「拍に合わせて短く」。熱がたまりにくく、リズムにも乗る。",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "グリッチを押しながら弾く",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "グリッチキー 1 個ならほぼ平気、2 個で約 6 秒、3 個で約 5 秒",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "グリッチキーを 2〜3 個押す",
+  "scripts\\manual\\content.ts"
+ ],
+ [
+  "グリッチ・歪み・クラッシュの量（0〜100%）。",
+  "scripts\\manual\\extra-parts.ts"
+ ],
+ [
+  "グリッチ大全",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "コピー・貼り付け・複製",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "サイレン・ウインカーのカチカチ・ワイパー（ON/OFF）、CRASH! は衝突音。",
+  "scripts\\manual\\parts.ts"
+ ],
+ [
+  "サンプラーのページで作った音（このブラウザに保存したもの）を読み直す／サンプラーのページを別のタブで開く。",
+  "scripts\\manual\\parts.ts"
+ ],
+ [
+  "サンプラー編",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "サーキットベンディング",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "サーキットベンディングで、ボタンやツマミをたくさん後付けすること。",
+  "scripts\\manual\\content.ts"
+ ],
+ [
+  "サーキットベンド（BEND タブ）",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "ザップの連打",
+  "scripts\\manual\\content.ts"
+ ],
+ [
+  "シーケンサー",
+  "scripts\\manual\\content.ts"
+ ],
+ [
+  "シーケンサーで曲の頭から再生すると、おもちゃを新品にしてシードで鳴らすので、グリッチまで毎回同じになる。暴発も同じ所で起きる！",
+  "scripts\\manual\\content.ts"
+ ],
+ [
+  "シーケンサーの CRASH の間、音が張り付いて止まり、画面が固まること。終わると RESET → 再起動する。",
+  "scripts\\manual\\content.ts"
+ ],
+ [
+  "シーケンサーの CRASH は、音符が終わると自動で RESET → 再起動する。止めたいときは ■（停止）。",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "シーケンサーの ⚡ システムの行に",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "シーケンサーのトラック名の横の 🔓 を押すと 🔒 になる。鍵を掛けたトラックは、自動作曲で作り直しても",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "シーケンサー＆自動作曲編",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "シーケンサー（スタジオ。ラックの ☰ SEQ も同じ画面）",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "シード",
+  "scripts\\manual\\content.ts"
+ ],
+ [
+  "シードはそのまま、変えた STYLE・壊れ度・長さ・BPM で作り直す。",
+  "scripts\\manual\\extra-parts.ts"
+ ],
+ [
+  "スイッチ ON で全体の音程を変える。COARSE = ±12 半音、FINE = ±1 半音。",
+  "scripts\\manual\\parts.ts"
+ ],
+ [
+  "スイッチの値を変える",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "スタイル別の特徴",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "スタジオ",
+  "scripts\\manual\\content.ts"
+ ],
+ [
+  "スタジオで聞く ▶",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "スタジオに BLIPPY BOOK 30 と PAKU-PAKU 16 を並べたところ",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "スタジオの右端の自動作曲ユニットは、並べたおもちゃ（最初は全部）で 1 曲を作る。",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "スタジオへ",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "スタジオ編（トイPC ＋ TELEKEY の合同・1 分）",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "スタジオ（DAW）といっしょに",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "スマホの縦の画面",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "スマホ・タブレットで使える？",
+  "scripts\\manual\\content.ts"
+ ],
+ [
+  "スマホ・タブレット・パソコン",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "セクション",
+  "scripts\\manual\\content.ts"
+ ],
+ [
+  "セクション名",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "セクション選び ＋ このセクションだけ作り直す",
+  "scripts\\manual\\extra-parts.ts"
+ ],
+ [
+  "タブ",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "タブごとの機能",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "タブ共有の手順（Chrome）",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "チャープ音が飛び交う",
+  "scripts\\manual\\content.ts"
+ ],
+ [
+  "ツマミの動きを記録して、自動で動かすこと。シーケンサーでは ◠ ノブ の行。",
+  "scripts\\manual\\content.ts"
+ ],
+ [
+  "テスト映像とテスト信号",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "テスト映像（ふつう）",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "テンポ。STYLE を変えると、そのスタイルのふつうのテンポに戻る。",
+  "scripts\\manual\\extra-parts.ts"
+ ],
+ [
+  "テンポと、曲の長さ（小節）。",
+  "scripts\\manual\\extra-parts.ts"
+ ],
+ [
+  "テープが止まるように音程ごと落ちる",
+  "scripts\\manual\\content.ts"
+ ],
+ [
+  "テープが食われて、ところどころ音が抜ける",
+  "scripts\\manual\\content.ts"
+ ],
+ [
+  "テープのゆれ（ワウ・フラッター）",
+  "scripts\\manual\\content.ts"
+ ],
+ [
+  "テープストップ・スクラッチ",
+  "scripts\\manual\\content.ts"
+ ],
+ [
+  "ディスク",
+  "scripts\\manual\\parts.ts"
+ ],
+ [
+  "ディスクでこする音を選ぶ（21 種）。",
+  "scripts\\manual\\parts.ts"
+ ],
+ [
+  "ディスクをこする",
+  "scripts\\manual\\content.ts"
+ ],
+ [
+  "ディストーション（DIST）",
+  "scripts\\manual\\content.ts"
+ ],
+ [
+  "デモ曲もリズムも遅く・低く・よれていき、こだまが重なる。下げすぎると音が化けて止まる。",
+  "scripts\\manual\\content.ts"
+ ],
+ [
+  "データのビットが反転してジリジリ化ける",
+  "scripts\\manual\\content.ts"
+ ],
+ [
+  "データの上下が入れ替わり、声がノイズの塊に",
+  "scripts\\manual\\content.ts"
+ ],
+ [
+  "トイPC の 8 モード × 全キー",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "トイPC の LOOP スイッチがいちばん下（MUTE）だと、RESET のあと POWER を押しても起動しない。スイッチを上か真ん中に戻そう。",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "トイPC の LOOP スイッチがいちばん下（MUTE）だと、実物どおり電源が入らない。吹き出しで教えてくれるので、上か真ん中に戻そう。",
+  "scripts\\manual\\content.ts"
+ ],
+ [
+  "トイPC の液晶が化ける",
+  "scripts\\manual\\content.ts"
+ ],
+ [
+  "トイPC は RESET で CPU が止まるので、POWER で起動し直す。シーケンサーの CRASH は、その音符の長さが終わると自動で RESET → 再起動する。止まらないときは ■（停止）を押せば元に戻る。熱で暴れているだけなら、手を離すと冷める。",
+  "scripts\\manual\\content.ts"
+ ],
+ [
+  "トイPC は吹き出しで「熱くなりすぎ！」と教えてくれる。TELEKEY は HEAT の LED をよく見よう。",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "トイPC ソロ編（1 分）",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "トイPC（BLIPPY BOOK 30）は、MODE によって同じキーから出る音が変わる。全部のキーの一覧だ！",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "トイPC：GLITCH 1〜5 × BASE 1〜5 ＝ 25 種",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "トラックと行",
+  "scripts\\manual\\extra-parts.ts"
+ ],
+ [
+  "ド〜上のミの 10 音。どのモードでも同じ音が鳴る。",
+  "scripts\\manual\\parts.ts"
+ ],
+ [
+  "ドラッグ（音符の右端をドラッグで長さ）",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "ドラムのロール",
+  "scripts\\manual\\content.ts"
+ ],
+ [
+  "ドローンがふくらむ",
+  "scripts\\manual\\content.ts"
+ ],
+ [
+  "ノブ 1〜4",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "ノブの",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "ノブのページ",
+  "scripts\\manual\\extra-parts.ts"
+ ],
+ [
+  "ノブの動きを描く",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "ハウリングの「ピー」が混ざる",
+  "scripts\\manual\\content.ts"
+ ],
+ [
+  "バグったドラムマシン",
+  "scripts\\manual\\content.ts"
+ ],
+ [
+  "パターンをつなぐ・くり返し回数・▶ SONG・⤓ WAV（パターン／ソング）・⤓ MIDI・💾 保存／📂 読込（.paku）・→ STUDIO",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "パッド 16 個",
+  "scripts\\manual\\extra-parts.ts"
+ ],
+ [
+  "ヒント（答えの文字）",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "ビットクラッシュ（CRUSH）",
+  "scripts\\manual\\content.ts"
+ ],
+ [
+  "ビートは 1 台だけが刻み",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "ビープの和音がジャーン",
+  "scripts\\manual\\content.ts"
+ ],
+ [
+  "ビープ・ノイズ・キック・スネア・ハット・ドローン・ザップ・ブリップ・ブザー・チャープ（音階つき）。",
+  "scripts\\manual\\parts.ts"
+ ],
+ [
+  "ビープ暴走",
+  "scripts\\manual\\content.ts"
+ ],
+ [
+  "フィードバック",
+  "scripts\\manual\\content.ts"
+ ],
+ [
+  "ブラウザが「マイクを使ってよいか」を聞いてくるので",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "ブラウザは「最初に操作するまで音を出さない」決まりがあるけど、電源を入れる操作で音の準備も済む。",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "ブラウン管",
+  "scripts\\manual\\content.ts"
+ ],
+ [
+  "ブラウン管モニター付きの魔改造キーボード（オリジナル設計）。Web カメラ・別のタブ・動画ファイルの映像と音を取り込んで、キーで同時に壊す。キーの下の小さな文字が「映像の壊れ方／音の壊れ方」。GLITCH ボタン×BASE の一発グリッチ、ノブ 8 個、熱による暴発つきの映像マシンだ！",
+  "scripts\\manual\\parts.ts"
+ ],
+ [
+  "プリセット 1〜8 で選局。PRESET HIJACK 中は、プリセットのボタンがエンジンの音階（ド〜ド）になる。",
+  "scripts\\manual\\parts.ts"
+ ],
+ [
+  "ヘルプ（右上の ?）の中の「電源の案内をもう一度見る」で、最初の案内をまた見られるぞ。",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "ベント・トイ・ラック",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "ベンドのコツ",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "ページの名前のとおりに働く。上下にドラッグ、ダブルクリックで初期値。",
+  "scripts\\manual\\extra-parts.ts"
+ ],
+ [
+  "ボタン",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "ボタンを押して選ぶか、画面に動画をドラッグ＆ドロップ",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "ボタンを押すだけ。自由に使ってよい素材",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "マイクで録るとき",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "マウスでつかんで回すとスクラッチ。DISC EFFECT の音をこする。",
+  "scripts\\manual\\parts.ts"
+ ],
+ [
+  "モチーフ",
+  "scripts\\manual\\content.ts"
+ ],
+ [
+  "モニター",
+  "scripts\\manual\\parts.ts"
+ ],
+ [
+  "モニターの下に「TAB（音声なし…）」と出たら、手順 4 を忘れている。もう一度取り込み直そう。取り込みを止めると TEST に戻る。",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "モニターの右下の大きな緑のボタン（押すたびに ON / OFF）",
+  "scripts\\manual\\parts.ts"
+ ],
+ [
+  "モニター左上の",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "モードによって、文字の名前・単語・メロディ・ピアノの音・ドラム・効果音・クイズの答えになる。1 音ずつしか鳴らない（新しい音が前の音を切る）。",
+  "scripts\\manual\\parts.ts"
+ ],
+ [
+  "モード・キー全データ",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "ラジオ",
+  "scripts\\manual\\parts.ts"
+ ],
+ [
+  "ラジオでエンジンを弾く",
+  "scripts\\manual\\content.ts"
+ ],
+ [
+  "ラックで聞く ▶",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "ラックの 7 台目、スタジオの「おもちゃを選ぶ」の",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "ランダムな 5 つのグリッチが同時にかかる一発技。熱も一気に上がる。",
+  "scripts\\manual\\content.ts"
+ ],
+ [
+  "ランダムな高さのピコピコが 30ms ごとに走る",
+  "scripts\\manual\\content.ts"
+ ],
+ [
+  "ランダムに 5 つのグリッチを同時に",
+  "scripts\\manual\\content.ts"
+ ],
+ [
+  "リズム 28 種類を選ぶ（1-7・8-14・15-21 と、隠しの 22-28）。",
+  "scripts\\manual\\parts.ts"
+ ],
+ [
+  "リズムの 4 キーを押すと、隠しパターン 22〜28 へ。5・7・11・13・9・15・6 ステップの変拍子で、音もばらばら。",
+  "scripts\\manual\\content.ts"
+ ],
+ [
+  "リズムの速さを 4 ずつ上げ下げ。",
+  "scripts\\manual\\parts.ts"
+ ],
+ [
+  "リズムの速さ（60〜200 BPM）。",
+  "scripts\\manual\\parts.ts"
+ ],
+ [
+  "リズムを PLAY",
+  "scripts\\manual\\content.ts"
+ ],
+ [
+  "リズムを鳴らす・止める。RHYTHM EFFECT は押している間、リズムを細かく刻む。",
+  "scripts\\manual\\parts.ts"
+ ],
+ [
+  "リンク",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "リングモジュレーターの周波数が上がっていく",
+  "scripts\\manual\\content.ts"
+ ],
+ [
+  "ループ / LOOP HOLD",
+  "scripts\\manual\\content.ts"
+ ],
+ [
+  "ループしている間だけ、音程をうねらせる（速さ 0.1〜25.6Hz、深さ ±1.2 オクターブ）。",
+  "scripts\\manual\\parts.ts"
+ ],
+ [
+  "ループの終わりに来るたびに曲に重なる（オーバーダブ）。もう一度 ● REC か ■ で終わり",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "ループ範囲",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "ループ範囲をくり返す・音符を置くマス目の細かさ・メトロノーム。",
+  "scripts\\manual\\extra-parts.ts"
+ ],
+ [
+  "ロボット読み上げ",
+  "scripts\\manual\\content.ts"
+ ],
+ [
+  "上げるほど基板のジャンパー線が増えて、再生がカクカク・ザリザリに壊れる（0 ならサンプラーのページの設定）・壊れる頻度。",
+  "scripts\\manual\\parts.ts"
+ ],
+ [
+  "上段 = セクション名（ダブルクリックで追加・名前変更）、下段 = クリックで再生位置、ドラッグでループ範囲。",
+  "scripts\\manual\\extra-parts.ts"
+ ],
+ [
+  "下の図の手順。映像も音も全部壊せる",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "乱数の「種」。同じシードなら同じ乱数の並びになるので、同じ曲・同じグリッチが作れる。",
+  "scripts\\manual\\content.ts"
+ ],
+ [
+  "人が映っている映像（カメラの映像を含む）を公開するときは、その人の許可も得てください。",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "他人の著作物（動画・音楽・画像など）を加工・録画・公開する場合は、必ずその権利を持っている人（権利者）の許可を得てください。",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "位置",
+  "scripts\\manual\\extra-parts.ts"
+ ],
+ [
+  "何が映る？",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "何が起きる？",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "何台かで 1 つの曲を作る",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "作った曲はどこに保存される？",
+  "scripts\\manual\\content.ts"
+ ],
+ [
+  "保存と書き出し",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "元に戻す・やり直し",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "光センサー・LIGHT",
+  "scripts\\manual\\parts.ts"
+ ],
+ [
+  "入力の切り替え",
+  "scripts\\manual\\parts.ts"
+ ],
+ [
+  "入力は 3 種類（＋テスト映像）",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "全ボタン・ノブ・スイッチを図解！",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "全体の音量と、鳴っている音を全部止めるボタン（パターンの再生も止まる）。",
+  "scripts\\manual\\extra-parts.ts"
+ ],
+ [
+  "全員同時",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "全部のおもちゃは、上のタブ（1〜7）で切り替える。裏にいるおもちゃも鳴り続けるので、重ねて演奏できる。",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "全部のパッドの音程を ±12 半音／鳴らし始めを後ろへずらす（ノブを回すほどスライスの途中から）。",
+  "scripts\\manual\\parts.ts"
+ ],
+ [
+  "全部のパッドを逆再生／サンプラーのページで決めたエフェクトを入・切。",
+  "scripts\\manual\\parts.ts"
+ ],
+ [
+  "再生 / 停止",
+  "scripts\\manual\\extra-parts.ts"
+ ],
+ [
+  "冷ます",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "凶暴度",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "出した音が速さを変え、それがまた音を変える。熱もすぐたまるので、暴発と隣り合わせ！",
+  "scripts\\manual\\content.ts"
+ ],
+ [
+  "出した音で速さが変わるループ。暴れ出すと止まらない",
+  "scripts\\manual\\content.ts"
+ ],
+ [
+  "出す",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "出た音（映像）をもう一度入れること。こだまやハウリング、暴走のもと。",
+  "scripts\\manual\\content.ts"
+ ],
+ [
+  "出口のローパス。回すほどこもる・RESO でピーキーなクセ。",
+  "scripts\\manual\\parts.ts"
+ ],
+ [
+  "切る",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "初めて開くと、画面が暗くなって POWER ボタンだけが光る。「電源を入れてね」の矢印の先を押そう！",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "別のキーの声のあちこちへ次々に飛ぶ",
+  "scripts\\manual\\content.ts"
+ ],
+ [
+  "別のキーやシステム音（起動音など）の断片がごちゃまぜ",
+  "scripts\\manual\\content.ts"
+ ],
+ [
+  "別のタブ",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "別のタブの映像と音",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "効いているグリッチキーが多いほど。一発グリッチ・連打・FEEDBACK / DIST / GLITCH AMT の振り切り・CROSSTALK でも上がる",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "動かす・長さを変える",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "動画の中の決まった位置。キーを押すとそこへ飛ぶ。",
+  "scripts\\manual\\content.ts"
+ ],
+ [
+  "取り込んだ映像を、効いているグリッチで壊して映す（WebGL）。入力が無いときは砂嵐。",
+  "scripts\\manual\\parts.ts"
+ ],
+ [
+  "右クリック、または選んで Delete",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "右下の大きな緑のボタン（OFF は右の青いボタン）",
+  "scripts\\manual\\parts.ts"
+ ],
+ [
+  "各パーツ完全解説",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "同じ URL なのに違う曲になる",
+  "scripts\\manual\\content.ts"
+ ],
+ [
+  "同じグリッチキーを何度も押す",
+  "scripts\\manual\\content.ts"
+ ],
+ [
+  "同じモードの別のキーの声に化ける（液晶のキャラも化ける）",
+  "scripts\\manual\\content.ts"
+ ],
+ [
+  "名前",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "和音 {0}",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "和音になるようにキーをいくつか押す（押しっぱなしにしなくていい）",
+  "scripts\\manual\\content.ts"
+ ],
+ [
+  "問題をもう一度",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "困ったときは（Q&A）",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "困ったときは（Q&amp;A）",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "壊した後の映像と音を録画して、WebM で保存。もう一度押すと止めて保存。",
+  "scripts\\manual\\parts.ts"
+ ],
+ [
+  "壊れ度 {0}% 以上でブレイクに",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "声の形のままノイズになる（ささやき声っぽく）",
+  "scripts\\manual\\content.ts"
+ ],
+ [
+  "好きなキーを弾く",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "始め方",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "子ども用の録音おもちゃ（ワニの口のスピーカー付き）を魔改造したサンプラー。",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "子ども用の録音おもちゃ（ワニの口のスピーカー付き）を魔改造したサンプラー。16 パッド × 10 バンクに、録った声・読み込んだ音・最初から入っている 32 音を入れて叩く。ラックとスタジオではこの小さい版で叩いて録って自動作曲、音の作り込み（録音・チョップ・エフェクト・ベンド・パターン）は専用のページ（サンプラー編）で！",
+  "scripts\\manual\\parts.ts"
+ ],
+ [
+  "子供用 DJ セット。ディスクをこすってスクラッチ、6 つの効果音パッド、13 鍵のキーボード、28 種類のリズム（うち 7 つは隠しパターン）。そこへピッチの粗・微調整、テープのように止まる STOP、光センサー、2 つの DIST と FEEDBACK を後付けした魔改造機だ！",
+  "scripts\\manual\\parts.ts"
+ ],
+ [
+  "子供用ドライブ・ダッシュボード（オリジナル設計）。エンジン音は「点火の粒」でできていて、改造パネルで点火を間引くとリズムになり、TUNE で音階になる。MIDI やシーケンサーでエンジンそのものを弾けるのが自慢の魔改造機だ！",
+  "scripts\\manual\\parts.ts"
+ ],
+ [
+  "完全攻略本",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "小節.拍・時間・いまのセクション名。",
+  "scripts\\manual\\extra-parts.ts"
+ ],
+ [
+  "少しずつ巻き戻っては進む。「キ、キ、キング」",
+  "scripts\\manual\\content.ts"
+ ],
+ [
+  "左がトラック名（M ミュート・🔒 鍵・● 録音先・＋ 行を追加）、右が音符とツマミの動き。",
+  "scripts\\manual\\extra-parts.ts"
+ ],
+ [
+  "左の「POWER」の札のイグニッションキー（クリックで ON、ON のままクリックでエンジン始動）",
+  "scripts\\manual\\parts.ts"
+ ],
+ [
+  "左上の赤いボタン（パクッ、パクッと鳴って起動）。電源 OFF のときは Enter でも入る",
+  "scripts\\manual\\parts.ts"
+ ],
+ [
+  "左下が 1。押すと鳴って、そのパッドを選ぶ。上の方を押すほど強い。モードによってはパターン選び・ステップ（16 分のマス）になる。",
+  "scripts\\manual\\extra-parts.ts"
+ ],
+ [
+  "左下が 1。押すと鳴る。♪ と BASS の印はメロディ用・ベース用のパッド。",
+  "scripts\\manual\\parts.ts"
+ ],
+ [
+  "巻き戻しのような逆回転",
+  "scripts\\manual\\content.ts"
+ ],
+ [
+  "復帰の手順",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "必ず（最後に崩壊）",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "必殺コンボ集",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "急降下",
+  "scripts\\manual\\content.ts"
+ ],
+ [
+  "手を離すと 2〜7 秒で落ち着く。RESET（Esc）で熱は 0 に（ただし CPU も止まる）",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "手を離すと約 8 秒で落ち着く。Esc（RESET）ですぐ 0 に",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "手持ちの動画ファイル",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "打った音の「行」、波形・音階・テンポなどが出る。",
+  "scripts\\manual\\parts.ts"
+ ],
+ [
+  "押した所の短い一片をダダダと連打",
+  "scripts\\manual\\content.ts"
+ ],
+ [
+  "押した所へ連続で戻る。ババババ",
+  "scripts\\manual\\content.ts"
+ ],
+ [
+  "押した文字・キャラ・モードが出る。グリッチ中は液晶の絵も崩れ、VOICE 系のグリッチでは別のキャラに化ける。",
+  "scripts\\manual\\parts.ts"
+ ],
+ [
+  "押しているキーを順番に読み取る「SCAN」でアルペジオに、チャタリングの「BOUNCE」で連打が重なる。",
+  "scripts\\manual\\content.ts"
+ ],
+ [
+  "押している間、エンジンがかかっていてもセルモーターが回り続ける。",
+  "scripts\\manual\\parts.ts"
+ ],
+ [
+  "押している間、テープが止まるように音程ごと落ちていく。離すと戻る。",
+  "scripts\\manual\\parts.ts"
+ ],
+ [
+  "押している間、今の映像と音をつかんで繰り返す。",
+  "scripts\\manual\\parts.ts"
+ ],
+ [
+  "押している間だけ効く 24 種のグリッチ。映像と音が同時に壊れる（→ 8 章の表）。",
+  "scripts\\manual\\parts.ts"
+ ],
+ [
+  "押している間だけ効く。いくつ同時に押してもいい（重ねがけ）。凶暴度は、音の壊れ方の激しさのめやすだ。",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "押している間だけ効く。何個でも同時に押せる（そのぶん熱もたまる）。",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "押している間だけ効くグリッチ。BASE の位置との組み合わせで 25 種類（→ 5 章）。いくつも同時押しできる。",
+  "scripts\\manual\\parts.ts"
+ ],
+ [
+  "押している間だけ鳴る・くり返す・逆再生・押し直しで重ねる（パッドごと）。",
+  "scripts\\manual\\extra-parts.ts"
+ ],
+ [
+  "押している間ターボ。回転が一気に上がる。",
+  "scripts\\manual\\parts.ts"
+ ],
+ [
+  "押して光ったおもちゃが、同じ 1 つの曲に入る。ビートは 1 台が刻み、メロディは 2 小節ずつ掛け合い。点線のおもちゃ（このパネルの持ち主）はいつも参加。",
+  "scripts\\manual\\extra-parts.ts"
+ ],
+ [
+  "押して待機 → キーを押している間マイクで録音（最長 4 秒）。そのキーが自分の声になる。短く押すと声を消す。",
+  "scripts\\manual\\parts.ts"
+ ],
+ [
+  "押すたびに新しいシードで曲を作り、シーケンサーに書き込んで、頭から鳴らす。",
+  "scripts\\manual\\extra-parts.ts"
+ ],
+ [
+  "押すたびに隣のキーが混ざったり別の効果になったりする。何が出るかはお楽しみ。",
+  "scripts\\manual\\content.ts"
+ ],
+ [
+  "押すたびに電源 ON / OFF。",
+  "scripts\\manual\\parts.ts"
+ ],
+ [
+  "押すたびに電源 ON / OFF。ON でブラウン管が「ボン」と点く。",
+  "scripts\\manual\\parts.ts"
+ ],
+ [
+  "押すと 1 秒前後（表の「長さ」）、映像と音がいっしょに派手に壊れる「一発技」だ。",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "押すと、今の BASE で決まる「一発グリッチ」が約 1 秒かかる（5×5 = 25 種、→ 5 章）。",
+  "scripts\\manual\\parts.ts"
+ ],
+ [
+  "操作",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "操作パネルの左の大きな緑のボタン（押すたびに ON / OFF）",
+  "scripts\\manual\\parts.ts"
+ ],
+ [
+  "改造おじさん",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "故障アルペジオ",
+  "scripts\\manual\\content.ts"
+ ],
+ [
+  "文字の段：音階",
+  "scripts\\manual\\parts.ts"
+ ],
+ [
+  "文字キーを押し、鳴っている間に LOOP HOLD（Space）",
+  "scripts\\manual\\content.ts"
+ ],
+ [
+  "文字キーを押す",
+  "scripts\\manual\\content.ts"
+ ],
+ [
+  "文字キー（A〜Z）と ♪ ? ★ OK",
+  "scripts\\manual\\parts.ts"
+ ],
+ [
+  "昔のテレビの画面。TELEKEY の画面は、それらしく丸く・にじんで見えるようにしてある。",
+  "scripts\\manual\\content.ts"
+ ],
+ [
+  "映像が映らない（TELEKEY）",
+  "scripts\\manual\\content.ts"
+ ],
+ [
+  "映像と音のグリッチを組み合わせて一気に",
+  "scripts\\manual\\content.ts"
+ ],
+ [
+  "映像の 10%〜90%・0% へ飛ぶ。Shift＋数字で今の位置を登録。",
+  "scripts\\manual\\parts.ts"
+ ],
+ [
+  "映像の壊れ方",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "映像も、音も、いっしょに壊せ！",
+  "scripts\\manual\\parts.ts"
+ ],
+ [
+  "映像マシン編",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "映像＋音のグリッチ 24 種",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "暴発",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "暴発が始まったら、1 個だけ離す。熱の上がり方は押している数でぐんと変わる。",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "暴発も演奏のうち！ 気に入ったら、あえて熱いまま粘るのもアリだ。",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "曲の中で繰り返す短いフレーズ。自動作曲は 2 小節のモチーフを少しずつ変えて繰り返す。",
+  "scripts\\manual\\content.ts"
+ ],
+ [
+  "曲の乱数の種。頭から再生すると、おもちゃを新品にしてこの種で鳴らすので、毎回同じ音・同じグリッチ。",
+  "scripts\\manual\\extra-parts.ts"
+ ],
+ [
+  "曲の区切り（イントロ・Aメロ・サビなど）。",
+  "scripts\\manual\\content.ts"
+ ],
+ [
+  "曲の長さ：30 秒・1 分・2 分・3 分。",
+  "scripts\\manual\\extra-parts.ts"
+ ],
+ [
+  "曲はこのブラウザに自動で保存される。「保存」で JSON ファイル、",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "曲を JSON ファイルに保存・読み込み（曲はこのブラウザにも自動で保存される）。",
+  "scripts\\manual\\extra-parts.ts"
+ ],
+ [
+  "曲を頭から鳴らす・止める。",
+  "scripts\\manual\\extra-parts.ts"
+ ],
+ [
+  "書き出し。WAV = 音（速く作る）、WebM = 映像込み（曲の長さだけかかる）、MIDI = 将来の VST・DAW 用。",
+  "scripts\\manual\\extra-parts.ts"
+ ],
+ [
+  "最初に開いたときは自動でカメラ。ブラウザに聞かれたら「許可」。許可しなければ TEST になる",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "最初の 3 分でやること",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "最初の案内",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "最初は B-09 TOY PNO と B-02 BASS C。自分で録った声をメロディにすると楽しい",
+  "scripts\\manual\\parts.ts"
+ ],
+ [
+  "最初へ・再生 / 停止・手で弾いた操作の録音（● の付いたトラックへ重ね録り）。",
+  "scripts\\manual\\extra-parts.ts"
+ ],
+ [
+  "本体の左上の大きな緑のボタン（赤い「POWER」の札）。OFF はその下の小さいボタン",
+  "scripts\\manual\\parts.ts"
+ ],
+ [
+  "本当のクラッシュ：シーケンサーの CRASH",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "楽器の線を押さえっぱなし",
+  "scripts\\manual\\content.ts"
+ ],
+ [
+  "楽器を選ぶ線を押さえっぱなしにする改造。ON にした音色が混ざる。",
+  "scripts\\manual\\parts.ts"
+ ],
+ [
+  "権利に関する注意",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "機械が「バグった」ような音や映像の乱れ。わざと起こして楽しむ。",
+  "scripts\\manual\\content.ts"
+ ],
+ [
+  "機能",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "機能タブ",
+  "scripts\\manual\\extra-parts.ts"
+ ],
+ [
+  "次の問題",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "止まる・急発進を細かく繰り返す",
+  "scripts\\manual\\content.ts"
+ ],
+ [
+  "歪ませる／ビットとサンプルを落としてガリガリにする。",
+  "scripts\\manual\\parts.ts"
+ ],
+ [
+  "歪み。CLIP はつぶす歪み、FOLD は折り返して量子化する荒い歪み。",
+  "scripts\\manual\\parts.ts"
+ ],
+ [
+  "歪みの種類（CLIP / CRUSH）、LFO の行き先（VIDEO / AUDIO / BOTH）、キーの混線（ON で隣のキーも効いたり、押すたびに別の効果になったり）。",
+  "scripts\\manual\\parts.ts"
+ ],
+ [
+  "歪み・ビットつぶし・こだま。",
+  "scripts\\manual\\parts.ts"
+ ],
+ [
+  "歪み・再生の速さと音程・元の音と壊した音の割合・全体の音量。",
+  "scripts\\manual\\parts.ts"
+ ],
+ [
+  "毎回同じグリッチ",
+  "scripts\\manual\\content.ts"
+ ],
+ [
+  "気に入ったトラックの 🔓 を押して 🔒 に",
+  "scripts\\manual\\content.ts"
+ ],
+ [
+  "注意！",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "消す",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "液晶",
+  "scripts\\manual\\extra-parts.ts"
+ ],
+ [
+  "混線ルーレット",
+  "scripts\\manual\\content.ts"
+ ],
+ [
+  "演奏の操作（どのキーをいつ押したか・ツマミをどう回したか）を記録して、自動で弾かせる仕組み。",
+  "scripts\\manual\\content.ts"
+ ],
+ [
+  "点火が間引かれて、低い回転ではリズムになる。TUNE で回転が音階にそろう。",
+  "scripts\\manual\\content.ts"
+ ],
+ [
+  "熱が 40% をこえると、押していないグリッチが 20〜150ms 勝手に入る",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "熱が 45% をこえると、勝手にグリッチ・砂嵐・音の張り付き・一瞬の無音が起きる。HEAT の LED が速く点滅し、画面が震える",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "熱が上がる",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "熱のしくみ（トイPC・TELEKEY）",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "熱をためて、ギリギリで粘れ！",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "熱（ストレス）。熱いほど速く赤く点滅し、画面が震え、勝手にグリッチが暴れる。固まらない。",
+  "scripts\\manual\\parts.ts"
+ ],
+ [
+  "状態 LED",
+  "scripts\\manual\\parts.ts"
+ ],
+ [
+  "用語集",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "画面が真っ白・真っ黒になる",
+  "scripts\\manual\\content.ts"
+ ],
+ [
+  "画面は小さくなるが開ける。ただしこのアプリは PC のキーボードで弾くことを大事にしているので、PC の Chrome がいちばんのおすすめ。",
+  "scripts\\manual\\content.ts"
+ ],
+ [
+  "盛り上がり",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "目盛りの上段をダブルクリック",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "目盛りの下段をドラッグ",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "直す",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "知ってると自慢できる！",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "短いバッファを繰り返す",
+  "scripts\\manual\\content.ts"
+ ],
+ [
+  "砂嵐（ノイズ）がかぶる",
+  "scripts\\manual\\content.ts"
+ ],
+ [
+  "空いた所をドラッグ",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "答え {7}",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "細かい部分が消えてガサガサの低音質に",
+  "scripts\\manual\\content.ts"
+ ],
+ [
+  "細かく前後に行ったり来たり。逆再生まじり",
+  "scripts\\manual\\content.ts"
+ ],
+ [
+  "細かく音が切れる（ドロップアウト）",
+  "scripts\\manual\\content.ts"
+ ],
+ [
+  "線",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "縁をつかんで回す（離すと戻る）。真ん中はホーン。",
+  "scripts\\manual\\parts.ts"
+ ],
+ [
+  "自分で楽しむだけのつもりでも、録画したものをインターネットに公開すると、権利者の権利を侵害することがあります。",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "自動で作るテスト映像（カラーバー・図形・トンネル・テストカード）＋テスト信号の音",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "自動作曲 → 鍵 → 作り直し",
+  "scripts\\manual\\content.ts"
+ ],
+ [
+  "自動作曲でできた曲の中から、盛り上がりがはっきりしていて、音割れの少ないものを選んだ。リンクを開くと同じ曲が作られる（「▶」で再生）。",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "自動作曲では、盛り上げの所でだんだん開く",
+  "scripts\\manual\\parts.ts"
+ ],
+ [
+  "自動作曲のプログラムが新しくなると、同じ設定でも曲が変わることがある。同じ版のページなら必ず同じ曲になる。",
+  "scripts\\manual\\content.ts"
+ ],
+ [
+  "自動作曲ユニット",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "自動作曲ユニットの",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "自動作曲ユニット（AUTO COMPOSER）",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "行の上をダブルクリック",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "行を足す",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "行ループの上書き",
+  "scripts\\manual\\content.ts"
+ ],
+ [
+  "行ループの速さ（60〜240 BPM）と、ピッチベンドの幅（0〜12 半音）。",
+  "scripts\\manual\\parts.ts"
+ ],
+ [
+  "裏技・隠し要素",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "見せたい動画を",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "言いまちがいマシン",
+  "scripts\\manual\\content.ts"
+ ],
+ [
+  "許可",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "読む場所の一部が固定され、決まった所だけが繰り返される",
+  "scripts\\manual\\content.ts"
+ ],
+ [
+  "赤いパッド",
+  "scripts\\manual\\parts.ts"
+ ],
+ [
+  "起こること",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "起動音や「RIGHT!」がしゃっくりのように割り込む",
+  "scripts\\manual\\content.ts"
+ ],
+ [
+  "踏んでいる間アクセル。回転数（＝点火の速さ＝音の高さ）が上がる。",
+  "scripts\\manual\\parts.ts"
+ ],
+ [
+  "速く・高く（リスの声）",
+  "scripts\\manual\\content.ts"
+ ],
+ [
+  "選んだセクション（サビなど）だけを作り直す。ほかの場所は 1 音も変わらない。",
+  "scripts\\manual\\extra-parts.ts"
+ ],
+ [
+  "金属っぽいリングモジュレーション",
+  "scripts\\manual\\content.ts"
+ ],
+ [
+  "金属の丸に触ると：CHASSIS = ブーンというハムが乗り、点火がときどき飛ぶ。HAZARD = エンジンを細かく刻み、リレーのカチカチが増える。",
+  "scripts\\manual\\parts.ts"
+ ],
+ [
+  "銀の丸に指を当てている間だけ音程が曲がる。押したまま上下で強さが変わる。",
+  "scripts\\manual\\parts.ts"
+ ],
+ [
+  "銀の丸に指を当てている間だけ：1 = ブーンというハム、2 = 歪み、3 = ピーという発振。押したまま上下で強さが変わる。",
+  "scripts\\manual\\parts.ts"
+ ],
+ [
+  "録って、直して、作らせろ！",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "録る",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "録画しよう",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "録音した上に、さらに重ねて録音すること。",
+  "scripts\\manual\\content.ts"
+ ],
+ [
+  "録音する",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "鍵を掛けたトラックだけ残って、ほかが新しくなる。いいビートを残してメロディだけ探せる。",
+  "scripts\\manual\\content.ts"
+ ],
+ [
+  "鍵マークの使い方",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "鍵盤の音色 8 種（ORGAN・VIOLIN・PIANO・HORN・FLUTE・GUITAR・MUSIC BOX・BANJO）。VIBRATO でゆらし、DEMO でデモ曲。",
+  "scripts\\manual\\parts.ts"
+ ],
+ [
+  "鍵盤・KEYBOARD PATTERN・INSTRUMENT",
+  "scripts\\manual\\parts.ts"
+ ],
+ [
+  "鍵盤（F3〜C6）",
+  "scripts\\manual\\parts.ts"
+ ],
+ [
+  "電圧 Starve",
+  "scripts\\manual\\content.ts"
+ ],
+ [
+  "電圧 Starve。AMP を下げると音が小さく・途切れ・ブルブル揺れる。CPU を下げると全部が遅く・低く・よれていき、さらに下げると音が化け、ときどき止まり、弾いた音程までずれる（リズムも）。",
+  "scripts\\manual\\parts.ts"
+ ],
+ [
+  "電圧を下げると、音も心もよれていく",
+  "scripts\\manual\\parts.ts"
+ ],
+ [
+  "電子楽器をつなぐ決まり。キーボードやシーケンサーのデータを送り合える。",
+  "scripts\\manual\\content.ts"
+ ],
+ [
+  "電池切れのデモ演奏",
+  "scripts\\manual\\content.ts"
+ ],
+ [
+  "電源 OFF のときは Enter キーでも入る",
+  "scripts\\manual\\parts.ts"
+ ],
+ [
+  "電源 OFF のままキーやツマミを触ると、POWER ボタンがピカッと光る。",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "電源 OFF のまま触ると、POWER ボタンがピカッと光って教えてくれる。スタジオでは、クリックしたおもちゃ（緑の枠）にキーボードがつながる。シーケンサーをクリックした後はキーボードがシーケンサー用になるので、おもちゃをクリックし直そう。トイPC は起動の「HELLO」が終わるまでキーが効かない。",
+  "scripts\\manual\\content.ts"
+ ],
+ [
+  "電源 OFF の間は、POWER の横の LED がゆっくり点滅して「ここを押して」と教えてくれる。",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "電源 ON。起動音のあと「HELLO」としゃべって、モードの画面になる。しゃべり終わるまではキーが効かない。",
+  "scripts\\manual\\parts.ts"
+ ],
+ [
+  "電源 ON（緑）と OFF（青）。",
+  "scripts\\manual\\parts.ts"
+ ],
+ [
+  "電源が入らない!?",
+  "scripts\\manual\\content.ts"
+ ],
+ [
+  "電源の入／切。入れると「パクッ、パクッ」と鳴って、パッドが明るくなる。",
+  "scripts\\manual\\parts.ts"
+ ],
+ [
+  "電源を入れないとブラウン管は点かない。カメラを許可しなかったときは TEST（テスト映像）になる。TAB で「音声なし」と出たら、共有の画面で「タブの音声も共有する」をオンにし忘れている。",
+  "scripts\\manual\\content.ts"
+ ],
+ [
+  "電源を入れる",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "電源を入れると、ブラウン管の「ボン」と「ピッ」が鳴る。クラッシュから再起動するときも鳴る。",
+  "scripts\\manual\\content.ts"
+ ],
+ [
+  "電源を切る。",
+  "scripts\\manual\\parts.ts"
+ ],
+ [
+  "音があちこち先へ飛ぶ。しゃべりが早口の切れ切れに",
+  "scripts\\manual\\content.ts"
+ ],
+ [
+  "音が出ない「死にキー」は…",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "音が出ない！",
+  "scripts\\manual\\content.ts"
+ ],
+ [
+  "音の一部をつかんで繰り返すこと。",
+  "scripts\\manual\\content.ts"
+ ],
+ [
+  "音の壊れ方",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "音の大きさに合わせてピーピー鳴る矩形波が混ざる",
+  "scripts\\manual\\content.ts"
+ ],
+ [
+  "音の細かさ（ビット数や速さ）を落として、ガサガサの昔のゲームみたいな音にすること。",
+  "scripts\\manual\\content.ts"
+ ],
+ [
+  "音の長さ。HOLD にすると押した音が消えずに伸びっぱなし。",
+  "scripts\\manual\\parts.ts"
+ ],
+ [
+  "音をわざと歪ませること。",
+  "scripts\\manual\\content.ts"
+ ],
+ [
+  "音を入れる",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "音を自分に返す。どの音を返すかを RHYTHM・DISC・ALL（全部）から選ぶ。",
+  "scripts\\manual\\parts.ts"
+ ],
+ [
+  "音を食べて、切って、並べろ！",
+  "scripts\\manual\\parts.ts"
+ ],
+ [
+  "音程がぐにゃぐにゃ揺れる",
+  "scripts\\manual\\content.ts"
+ ],
+ [
+  "音程が階段みたいにカクカク飛ぶ",
+  "scripts\\manual\\content.ts"
+ ],
+ [
+  "音符を足す",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "音量。",
+  "scripts\\manual\\parts.ts"
+ ],
+ [
+  "音量のツマミ。",
+  "scripts\\manual\\parts.ts"
+ ],
+ [
+  "音量・音の減り方・明るさ。",
+  "scripts\\manual\\parts.ts"
+ ],
+ [
+  "音量（改造パーツの後ろなので、歪ませても大きくなりすぎない）。",
+  "scripts\\manual\\parts.ts"
+ ],
+ [
+  "魔改造",
+  "scripts\\manual\\content.ts"
+ ],
+ [
+  "魔改造おもちゃ 7 機種（サンプラー入り）＋ スタジオ ＋ 自動作曲 まるごと対応！",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "鳴っている音を全部止める（ループしている音も）。",
+  "scripts\\manual\\parts.ts"
+ ],
+ [
+  "📄 PDF をダウンロード",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "🖨 印刷する",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "（全部の線が一時的に強く効く）。外せば冷める。WAV に書き出しても同じ壊れ方になる。",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "（将来の VST・DAW 用）で書き出せる。",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "（映像込み）・",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "（準備中）",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "（音）・",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "：1. BLIPPY なら「HELLO」としゃべる。",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "：EDIT タブの ✂ CHOP で、ループを切り分けて空いているバンクに並べる",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "：PATTERN タブの ● REC で叩いて録る。STEP で 16 分のマスに置いてもよい",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "：PC キーボードの A〜Z がそのまま鳴る。",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "：REC（マイク）・RESAMPLE（自分の音）・📂 FILE。最初からドラムとおもちゃの音が 32 個入っている",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "：SONG タブで、パターンを ＋ でつなぐ",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "：WAV・MIDI・プロジェクト保存。→ STUDIO でスタジオのシーケンサーへ",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "：もう一度 POWER（または Enter）で起動し直す。「HELLO」が聞こえたら復活！",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "：トイPC なら , . / ; : キーが GLITCH 1〜5。押している間だけ壊れる！",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "：トイPC なら Esc か RESET ボタン。CPU が止まって電源が切れた状態になる（吹き出しで教えてくれる）。",
+  "scripts\\manual\\build.ts"
+ ],
+ [
+  "：右の緑の基板の赤いボタンを押すと、そのおもちゃの曲ができて鳴り出す。",
+  "scripts\\manual\\build.ts"
+ ]
+]
