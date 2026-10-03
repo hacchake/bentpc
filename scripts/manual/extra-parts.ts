@@ -35,6 +35,6 @@ export const SAMPLER_PARTS: PartDef[] = [
   { find: { sel: '#pk-rec' }, name: 'REC / RESAMPLE', what: 'REC → 録るパッドを押す → 声や音を入れる → REC で止める。RESAMPLE は自分が鳴らしている音を録る。' },
   { find: { sel: '#pk-gate' }, name: 'GATE・LOOP・REV・POLY', what: '押している間だけ鳴る・くり返す・逆再生・押し直しで重ねる（パッドごと）。' },
   { find: { sel: '#pk-master' }, name: 'VOL と STOP', what: '全体の音量と、鳴っている音を全部止めるボタン（パターンの再生も止まる）。' },
-  { find: { sel: '.pk-banks' }, name: 'バンク A〜J', what: '16 パッド × 10 バンク = 160 音。音の入っているバンクは水色。' },
+  { find: { sel: '.pk-banks' }, name: 'バンク A〜P', what: '16 パッド × 16 バンク = 256 音。音の入っているバンクは水色。' },
   { find: { sel: '.pk-pads' }, name: 'パッド 16 個', what: '左下が 1。押すと鳴って、そのパッドを選ぶ。上の方を押すほど強い。モードによってはパターン選び・ステップ（16 分のマス）になる。' },
 ];

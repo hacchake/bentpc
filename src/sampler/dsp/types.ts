@@ -1,9 +1,9 @@
 // サンプラーの共通の形（DOM 非依存。画面・AudioWorklet・テストのどこからでも使う）
 
 export const PADS = 16;
-export const BANKS = 10;
+export const BANKS = 16;
 export const PAD_COUNT = PADS * BANKS;
-export const BANK_NAMES = 'ABCDEFGHIJ';
+export const BANK_NAMES = 'ABCDEFGHIJKLMNOP';
 /** 録音の上限（秒） */
 export const REC_MAX_SEC = 120;
 
@@ -66,7 +66,7 @@ export const attackSec = (k: number) => k * k * 2;
 export const releaseSec = (k: number) => 0.005 + k * k * 4;
 export const cutoffHz = (k: number) => 20 * Math.pow(1000, k);
 
-/** パッド番号（0〜159）→ "A-01" */
+/** パッド番号（0〜255）→ "A-01" */
 export const padLabel = (pad: number) => `${BANK_NAMES[Math.floor(pad / PADS)]}-${String((pad % PADS) + 1).padStart(2, '0')}`;
 
 /** 16 レベル：鳴らすときだけ設定を変える（無い項目はパッドの設定のまま） */

@@ -1,5 +1,6 @@
 // ラック・スタジオに並べる PAKU-PAKU 16。おもちゃの共通の形（ToyEngine）に合わせた殻。
 // キー   0〜159 = パッド（A-01〜J-16）
+//      304〜399 = パッド（K-01〜P-16。あとから増やしたバンク。前に作った曲のキーがずれないよう後ろに足した）
 //      160〜207 = メロディ：MELO PAD の音を、音程を変えて弾く（184 = 元の高さ、±24 半音）
 //      208〜255 = ベース：BASS PAD の音を、音程を変えて弾く（232 = 元の高さ）
 //      256〜303 = 和音：CHORD PAD の音を、音程を変えて重ねて弾く（280 = 元の高さ）
@@ -15,7 +16,15 @@ import { PADS, PAD_COUNT, type PadParams, type SampleBuf } from '../dsp/types';
 export const MELO_KEY = 160;
 export const BASS_KEY = 208;
 export const CHORD_KEY = 256;
-export const KEY_COUNT = 304;
+/** あとから増やしたバンク K〜P のパッドのキー（パッド 160 → キー 304） */
+export const EXTRA_KEY = 304;
+/** キー 0〜159 で鳴らせるパッドの数（A〜J） */
+const LOW_PADS = 160;
+export const KEY_COUNT = EXTRA_KEY + PAD_COUNT - LOW_PADS;
+/** パッド番号 → キー */
+export const padKey = (pad: number) => (pad < LOW_PADS ? pad : EXTRA_KEY + pad - LOW_PADS);
+/** キー → パッド番号（パッドのキーでなければ -1） */
+export const keyPad = (key: number) => (key >= 0 && key < LOW_PADS ? key : key >= EXTRA_KEY && key < KEY_COUNT ? key - EXTRA_KEY + LOW_PADS : -1);
 /** メロディ・ベースのキーの「元の高さ」（真ん中） */
 export const MELO_ROOT_KEY = MELO_KEY + 24;
 export const BASS_ROOT_KEY = BASS_KEY + 24;
@@ -63,7 +72,7 @@ export interface SamplerDisplay {
 
 /** MIDI 書き出し：キー → ノート（パッド = 36〜51、メロディ = C5、ベース = C2、和音 = C4 が元の高さ） */
 export const samplerNote = (k: number): number =>
-  k < PAD_COUNT ? 36 + (k % PADS) : k < BASS_KEY ? 72 + (k - MELO_ROOT_KEY) : k < CHORD_KEY ? 36 + (k - BASS_ROOT_KEY) : 60 + (k - CHORD_ROOT_KEY);
+  keyPad(k) >= 0 ? 36 + (keyPad(k) % PADS) : k < BASS_KEY ? 72 + (k - MELO_ROOT_KEY) : k < CHORD_KEY ? 36 + (k - BASS_ROOT_KEY) : 60 + (k - CHORD_ROOT_KEY);
 
 /** 中の音の合計を下げておく量（和音・ドラム・ベースが重なっても中で歪まないように） */
 const HEADROOM = 0.7;
@@ -146,7 +155,7 @@ export class SamplerToy implements ToyEngine<SamplerDisplay> {
   private keyed(key: number): [number, number] | null {
     if (key >= MELO_KEY && key < BASS_KEY) return [this.params[SP.meloPad] | 0, key - MELO_ROOT_KEY];
     if (key >= BASS_KEY && key < CHORD_KEY) return [this.params[SP.bassPad] | 0, key - BASS_ROOT_KEY];
-    if (key >= CHORD_KEY && key < KEY_COUNT) return [this.params[SP.chordPad] | 0, key - CHORD_ROOT_KEY];
+    if (key >= CHORD_KEY && key < EXTRA_KEY) return [this.params[SP.chordPad] | 0, key - CHORD_ROOT_KEY];
     return null;
   }
 
@@ -159,7 +168,8 @@ export class SamplerToy implements ToyEngine<SamplerDisplay> {
 
   keyDown(key: number): void {
     if (!this.powered) return;
-    if (key >= 0 && key < PAD_COUNT) { this.eng.trigger(key, 1, this.mod()); return; }
+    const pad = keyPad(key);
+    if (pad >= 0) { this.eng.trigger(pad, 1, this.mod()); return; }
     const k = this.keyed(key);
     if (!k) return;
     this.eng.releaseTag(k[0], key); // 同じ音の押し直し
@@ -168,7 +178,8 @@ export class SamplerToy implements ToyEngine<SamplerDisplay> {
     else this.eng.trigger(k[0], key >= CHORD_KEY ? 0.55 : 0.85, this.mod(k[1], key));
   }
   keyUp(key: number): void {
-    if (key >= 0 && key < PAD_COUNT) { this.eng.releasePad(key); return; }
+    const pad = keyPad(key);
+    if (pad >= 0) { this.eng.releasePad(pad); return; }
     const k = this.keyed(key);
     if (k) this.eng.releaseTag(k[0], key);
   }

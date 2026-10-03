@@ -7,11 +7,11 @@ import { noteName, type HostApi, type ToyUI } from '../../core/ui';
 import type { FromToy } from '../../host/protocol';
 import type { BendState } from '../dsp/bend';
 import type { FxSlot } from '../dsp/fx';
-import { BANK_NAMES, PADS, PAD_COUNT, defaultPad, padLabel, type PadParams, type SampleBuf } from '../dsp/types';
+import { BANKS, BANK_NAMES, PADS, PAD_COUNT, defaultPad, padLabel, type PadParams, type SampleBuf } from '../dsp/types';
 import { loadAll, loadMeta } from '../store';
 import { FACTORY_BANKS, factoryNames, factoryPadParams, factorySound } from '../dsp/factory';
 import { ROOTS } from '../dsp/factory2';
-import { BASS_KEY, BASS_ROOT_KEY, CHORD_KEY, CHORD_ROOT_KEY, KEY_COUNT, MELO_ROOT_KEY, SAMPLER_PARAMS, SP, type SamplerCustom, type SamplerDisplay } from './engine';
+import { BASS_KEY, BASS_ROOT_KEY, CHORD_KEY, CHORD_ROOT_KEY, KEY_COUNT, keyPad, padKey, MELO_ROOT_KEY, SAMPLER_PARAMS, SP, type SamplerCustom, type SamplerDisplay } from './engine';
 
 const W = 760;
 const H = 1080;
@@ -41,8 +41,8 @@ const HELP = `
 <h3>PAKU-PAKU 16（サンプラー）</h3>
 <table>
   <tr><td>POWER</td><td>左上の赤いボタン（パクッ、パクッと鳴って起動）。電源 OFF のときは Enter キーでも入る</td></tr>
-  <tr><td>パッド</td><td>押すと鳴る。シーケンサーではキー A-01〜J-16 の行になる</td></tr>
-  <tr><td>A〜J</td><td>バンクの切り替え（PC は [ ]）</td></tr>
+  <tr><td>パッド</td><td>押すと鳴る。シーケンサーではキー A-01〜P-16 の行になる</td></tr>
+  <tr><td>A〜P</td><td>バンクの切り替え（16 バンク。PC は [ ]）</td></tr>
   <tr><td>Z X C V・A S D F・Q W E R・1 2 3 4</td><td>いまのバンクのパッド 1〜16（下の段から）</td></tr>
   <tr><td>♪ MELO / BASS / CHORD</td><td>いま選んでいるパッドを、メロディ用・ベース用・和音用にする。シーケンサーの「♪」「BASS」「CHORD」の行で、そのパッドの音を音程を変えて弾ける（自動作曲は、スタイルに合う楽器をここに自動で選ぶ）</td></tr>
   <tr><td>工場出荷の音</td><td>A = ドラム、B = おもちゃの音、C = 和（太鼓・三味線・尺八…）、D = レゲエ・ダブ・スカ、E = ジャズ・ボサノバ・ファンク、F = ダンス（909・808・アシッド）、G = マーチ・チップ・パンク・ローファイ</td></tr>
@@ -187,7 +187,7 @@ export function mountSamplerToy(api: HostApi): ToyUI {
     drawWave();
     root.classList.toggle('off', !powered);
   }
-  const setBank = (b: number) => { bank = (b + 10) % 10; cur = bank * PADS + (cur % PADS); render(); };
+  const setBank = (b: number) => { bank = (b + BANKS) % BANKS; cur = bank * PADS + (cur % PADS); render(); };
   root.querySelectorAll<HTMLElement>('.pkt-banks button').forEach((b) => b.addEventListener('click', () => setBank(Number(b.dataset.b))));
 
   // ---- パラメーター ----
@@ -269,14 +269,14 @@ export function mountSamplerToy(api: HostApi): ToyUI {
   const down = (i: number) => {
     const pad = bank * PADS + i;
     void api.start();
-    api.post({ type: 'key', key: pad, down: true });
+    api.post({ type: 'key', key: padKey(pad), down: true });
     lit.add(pad);
     cur = pad;
     render();
   };
   const up = (i: number) => {
     const pad = bank * PADS + i;
-    api.post({ type: 'key', key: pad, down: false });
+    api.post({ type: 'key', key: padKey(pad), down: false });
     lit.delete(pad);
     render();
   };
@@ -299,7 +299,8 @@ export function mountSamplerToy(api: HostApi): ToyUI {
     keyCount: KEY_COUNT,
     powerButton: pwr,
     keyName: (k) => {
-      if (k < PAD_COUNT) return `${padLabel(k)}${names[k] ? ` ${names[k]}` : ''}`;
+      const p = keyPad(k);
+      if (p >= 0) return `${padLabel(p)}${names[p] ? ` ${names[p]}` : ''}`;
       // 音名は、そのパッドの工場出荷の音の高さから（入れ替えた音ならずれることも）
       const name = (lbl: string, d: number, pad: number, def: number) => `${lbl} ${d > 0 ? '+' : ''}${d}（${noteName((ROOTS[params[pad] | 0] ?? def) + d)}）`;
       if (k < BASS_KEY) return name('♪', k - MELO_ROOT_KEY, SP.meloPad, 72);
@@ -345,7 +346,7 @@ export function mountSamplerToy(api: HostApi): ToyUI {
     powerOn,
     powerOff,
     showKey(key, on) {
-      const pad = key < PAD_COUNT ? key : key < BASS_KEY ? params[SP.meloPad] | 0 : key < CHORD_KEY ? params[SP.bassPad] | 0 : params[SP.chordPad] | 0;
+      const pad = keyPad(key) >= 0 ? keyPad(key) : key < BASS_KEY ? params[SP.meloPad] | 0 : key < CHORD_KEY ? params[SP.bassPad] | 0 : params[SP.chordPad] | 0;
       if (on) shown.add(pad); else shown.delete(pad);
       render();
     },

@@ -444,6 +444,21 @@ const freq = (x: Float32Array, a: number, b: number) => { let z = 0; for (let i 
     const f = freq(L, at(0.02), at(0.28));
     Math.abs(f - 880) < 10 ? ok(`♪ MELO のキー：+12 → ${f.toFixed(1)}Hz`) : ng(`MELO ${f}`);
   }
+  // 増やしたバンク K〜P：キー 304〜 で鳴る（前のキー 0〜303 はそのまま）
+  {
+    const { SamplerToy, padKey, keyPad, KEY_COUNT } = await import('../src/sampler/toy/engine');
+    const t = new SamplerToy(SR);
+    t.custom({ kind: 'pad', pad: 255, data: tone(), p: defaultPad() });
+    t.powerOn();
+    const out = new Float32Array(B);
+    for (let i = 0; i < 200; i++) t.process(out);
+    t.keyDown(padKey(255));
+    const L = new Float32Array(SR * 0.2);
+    for (let o2 = 0; o2 + B <= L.length; o2 += B) { t.process(out); L.set(out, o2); }
+    const f = freq(L, at(0.02), at(0.18));
+    const round = [0, 159, 160, 255].every((p) => keyPad(padKey(p)) === p) && padKey(159) === 159 && padKey(160) === 304 && KEY_COUNT === 400;
+    Math.abs(f - 440) < 10 && round ? ok(`バンク A〜P（256 パッド）：P-16 はキー ${padKey(255)} で鳴る（${f.toFixed(0)}Hz）・A〜J のキーは前のまま`) : ng(`バンク K〜P ${f} ${round}`);
+  }
   // 和音のキー：CHORD PAD の音を重ねて弾き、1 音だけ離すとその音だけ止まる
   {
     const { SamplerToy, SP, CHORD_ROOT_KEY } = await import('../src/sampler/toy/engine');

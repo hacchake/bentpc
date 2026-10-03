@@ -79,7 +79,7 @@ export function sampleWav(s: SampleBuf): Uint8Array {
 }
 
 /**
- * MIDI（SMF タイプ 0）。バンク A〜J = チャンネル 1〜10、パッド 1〜16 = ノート 36〜51（パッド型の MIDI 機器と同じ）。
+ * MIDI（SMF タイプ 0）。バンク A〜P = チャンネル 1〜16、パッド 1〜16 = ノート 36〜51（パッド型の MIDI 機器と同じ）。
  * 480 分解能。パターンなら 1 回、ソングならつないだ全部。
  */
 export function midiBytes(st: RenderSetup, mode: 'pattern' | 'song', ptn: number): Uint8Array {

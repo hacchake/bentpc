@@ -10,7 +10,7 @@ import { bassLine, chordDegs, compHits, degToMidi, drumBar, makeMotif, realize, 
 import { powerAndCrash, type Part, type PartContext } from '../context';
 import type { PlannedSection } from '../plan';
 import { PartWriter } from '../writer';
-import { BASS_KEY, BASS_ROOT_KEY, CHORD_KEY, CHORD_ROOT_KEY, KEY_COUNT, MELO_KEY, MELO_ROOT_KEY, SP } from '../../sampler/toy/engine';
+import { BASS_KEY, BASS_ROOT_KEY, CHORD_KEY, CHORD_ROOT_KEY, EXTRA_KEY, MELO_KEY, MELO_ROOT_KEY, SP } from '../../sampler/toy/engine';
 
 /** 音程のある楽器：[パッド, 元の高さ（MIDI）] */
 type Inst = [number, number];
@@ -91,7 +91,7 @@ function keyFor(midi: number, inst: Inst, rootKey: number, lo: number, hi: numbe
 }
 const meloKey = (midi: number, i: Inst) => keyFor(midi, i, MELO_ROOT_KEY, MELO_KEY, BASS_KEY);
 const bassKey = (midi: number, i: Inst) => keyFor(midi, i, BASS_ROOT_KEY, BASS_KEY, CHORD_KEY, -7, 14);
-const chordKey = (midi: number, i: Inst) => keyFor(midi, i, CHORD_ROOT_KEY, CHORD_KEY, KEY_COUNT);
+const chordKey = (midi: number, i: Inst) => keyFor(midi, i, CHORD_ROOT_KEY, CHORD_KEY, EXTRA_KEY);
 /** メロディ（ソ〜ラの 1 オクターブ半）を、楽器の元の高さの近くへオクターブで動かす量 */
 const meloShift = (i: Inst) => Math.round((i[1] + 5 - 74) / 12) * 12;
 

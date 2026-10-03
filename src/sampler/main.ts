@@ -1,5 +1,5 @@
 // PAKU-PAKU 16（音を食べるサンプラー）の画面。
-// 子ども用の録音おもちゃを魔改造した見た目。16 パッド × 10 バンク。
+// 子ども用の録音おもちゃを魔改造した見た目。16 パッド × 16 バンク。
 // 下の機能ボタンはタブで切り替える：PAD（録音・再生のしかた）／PLAY（ロール・サブパッド・16 レベル・テンポ）／EDIT（波形・チョップ・テンポ合わせ）
 import { setupLang } from '../i18n';
 import './sampler.css';
@@ -22,7 +22,7 @@ import { normalize as edNormalize, reverse as edReverse, trim as edTrim } from '
 const $ = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
 const host = new SamplerHost();
 
-// ---------------- 中身（160 パッド）と、パッド以外の設定 ----------------
+// ---------------- 中身（256 パッド）と、パッド以外の設定 ----------------
 const params: PadParams[] = Array.from({ length: PAD_COUNT }, defaultPad);
 const samples: (SampleBuf | null)[] = Array.from({ length: PAD_COUNT }, () => null);
 const names: string[] = Array.from({ length: PAD_COUNT }, () => '');
@@ -51,7 +51,7 @@ dev.innerHTML = `
     <div class="pk-sub">おとを たべる サンプラー<small>SOUND MUNCHER ・ BENT BY HAND</small></div>
     <div class="pk-mouth" title="スピーカー"><i></i><i></i><i></i><i></i><i></i><i></i></div>
     <div class="pk-mic" title="マイク"><span class="led" id="pk-recled"></span></div>
-    <div class="pk-scribble">160 VOICES!! 改</div>
+    <div class="pk-scribble">256 VOICES!! 改</div>
   </div>
   <div class="pk-lcd">
     <div class="pk-lcd-top"><b id="pk-padname">A-01</b><span id="pk-sname"></span><span class="tags" id="pk-tags"></span></div>
@@ -1079,7 +1079,7 @@ click('pk-xws', () => exportWav('song'));
 click('pk-xmid', () => {
   const m = meta.song.length ? 'song' : 'pattern';
   download(midiBytes(setup(), m, meta.ptn), m === 'song' ? 'paku16-song.mid' : `paku16-${ptnName(meta.ptn)}.mid`, 'audio/midi');
-  msg(`MIDI を書き出しました（${m === 'song' ? 'ソング' : ptnName(meta.ptn)}。バンク A〜J = チャンネル 1〜10、パッド 1〜16 = ノート 36〜51）`, 4000);
+  msg(`MIDI を書き出しました（${m === 'song' ? 'ソング' : ptnName(meta.ptn)}。バンク A〜P = チャンネル 1〜10、パッド 1〜16 = ノート 36〜51）`, 4000);
 });
 click('pk-xsave', () => {
   const pads = Array.from({ length: PAD_COUNT }, (_, i) => ({ pad: i, name: names[i], params: params[i], sample: samples[i] }));
@@ -1237,7 +1237,7 @@ $('pk-help').innerHTML = `
   <h3>PAKU-PAKU 16 の使い方</h3>
   <table>
     <tr><td>パッド</td><td>押すと鳴って、そのパッドを選ぶ。上の方を押すほど強い音（FIXED VEL でいつも最大）</td></tr>
-    <tr><td>バンク A〜J</td><td>16 パッド × 10 バンク。◀ ▶ か文字のボタン（PC は [ ]）</td></tr>
+    <tr><td>バンク A〜P</td><td>16 パッド × 16 バンク。◀ ▶ か文字のボタン（PC は [ ]）</td></tr>
     <tr><td>ノブ 4 つ</td><td>SOUND・FILTER/ENV・SAMPLE・MIX でページを切り替え。上下ドラッグ、ダブルクリックで初期値</td></tr>
     <tr><td colspan="2"><b>PAD タブ</b></td></tr>
     <tr><td>GATE / LOOP / REV / POLY</td><td>押している間だけ鳴る／くり返す（GATE なしなら、もう一度押して止める。戻り先は SAMPLE の LOOP）／逆再生／押し直しで重ねる</td></tr>
