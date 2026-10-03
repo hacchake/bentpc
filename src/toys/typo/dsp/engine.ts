@@ -11,7 +11,6 @@ import { RAW_NOTE, SCALE_STEPS, TYPO_INDEX, TYPO_KEYS, TYPO_PARAMS, WAVES, SCALE
 
 export const TYPO_SEED = 0x71907109;
 const POLY = 12;
-const LINE_MAX = 32;
 const ROW_OFFSET = 3; // 1 段上がるごとに 3 音階分（ほぼ 4 度）上がる
 const mtof = (n: number) => 440 * Math.pow(2, (n - 69) / 12);
 
@@ -195,7 +194,7 @@ export class TypoEngine implements ToyEngine<TypoDisplay> {
     const ch = TYPO_KEYS[key]?.label ?? '?';
     // 行バッファ：上書きモードでループ中なら、今鳴っている位置を書き換える
     if (this.overwrite && this.looping && this.line.length) this.line[this.loopStep] = { note, ch };
-    else if (this.line.length < LINE_MAX) this.line.push({ note, ch });
+    else this.line.push({ note, ch }); // 行の長さは無制限（液晶は横に流れる）
     if (this.latch) {
       if (this.latched.has(key)) { this.latched.delete(key); this.voiceOff(key); this.updateInfo(); return; }
       this.latched.add(key);

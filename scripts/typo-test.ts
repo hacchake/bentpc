@@ -58,13 +58,26 @@ const tap = (e: TypoEngine, code: string, sec = 0.15) => { e.keyDown(K(code)); c
   run(e, 1);
   tap(e, 'Enter', 0.05);
   const loop = run(e, 2);
-  console.log('行バッファ', JSON.stringify(e.display), 'ループ rms', rms(loop).toFixed(4));
+  console.log('行バッファ', e.display.line, 'ループ rms', rms(loop).toFixed(4));
   if (rms(loop) < 0.01) ng('ループが鳴らない');
   tap(e, 'Backspace', 0.05);
   if (e.display.line !== 'HELL') ng('Backspace で消えない');
   tap(e, 'Escape', 0.05);
   run(e, 2);
   if (e.display.line !== '' || rms(run(e, 0.5)) > 0.01) ng('Esc で止まらない');
+}
+// 行の長さは無制限：300 文字打っても全部残り、ループで最後まで回る
+{
+  const e = fresh();
+  const keys = ['KeyA', 'KeyS', 'KeyD', 'KeyF', 'KeyG', 'KeyH'];
+  for (let i = 0; i < 300; i++) tap(e, keys[i % keys.length], 0.01);
+  const n = [...e.display.line].length;
+  tap(e, 'Enter', 0.01);
+  let maxStep = 0;
+  for (let t = 0; t < 80; t++) { run(e, 0.25); maxStep = Math.max(maxStep, e.display.cursor); }
+  console.log('長い行', n, '文字・ループの位置の最大', maxStep);
+  if (n !== 300) ng(`行が ${n} 文字で止まった`);
+  if (maxStep < 40) ng('長い行のループが先まで進まない');
 }
 // 押しっぱなしの機能
 const held = (codes: string[], s: Partial<Record<TypoParamId, number>> = {}, sec = 1) => {
