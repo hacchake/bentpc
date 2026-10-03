@@ -124,7 +124,7 @@ body {
 .pk-plate::before { left: 8px; } .pk-plate::after { right: 8px; }
 .pk-pages { display: flex; gap: 6px; justify-content: center; margin-bottom: 4px; }
 .pk-pages button {
-  font: 700 12px 'Share Tech Mono', monospace; letter-spacing: 1px; padding: 4px 10px; border-radius: 4px; cursor: pointer;
+  font: 700 11px 'Share Tech Mono', monospace; letter-spacing: 0; padding: 4px 7px; border-radius: 4px; cursor: pointer;
   background: #2b2b2b; color: #aaa; border: 2px solid #111;
 }
 .pk-pages button.on { background: #e8322a; color: #fff; box-shadow: 0 0 8px rgba(232,50,42,.7); }
@@ -239,3 +239,30 @@ body {
 .pk-ed-body .pk-lbl { color: #ffd43b; }
 .pk-ed-info { font: 700 13px 'Share Tech Mono', monospace; color: #c8f0a0; }
 .paku.port .pk-modal { grid-area: 2 / 1 / 5 / 2; }
+
+/* ---- FX ---- */
+.pk-fxname { min-width: 190px; font-size: 17px; }
+.pk-fxno { font: 700 12px 'Share Tech Mono', monospace; color: #6b3a00; }
+.pk-seg button.fxon:not(.on) { background: #fff36b; }
+
+/* ---- BEND：むき出しの基板とジャンパー線 ---- */
+.pk-bendboard {
+  display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; padding: 8px; border-radius: 8px;
+  background: repeating-linear-gradient(90deg, rgba(255,255,255,.05) 0 2px, transparent 2px 14px), linear-gradient(160deg, #1f6b3a, #0f3f22);
+  border: 3px solid #0b2e18; box-shadow: inset 0 0 0 2px #c9a74a;
+}
+.pk-wire { position: relative; height: 56px; border: 0; background: transparent; cursor: pointer; color: #e8f5e0; font: 700 11px 'Share Tech Mono', monospace; padding: 0; touch-action: manipulation; }
+.pk-wire::before, .pk-wire::after { content: ''; position: absolute; top: 22px; width: 12px; height: 12px; border-radius: 50%; background: radial-gradient(circle, #ffe9a8, #b8862b); box-shadow: 0 0 0 2px #333; }
+.pk-wire::before { left: 14%; } .pk-wire::after { right: 14%; }
+.pk-wire i { position: absolute; left: calc(14% + 2px); right: calc(14% + 2px); top: 8px; height: 22px; border: 4px solid transparent; border-bottom: 0; border-radius: 20px 20px 0 0; opacity: 0; transition: .1s; }
+.pk-wire.on i { opacity: 1; border-color: #ff3b30; filter: drop-shadow(0 2px 1px rgba(0,0,0,.5)); }
+.pk-wire:nth-child(2).on i { border-color: #ffd43b; } .pk-wire:nth-child(3).on i { border-color: #4fd3ff; }
+.pk-wire:nth-child(4).on i { border-color: #b8f06b; } .pk-wire:nth-child(5).on i { border-color: #ff8fb8; } .pk-wire:nth-child(6).on i { border-color: #fff; }
+.pk-wire b { position: absolute; left: 0; right: 0; bottom: 2px; }
+.pk-wire.on b { color: #ffd43b; }
+.pk-heat { display: inline-block; width: 160px; height: 14px; border-radius: 7px; background: #2b2118; overflow: hidden; border: 2px solid #2b2118; }
+.pk-heat u { display: block; height: 100%; width: 0; background: linear-gradient(90deg, #ffd43b, #ff3b30); }
+.paku.bent .pk-mouth { animation: pk-shake .25s infinite; }
+.paku.hot .pk-lcd canvas { filter: hue-rotate(80deg) contrast(1.4); }
+.paku.hot { box-shadow: inset 0 -10px 0 rgba(170,100,0,.35), inset 0 6px 0 rgba(255,255,255,.5), 0 0 0 6px #ff6a00, 0 0 40px rgba(255,80,0,.7), 0 26px 50px rgba(0,0,0,.6); }
+@keyframes pk-shake { 25% { transform: translate(1px, -1px) rotate(.5deg); } 75% { transform: translate(-1px, 1px) rotate(-.5deg); } }

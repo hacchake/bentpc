@@ -24,6 +24,8 @@ class SamplerProcessor extends AudioWorkletProcessor {
         case 'trig': eng.trigger(m.pad, m.vel, m.mod); break;
         case 'roll': eng.setRoll(m.on, m.rate); break;
         case 'bpm': eng.bpm = m.bpm; break;
+        case 'fx': eng.setFx(m.slot, m.fx); break;
+        case 'bend': eng.bender.st = { ...m.bend, wires: [...m.bend.wires] }; break;
         case 'release': eng.releasePad(m.pad); break;
         case 'stopAll': eng.stopAll(); break;
         case 'master': eng.master = m.vol; break;
@@ -54,7 +56,7 @@ class SamplerProcessor extends AudioWorkletProcessor {
     if (++this.counter >= 8) {
       this.counter = 0;
       const e = this.eng;
-      this.send({ type: 'meter', inPeak: e.inPeak, outPeak: e.outPeak, rec: e.recording ? e.recSeconds : -1, waiting: e.recWaitingForSound });
+      this.send({ type: 'meter', inPeak: e.inPeak, outPeak: e.outPeak, rec: e.recording ? e.recSeconds : -1, waiting: e.recWaitingForSound, heat: e.bender.heat });
       const pads = e.playing();
       const key = pads.map((p) => `${p[0]}:${p[1].toFixed(3)}`).join(',');
       if (key !== this.lastPlay) {

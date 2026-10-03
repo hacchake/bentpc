@@ -1,6 +1,8 @@
 // サンプラーの音の中心（DOM 非依存）。160 パッドの音と設定を持ち、32 ボイスで鳴らして、ステレオで出す。
 // 録音（マイク入力・リサンプル）もここでする。
-import { PAD_COUNT, REC_MAX_SEC, attackSec, cutoffHz, defaultPad, releaseSec, volGain, type PadParams, type SampleBuf, type TrigMod } from './types';
+import { Bender } from './bend';
+import { FX_LIST, defaultSlots, type Effect, type FxSlot } from './fx';
+import { PADS, PAD_COUNT, REC_MAX_SEC, attackSec, cutoffHz, defaultPad, releaseSec, volGain, type PadParams, type SampleBuf, type TrigMod } from './types';
 
 const MAX_VOICES = 32;
 /** 止められた音を消す時間（プチッと鳴らないように） */
@@ -15,6 +17,7 @@ class Voice {
   lo = 0; // 鳴らす範囲（フレーム）
   hi = 0;
   loopLo = 0; // ループの戻り先
+  bus = 0;
   mod: TrigMod | undefined;
   reverse = false;
   loop = false;
@@ -62,8 +65,27 @@ export class SamplerEngine {
   private recLen = 0;
   private killCoef: number;
 
+  // エフェクト（BUS 1・BUS 2・MASTER）とサーキットベンド
+  slots: FxSlot[] = defaultSlots();
+  private fx: Effect[];
+  readonly bender: Bender;
+  private bufs: Float32Array[] = [];
+
   constructor(readonly sr: number) {
     this.killCoef = Math.exp(-1 / (KILL_SEC * sr));
+    this.fx = this.slots.map((s) => FX_LIST[s.type].make(sr));
+    this.bender = new Bender(sr);
+  }
+
+  setFx(slot: number, f: FxSlot): void {
+    const t = Math.max(0, Math.min(FX_LIST.length - 1, f.type));
+    if (t !== this.slots[slot].type) this.fx[slot] = FX_LIST[t].make(this.sr); // 種類を変えたら作り直す（残響も消える）
+    this.slots[slot] = { type: t, on: f.on, k: [...f.k] };
+  }
+
+  /** いまの拍（テンポに合わせるエフェクト用。止まっていても時計で進む） */
+  beatNow(): number {
+    return (this.clock * this.bpm) / 60 / this.sr;
   }
 
   setSample(pad: number, data: SampleBuf | null): void {
@@ -103,9 +125,18 @@ export class SamplerEngine {
     this.fire(pad, vel, mod);
   }
 
-  private fire(pad: number, vel: number, mod?: TrigMod): void {
+  private fire(pad: number, vel: number, mod?: TrigMod, bleed = false): void {
     const buf = this.samples[pad];
     if (!buf) return;
+    // 混線（ベンド）：同じバンクのほかのパッドも小さく鳴る
+    if (!bleed) {
+      const ct = this.bender.crosstalk();
+      if (ct > 0) {
+        const b0 = Math.floor(pad / PADS) * PADS;
+        const o = b0 + this.bender.pickOther(PADS);
+        if (o !== pad && this.samples[o]) this.fire(o, vel * ct, undefined, true);
+      }
+    }
     const p = withMod(this.pads[pad], mod);
     // ループで GATE なし：鳴っていれば止める（押すたびに入／切）
     if (p.loop && !p.gate) {
@@ -130,6 +161,7 @@ export class SamplerEngine {
     v.hi = hi;
     v.loopLo = Math.max(lo, Math.min(hi - 2, Math.floor(Math.max(0, Math.min(1, p.loopStart)) * len)));
     v.mod = mod;
+    v.bus = Math.max(0, Math.min(2, Math.round(p.bus ?? 0)));
     v.reverse = p.reverse;
     v.pos = p.reverse ? hi - 1 : lo;
     v.age = ++this.ageCounter;
@@ -247,18 +279,33 @@ export class SamplerEngine {
   /** inL/inR = 入力（マイク。無ければ null）。outL/outR を埋める */
   process(inL: Float32Array | null, inR: Float32Array | null, outL: Float32Array, outR: Float32Array): void {
     const n = outL.length;
-    outL.fill(0);
-    outR.fill(0);
+    // 送り先ごとの入れ物：0,1 = そのまま　2,3 = BUS 1　4,5 = BUS 2
+    if (!this.bufs.length || this.bufs[0].length !== n) this.bufs = Array.from({ length: 6 }, () => new Float32Array(n));
+    for (const b of this.bufs) b.fill(0);
+    const beat0 = this.beatNow();
+    const mul = this.bender.active ? this.bender.rateMul(n) : 1;
     // 予定（ロールなど）の時刻で区切って鳴らす（ブロックの途中でも、ぴったりの時刻に）
     let off = 0;
     while (off < n) {
       this.fireDue();
       const len = Math.max(1, this.untilNext(n - off));
-      const l = outL.subarray(off, off + len), r = outR.subarray(off, off + len);
-      for (const v of this.voices) if (v.active) this.renderVoice(v, l, r, len);
+      for (const v of this.voices) {
+        if (!v.active) continue;
+        const bl = this.bufs[v.bus * 2], br = this.bufs[v.bus * 2 + 1];
+        this.renderVoice(v, bl.subarray(off, off + len), br.subarray(off, off + len), len, mul);
+      }
       off += len;
       this.clock += len;
     }
+    // エフェクト：BUS 1・BUS 2 → 足す → MASTER
+    const ctx = { sr: this.sr, bpm: this.bpm, beat: beat0 };
+    for (let s = 0; s < 2; s++) if (this.slots[s].on) this.fx[s].process(this.bufs[2 + s * 2], this.bufs[3 + s * 2], n, this.slots[s].k, ctx);
+    for (let i = 0; i < n; i++) {
+      outL[i] = this.bufs[0][i] + this.bufs[2][i] + this.bufs[4][i];
+      outR[i] = this.bufs[1][i] + this.bufs[3][i] + this.bufs[5][i];
+    }
+    if (this.slots[2].on) this.fx[2].process(outL, outR, n, this.slots[2].k, ctx);
+    if (this.bender.active) this.bender.process(outL, outR, n);
     // 入力のモニター
     let ip = 0;
     if (inL) {
@@ -282,7 +329,7 @@ export class SamplerEngine {
     else if (this.recSrc === 'output') this.recPush(outL, outR);
   }
 
-  private renderVoice(v: Voice, outL: Float32Array, outR: Float32Array, n: number): void {
+  private renderVoice(v: Voice, outL: Float32Array, outR: Float32Array, n: number, mul = 1): void {
     const buf = v.buf!;
     const L = buf.ch[0], R = buf.ch[1] ?? buf.ch[0];
     const stereo = buf.ch.length > 1;
@@ -305,7 +352,7 @@ export class SamplerEngine {
       if (v.filt) { a = this.svf(v, 0, a); b = stereo ? this.svf(v, 1, b) : a; }
       outL[i] += a * v.gl * v.env;
       outR[i] += b * v.gr * v.env;
-      v.pos += v.reverse ? -v.inc : v.inc;
+      v.pos += v.reverse ? -v.inc * mul : v.inc * mul;
     }
   }
 

@@ -50,12 +50,14 @@ export interface PadParams {
   vel: number;
   /** この音の BPM（0 = わからない）。タイムストレッチの元 */
   bpm: number;
+  /** 送り先：0 = そのまま、1 = BUS 1、2 = BUS 2（エフェクト） */
+  bus: number;
 }
 
 export const defaultPad = (): PadParams => ({
   vol: 0.7, pan: 0, pitch: 0, fine: 0, start: 0, end: 1, loopStart: 0,
   gate: false, loop: false, reverse: false, poly: false,
-  attack: 0, release: 0.15, cutoff: 1, reso: 0, mute: 0, vel: 0.7, bpm: 0,
+  attack: 0, release: 0.15, cutoff: 1, reso: 0, mute: 0, vel: 0.7, bpm: 0, bus: 0,
 });
 
 /** 音量の倍率 */
@@ -80,6 +82,9 @@ export interface TrigMod {
 export const ROLL_RATES = [1, 0.5, 0.25, 0.125, 1 / 3, 1 / 6];
 export const ROLL_NAMES = ['1/4', '1/8', '1/16', '1/32', '1/8T', '1/16T'];
 
+import type { FxSlot } from './fx';
+import type { BendState } from './bend';
+
 /** 画面 ⇔ AudioWorklet のメッセージ */
 export type ToSampler =
   | { type: 'sample'; pad: number; data: SampleBuf | null }
@@ -94,10 +99,13 @@ export type ToSampler =
   | { type: 'monitor'; on: boolean }
   /** ロール：on の間、押しているパッドを rate 拍ごとにくり返す */
   | { type: 'roll'; on: boolean; rate: number }
-  | { type: 'bpm'; bpm: number };
+  | { type: 'bpm'; bpm: number }
+  /** エフェクト：slot 0 = BUS 1、1 = BUS 2、2 = MASTER */
+  | { type: 'fx'; slot: number; fx: FxSlot }
+  | { type: 'bend'; bend: BendState };
 
 export type FromSampler =
-  | { type: 'meter'; inPeak: number; outPeak: number; rec: number; waiting: boolean }
+  | { type: 'meter'; inPeak: number; outPeak: number; rec: number; waiting: boolean; heat: number }
   /** 鳴っているパッドと、その再生位置（サンプル全体の 0〜1） */
   | { type: 'play'; pads: [number, number][] }
   | { type: 'recorded'; data: SampleBuf | null };

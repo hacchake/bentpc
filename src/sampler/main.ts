@@ -9,6 +9,8 @@ import {
   type FromSampler, type PadParams, type SampleBuf, type TrigMod,
 } from './dsp/types';
 import { SamplerHost } from './host';
+import { FX_LIST, SLOT_NAMES, defaultSlots, type FxSlot } from './dsp/fx';
+import { WIRES, defaultBend, type BendState } from './dsp/bend';
 import { loadAll, loadMeta, saveMeta, savePads, type StoredPad } from './store';
 import { openEditor, type EditorApi } from './editor';
 import { normalize as edNormalize, reverse as edReverse, trim as edTrim } from './dsp/edit';
@@ -20,8 +22,8 @@ const host = new SamplerHost();
 const params: PadParams[] = Array.from({ length: PAD_COUNT }, defaultPad);
 const samples: (SampleBuf | null)[] = Array.from({ length: PAD_COUNT }, () => null);
 const names: string[] = Array.from({ length: PAD_COUNT }, () => '');
-interface Meta { bpm: number; rollRate: number; lvParam: number }
-const meta: Meta = { bpm: 120, rollRate: 2, lvParam: 0 };
+interface Meta { bpm: number; rollRate: number; lvParam: number; fx: FxSlot[]; fxSel: number; bend: BendState }
+const meta: Meta = { bpm: 120, rollRate: 2, lvParam: 0, fx: defaultSlots(), fxSel: 0, bend: defaultBend() };
 let bank = 0;
 let cur = 0; // いまのパッド（0〜159）
 
@@ -79,6 +81,16 @@ dev.innerHTML = `
       <div class="pk-grp"><button class="pk-btn gray" id="pk-ed-norm">NORMALIZE</button><button class="pk-btn gray" id="pk-ed-rev">REVERSE</button><button class="pk-btn gray" id="pk-ed-trim" title="START〜END だけ残す">TRIM</button><button class="pk-btn gray" id="pk-ed-undo">↶ UNDO</button></div>
       <div class="pk-note">いまのパッドの音を編集します（UNDO で 1 回だけ戻せる）</div>
     </div>
+    <div class="pk-tab" data-tab="fx">
+      <div class="pk-grp"><span class="pk-seg" id="pk-fxslot">${SLOT_NAMES.map((n, i) => `<button data-i="${i}">${n}</button>`).join('')}</span><button class="pk-btn mode" id="pk-fxon">${lamp}FX ON</button></div>
+      <div class="pk-grp"><button class="pk-btn gray" id="pk-fxprev">◀</button><span class="pk-num pk-fxname" id="pk-fxname"></span><button class="pk-btn gray" id="pk-fxnext">▶</button><span class="pk-fxno" id="pk-fxno"></span></div>
+      <div class="pk-grp"><span class="pk-lbl">このパッドの送り先</span><span class="pk-seg" id="pk-bus"><button data-i="0">DRY</button><button data-i="1">BUS 1</button><button data-i="2">BUS 2</button></span></div>
+    </div>
+    <div class="pk-tab" data-tab="bend">
+      <div class="pk-bendboard" id="pk-wires">${WIRES.map((w, i) => `<button class="pk-wire" data-i="${i}" title="${w.desc}"><i></i><b>${w.name}</b></button>`).join('')}</div>
+      <div class="pk-grp"><span class="pk-lbl">熱</span><span class="pk-heat"><u id="pk-heat"></u></span><button class="pk-btn gray" id="pk-unplug">ぜんぶ外す</button></div>
+      <div class="pk-note" id="pk-bendnote">線をつなぐと壊れる。熱がたまると暴発（離せば冷める）</div>
+    </div>
     <div class="pk-side">
       <div class="pk-vol"><div class="knob red" id="pk-master"><div class="cap"></div></div><span>VOL</span></div>
       <button class="pk-btn black" id="pk-stop">■ STOP</button>
@@ -126,16 +138,19 @@ window.addEventListener('resize', fit);
 fit();
 
 // ---------------- 機能タブ ----------------
-const TABS = [['pad', 'PAD'], ['play', 'PLAY'], ['edit', 'EDIT']] as const;
+const TABS = [['pad', 'PAD'], ['play', 'PLAY'], ['edit', 'EDIT'], ['fx', 'FX'], ['bend', 'BEND']] as const;
 let tab = 'pad';
 q('pk-tabs').innerHTML = TABS.map(([id, n]) => `<button data-tab="${id}">${n}</button>`).join('');
 function setTab(t: string): void {
   tab = t;
+  // FX・BEND を開いたら、ノブもそのページに
+  if (t === 'fx') { page = PAGES.findIndex((x) => x[0] === 'FX'); showKnobs(); showFx(); }
+  else if (t === 'bend') { page = PAGES.findIndex((x) => x[0] === 'BEND'); showKnobs(); showBend(); }
+  else if (PAGES[page][0] === 'FX' || PAGES[page][0] === 'BEND') { page = 0; showKnobs(); }
   dev.querySelectorAll<HTMLElement>('.pk-tabs button').forEach((b) => b.classList.toggle('on', b.dataset.tab === t));
   dev.querySelectorAll<HTMLElement>('.pk-tab').forEach((x) => (x.hidden = x.dataset.tab !== t));
 }
 dev.querySelectorAll<HTMLElement>('.pk-tabs button').forEach((b) => b.addEventListener('click', () => setTab(b.dataset.tab!)));
-setTab('pad');
 
 // ---------------- ノブ（ページで役目が変わる） ----------------
 interface KDef { name: string; get: () => number; set: (k: number) => void; fmt: () => string; def: number }
@@ -175,7 +190,20 @@ const PAGES: [string, KDef[]][] = [
   ]],
   ['MIX', [
     padK('mute', 'MUTE GRP', 0, 8, (v) => (v ? String(v) : 'OFF'), true),
+    padK('bus', 'BUS', 0, 2, (v) => ['DRY', 'BUS 1', 'BUS 2'][v] ?? 'DRY', true),
     padK('bpm', 'SMPL BPM', 0, 240, (v) => (v ? v.toFixed(1) : '?')),
+    NONE,
+  ]],
+  ['FX', [0, 1, 2, 3].map((i): KDef => ({
+    get name() { return FX_LIST[meta.fx[meta.fxSel].type].knobs[i][0]; },
+    get def() { return FX_LIST[meta.fx[meta.fxSel].type].def[i]; },
+    get: () => meta.fx[meta.fxSel].k[i],
+    set: (k) => { const f = meta.fx[meta.fxSel]; f.k[i] = k; sendFx(meta.fxSel); },
+    fmt: () => FX_LIST[meta.fx[meta.fxSel].type].knobs[i][1](meta.fx[meta.fxSel].k[i], { bpm: meta.bpm }),
+  }))],
+  ['BEND', [
+    { name: 'AMOUNT', def: 0.5, get: () => meta.bend.amount, set: (k) => { meta.bend.amount = k; sendBend(); }, fmt: () => pct(meta.bend.amount) },
+    { name: 'SPEED', def: 0.5, get: () => meta.bend.speed, set: (k) => { meta.bend.speed = k; sendBend(); }, fmt: () => pct(meta.bend.speed) },
     NONE, NONE,
   ]],
 ];
@@ -195,9 +223,62 @@ function showKnobs(): void {
     knobs[i].set(Math.max(0, Math.min(1, d.get())), false);
     q(`pk-kn${i}`).textContent = d.name;
     q(`pk-kv${i}`).textContent = d.fmt();
-    q(`pk-k${i}`).classList.toggle('off', d === NONE);
+    q(`pk-k${i}`).classList.toggle('off', d === NONE || d.name === '—');
   });
 }
+
+// ---------------- エフェクト（FX タブ）・サーキットベンド（BEND タブ） ----------------
+function sendFx(slot: number): void {
+  host.post({ type: 'fx', slot, fx: meta.fx[slot] });
+  markMeta();
+  if (tab === 'fx') showFx();
+  showFxTags();
+}
+function showFx(): void {
+  const f = meta.fx[meta.fxSel];
+  q('pk-fxslot').querySelectorAll<HTMLElement>('button').forEach((b) => {
+    const i = Number(b.dataset.i);
+    b.classList.toggle('on', i === meta.fxSel);
+    b.classList.toggle('fxon', meta.fx[i].on);
+  });
+  q('pk-fxon').classList.toggle('lit', f.on);
+  q('pk-fxname').textContent = FX_LIST[f.type].name;
+  q('pk-fxno').textContent = `${f.type + 1}/${FX_LIST.length}`;
+  q('pk-bus').querySelectorAll<HTMLElement>('button').forEach((b) => b.classList.toggle('on', Number(b.dataset.i) === (params[cur].bus ?? 0)));
+}
+function showFxTags(): void {
+  const on = meta.fx.map((f, i) => (f.on ? `${['B1', 'B2', 'M'][i]}:${FX_LIST[f.type].name.split(/[ +/]/)[0]}` : '')).filter(Boolean);
+  q('pk-bpmlcd').textContent = `♩${meta.bpm.toFixed(1)}${on.length ? ` ${on.join(' ')}` : ''}`;
+}
+q('pk-fxslot').querySelectorAll<HTMLElement>('button').forEach((b) => b.addEventListener('click', () => { meta.fxSel = Number(b.dataset.i); markMeta(); showFx(); showKnobs(); }));
+q('pk-fxon').addEventListener('click', () => { const f = meta.fx[meta.fxSel]; f.on = !f.on; sendFx(meta.fxSel); });
+const stepFx = (d: number) => {
+  const f = meta.fx[meta.fxSel];
+  f.type = (f.type + d + FX_LIST.length) % FX_LIST.length;
+  f.k = [...FX_LIST[f.type].def];
+  sendFx(meta.fxSel);
+  showKnobs();
+};
+q('pk-fxprev').addEventListener('click', () => stepFx(-1));
+q('pk-fxnext').addEventListener('click', () => stepFx(1));
+q('pk-bus').querySelectorAll<HTMLElement>('button').forEach((b) => b.addEventListener('click', () => { setParam(cur, 'bus', Number(b.dataset.i)); showFx(); }));
+
+function sendBend(): void {
+  host.post({ type: 'bend', bend: meta.bend });
+  markMeta();
+  showBend();
+}
+function showBend(): void {
+  q('pk-wires').querySelectorAll<HTMLElement>('.pk-wire').forEach((w) => w.classList.toggle('on', meta.bend.wires[Number(w.dataset.i)]));
+  dev.classList.toggle('bent', meta.bend.wires.some(Boolean));
+}
+q('pk-wires').querySelectorAll<HTMLElement>('.pk-wire').forEach((w) => w.addEventListener('click', () => {
+  const i = Number(w.dataset.i);
+  meta.bend.wires[i] = !meta.bend.wires[i];
+  sendBend();
+  q('pk-bendnote').textContent = `${WIRES[i].name}：${WIRES[i].desc}`;
+}));
+q('pk-unplug').addEventListener('click', () => { meta.bend.wires = meta.bend.wires.map(() => false); sendBend(); });
 
 // マスター音量
 let master = 0.8;
@@ -305,6 +386,7 @@ function select(pad: number): void {
   renderPads();
   drawWave();
   editor?.refresh();
+  if (tab === 'fx') showFx();
 }
 
 function setBank(b: number): void {
@@ -418,6 +500,8 @@ host.onMessage = (m: FromSampler) => {
   if (m.type === 'meter') {
     (q('pk-min').firstElementChild as HTMLElement).style.width = `${Math.min(100, m.inPeak * 100)}%`;
     (q('pk-mout').firstElementChild as HTMLElement).style.width = `${Math.min(100, m.outPeak * 100)}%`;
+    q('pk-heat').style.width = `${Math.min(100, m.heat * 100)}%`;
+    dev.classList.toggle('hot', m.heat > 0.8);
     if (m.rec >= 0 && (mode === 'recording' || mode === 'resampling')) {
       msg(m.waiting ? '● 音が来るのを待っています…（REC で止める）' : `● ${mode === 'recording' ? '録音' : 'リサンプル'}中 ${m.rec.toFixed(1)} 秒 → ${mode === 'recording' ? 'REC' : 'RESAMPLE'} で止める`);
     }
@@ -638,7 +722,7 @@ q('pk-lvp').querySelectorAll<HTMLElement>('button').forEach((b) => b.addEventLis
 function setBpm(v: number): void {
   meta.bpm = Math.round(Math.max(40, Math.min(240, v)) * 10) / 10;
   q('pk-bpm').textContent = meta.bpm.toFixed(1);
-  q('pk-bpmlcd').textContent = `♩${meta.bpm.toFixed(1)}`;
+  showFxTags();
   host.post({ type: 'bpm', bpm: meta.bpm });
   markMeta();
 }
@@ -781,6 +865,11 @@ $('pk-help').innerHTML = `
     <tr><td>✂ CHOP</td><td>音を切り分けて、からっぽのバンクのパッドに並べる：等分・音の立ち上がりで自動・手で印を付ける</td></tr>
     <tr><td>⏱ TEMPO FIT</td><td>音の BPM を推定して、TEMPO に合わせる（音程そのまま＝ストレッチ／速さだけ＝ピッチで）</td></tr>
     <tr><td>NORMALIZE ほか</td><td>音量をそろえる・逆向きにして保存・START〜END だけ残す・UNDO で 1 回戻す</td></tr>
+    <tr><td colspan="2"><b>FX タブ</b></td></tr>
+    <tr><td>BUS 1 / BUS 2 / MASTER</td><td>エフェクトの置き場所。パッドごとに送り先（DRY・BUS 1・BUS 2）を選ぶ。MASTER は全部の音に掛かる。◀ ▶ で 24 種類から選んで FX ON、ノブ 4 つで調整</td></tr>
+    <tr><td>24 種類</td><td>${FX_LIST.map((f) => f.name).join('・')}</td></tr>
+    <tr><td colspan="2"><b>BEND タブ</b></td></tr>
+    <tr><td>ジャンパー線 6 本</td><td>${WIRES.map((w) => `${w.name}＝${w.desc}`).join('／')}。ノブの AMOUNT（強さ）・SPEED（頻度）。熱がたまると暴発する（外せば冷める）</td></tr>
     <tr><td>PC のキー</td><td>Z X C V・A S D F・Q W E R・1 2 3 4 がパッド（下の段から）。スペースで STOP</td></tr>
     <tr><td>MIDI</td><td>上の MIDI を押すと、MIDI 機器のノート 36〜51 でパッド 1〜16</td></tr>
   </table>
@@ -796,8 +885,13 @@ $('pk-cover').addEventListener('pointerdown', () => {
 (async () => {
   const [stored, savedMeta] = await Promise.all([loadAll(), loadMeta<Partial<Meta>>()]);
   if (savedMeta) Object.assign(meta, savedMeta);
+  if (!Array.isArray(meta.fx) || meta.fx.length !== 3) meta.fx = defaultSlots();
+  meta.bend = { ...defaultBend(), ...meta.bend };
   setBpm(meta.bpm);
   sendRoll();
+  meta.fx.forEach((_, i) => host.post({ type: 'fx', slot: i, fx: meta.fx[i] }));
+  host.post({ type: 'bend', bend: meta.bend });
+  showBend();
   if (stored && stored.length) {
     for (const s of stored) {
       if (s.pad < 0 || s.pad >= PAD_COUNT) continue;
@@ -812,4 +906,5 @@ $('pk-cover').addEventListener('pointerdown', () => {
   setMode('play');
   setLevels(false);
 })();
+setTab('pad');
 select(0);

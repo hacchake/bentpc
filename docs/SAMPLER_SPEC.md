@@ -37,7 +37,7 @@
 | 16 レベル | 1 つの音を 16 パッドに、音程（またはフィルター・音量）を段々に並べる | 2 |
 | ノートリピート／ロール | ROLL：押している間、1/4〜1/32（3 連も）でくり返す | 2 |
 | サブパッド | SUB：最後に鳴らしたパッドをもう一度 | 2 |
-| エフェクト | バス 2 本＋マスター＋入力に掛けるエフェクト（フィルター＋ドライブ・アイソレーター・ローファイ・レコード風・カセット風・ディレイ・リバーブ・コーラス・フランジャー・フェイザー・コンプ・ルーパー（同じ所をくり返す）・スライサー・リングモジュレーター・ビットクラッシュ・トレモロ／オートパン・ワウ・EQ など 20 種以上） | 3 |
+| エフェクト | BUS 1・BUS 2（パッドごとに送り先）・MASTER（全体）の 3 か所に、24 種から 1 つずつ | 3 |
 | サーキットベンド | 「BEND」配線：ジャンパー線をつなぐと、再生位置の飛び・ピッチの暴走・バッファのくり返しなど、おもちゃが壊れたような音（熱で暴発する方式、ほかのおもちゃと同じく固まらない） | 3 |
 | パターンシーケンサー | 1 バンクに 16 パターン。リアルタイム録音（クオンタイズ・スイング・重ね録り・ホールドして消去）・16 ステップ入力・長さ 1〜8 小節・メトロノーム・タップテンポ | 4 |
 | ソング（パターンをつなぐ） | パターンの並び（チェーン）を作って 1 曲に | 4 |
@@ -75,6 +75,55 @@
 | TEMPO FIT | 音の BPM を推定（くり返しの間隔と、長さが 1・2・4・8・16 小節になることから）。− ＋ ÷2 ×2 で直せる。「音程そのまま（STRETCH）」は WSOLA で長さだけ変える。「速さだけ」は PITCH・FINE で速さを合わせる（音程も変わる） |
 | NORMALIZE・REVERSE・TRIM・UNDO | 音量をそろえる・逆向きにして保存・START〜END だけ残す。編集は 1 回だけ UNDO で戻せる |
 | MIX ページ | MUTE GRP と、この音の BPM（SMPL BPM） |
+
+## フェーズ3：エフェクトとサーキットベンド
+
+FX タブで置き場所（BUS 1・BUS 2・MASTER）を選び、◀ ▶ で種類、FX ON、ノブ（FX ページ）で調整。パッドの送り先は FX タブか MIX ページの BUS。
+音の流れ：パッド → （DRY／BUS 1 のエフェクト／BUS 2 のエフェクト）→ 足す → MASTER のエフェクト → ベンド → 音量 → やわらかいクリップ。
+
+| # | エフェクト | ノブ 1〜4 |
+|---|---|---|
+| 1 | FILTER+DRIVE | CUTOFF・RESO・DRIVE・TYPE（LPF/BPF/HPF） |
+| 2 | ISOLATOR | LOW・MID・HIGH（左いっぱいで消える、まん中で等倍）・MIX |
+| 3 | LO-FI | BITS（16〜2）・RATE（間引き）・TONE・MIX |
+| 4 | VINYL SIM | NOISE（パチパチ）・WOW（回転むら）・AGE（こもり）・MIX |
+| 5 | CASSETTE SIM | WOW（ゆれ）・SATURATE・HISS・TONE |
+| 6 | SYNC DELAY | TIME（1/16〜1 小節、TEMPO に合わせる・ピンポン）・FEEDBACK・TONE・MIX |
+| 7 | TAPE ECHO | TIME（50〜800ms。動かすと音程がゆれる）・FEEDBACK（100% 超えで発振）・WOBBLE・MIX |
+| 8 | REVERB | SIZE・DECAY・TONE・MIX |
+| 9 | CHORUS | RATE・DEPTH・WIDTH・MIX |
+| 10 | FLANGER | RATE・DEPTH・FEEDBACK（±）・MIX |
+| 11 | PHASER | RATE・DEPTH・FEEDBACK・MIX |
+| 12 | COMPRESSOR | THRESH・RATIO・RELEASE・MAKEUP |
+| 13 | DJ LOOPER | LENGTH（1/16〜1 小節）・HOLD（右に回すと、その直前をくり返す）・SPEED（×0.25〜×2）・REVERSE |
+| 14 | SLICER | RATE（1/32〜1/4）・PATTERN（8 種）・DEPTH・SMOOTH |
+| 15 | RING MOD | FREQ・WOBBLE・TONE・MIX |
+| 16 | TREMOLO/PAN | RATE（TEMPO に合わせる）・DEPTH・MODE（音量／左右）・SHAPE（なめらか〜カクカク） |
+| 17 | AUTO WAH | SENS（音の大きさで開く）・LFO・RESO・MIX |
+| 18 | EQ | LOW・MID・HIGH（±15dB）・MID FREQ |
+| 19 | DISTORTION | DRIVE・TONE・LEVEL・MIX |
+| 20 | PITCH SHIFT | PITCH（±12 半音）・WINDOW・FEEDBACK・MIX |
+| 21 | TAPE STOP | TIME（止まるまで）・STOP（右に回すと止まる）・—・MIX |
+| 22 | SCATTER | RATE・DEPTH（起こる確率）・TYPE（くり返し／逆／半分の速さ／おまかせ）・MIX |
+| 23 | RESONATOR | NOTE（C2〜C6）・FEEDBACK・TONE・MIX |
+| 24 | TOY SPEAKER | SIZE（小さなスピーカーの鳴る帯域）・RATTLE（大きい音でビビる）・CRUNCH・MIX |
+
+テンポに合わせるもの（SYNC DELAY・DJ LOOPER・SLICER・TREMOLO・SCATTER）は TEMPO と拍の位置で動く（止まっていても時計で進む。フェーズ4 の再生中は曲の位置）。
+
+### サーキットベンド（BEND タブ）
+
+むき出しの基板のジャンパー線 6 本。つなぐと出口の音とパッドの再生が壊れる。ノブ（BEND ページ）は AMOUNT（強さ）・SPEED（頻度）。
+
+| 線 | 起こること |
+|---|---|
+| CLOCK | 再生の速さが ±1 オクターブの間でカクカク飛ぶ |
+| STUCK | 出口の 8〜100ms を切り取って、何回かくり返す |
+| RUNAWAY | 音程がふらふら上がり下がりして、ときどきパチンと戻る |
+| BIT ROT | ビットが落ちる・値が一瞬固まる・たまに反転 |
+| CROSSTALK | パッドを鳴らすと、同じバンクのほかのパッドも小さく鳴る |
+| SAG | 大きい音を出すと電池がへたるように小さく・こもって・低くなる |
+
+熱：つないだ本数 × 出している音の大きさでたまり、0.8 を超えると暴発（全部の線が一時的に強く効く）。外せば冷める（固まらない。ほかのおもちゃと同じ方針）。熱いと本体が赤く光り、液晶の色が狂う。
 
 ## 音の作り（`src/sampler/dsp/engine.ts`）
 

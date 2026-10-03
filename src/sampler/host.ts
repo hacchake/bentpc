@@ -37,7 +37,7 @@ export class SamplerHost {
   post(m: ToSampler): void {
     if (this.node) this.node.port.postMessage(m);
     // 起動前は、音と設定だけ覚えておく（鳴らす操作は捨てる）
-    else if (m.type === 'sample' || m.type === 'params' || m.type === 'master' || m.type === 'bpm' || m.type === 'roll') this.pending.push(m);
+    else if (m.type === 'sample' || m.type === 'params' || m.type === 'master' || m.type === 'bpm' || m.type === 'roll' || m.type === 'fx' || m.type === 'bend') this.pending.push(m);
   }
 
   /** マイクをつなぐ（録音の前に）。だめなら false */

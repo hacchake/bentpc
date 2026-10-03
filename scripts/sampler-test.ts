@@ -239,5 +239,71 @@ const freq = (x: Float32Array, a: number, b: number) => { let z = 0; for (let i 
   Math.abs(st.ch[0].length / 44100 - 1.5) < 0.01 && Math.abs(f - 440) < 6 ? ok(`STRETCH ×1.5：長さ ${(st.ch[0].length / 44100).toFixed(2)} 秒・音程 ${f.toFixed(1)}Hz のまま`) : ng(`STRETCH ${st.ch[0].length} ${f}`);
 }
 
+// ================= フェーズ3 =================
+{
+  const { FX_LIST } = await import('../src/sampler/dsp/fx');
+  const loopBuf = factoryBank(1)[0].buf;
+  const bad: string[] = [];
+  let worst = 0;
+  for (const [i, d] of FX_LIST.entries()) {
+    const k = [...d.def];
+    if (d.id === 'looper' || d.id === 'tapestop') k[1] = 1; // 押しっぱなしの状態で試す
+    if (d.id === 'scatter') k[1] = 1;
+    if (d.id === 'isolator') k[0] = 0; // 初期値は素通しなので、低音を消して試す
+    if (d.id === 'eq') { k[0] = 0.9; k[2] = 0.1; }
+    const mk = (on: boolean) => {
+      const e = new SamplerEngine(SR);
+      e.bpm = 90;
+      e.setSample(0, loopBuf);
+      e.setParams(0, { ...defaultPad(), loop: true, bus: 1 });
+      e.setFx(0, { type: i, on, k });
+      e.trigger(0, 1);
+      return e;
+    };
+    const t0 = performance.now();
+    const [a] = run(mk(true), 2);
+    worst = Math.max(worst, (performance.now() - t0) / 2000);
+    const [b] = run(mk(false), 2);
+    let diff = 0, finite = true, peak = 0;
+    for (let j = 0; j < a.length; j++) { diff += Math.abs(a[j] - b[j]); if (!Number.isFinite(a[j])) finite = false; peak = Math.max(peak, Math.abs(a[j])); }
+    diff /= a.length;
+    if (!finite || diff < 1e-4 || rms(a) < 0.005) bad.push(`${d.name}(差 ${diff.toExponential(1)}・音量 ${rms(a).toFixed(3)})`);
+  }
+  bad.length ? ng(`エフェクトがおかしい：${bad.join(' ')}`) : ok(`エフェクト ${FX_LIST.length} 種：どれも音が変わる・壊れない（いちばん重いもので 1 秒あたり ${(worst * 1000).toFixed(1)}ms）`);
+  // 置き場所：BUS 2 に送ったパッドは BUS 1 のエフェクトを通らない
+  {
+    const e = new SamplerEngine(SR);
+    e.setSample(0, tone());
+    e.setParams(0, { ...defaultPad(), bus: 2 });
+    e.setFx(0, { type: 1, on: true, k: [0, 0, 0, 1] }); // BUS 1 の ISOLATOR で全部消す
+    e.trigger(0, 1);
+    const [L] = run(e, 0.3);
+    rms(L, at(0.05), at(0.25)) > 0.1 ? ok('送り先：BUS 2 のパッドは BUS 1 のエフェクトを通らない') : ng('送り先');
+  }
+  // ベンド：全部つなぐと音が変わり、熱がたまり、外すと冷める
+  {
+    const e = new SamplerEngine(SR);
+    e.setSample(0, loopBuf);
+    e.setParams(0, { ...defaultPad(), loop: true });
+    e.bender.st = { wires: [true, true, true, true, true, true], amount: 0.8, speed: 0.8 };
+    e.trigger(0, 1);
+    const [L] = run(e, 6);
+    const hot = e.bender.heat;
+    const finite = L.every((v) => Number.isFinite(v) && Math.abs(v) <= 1);
+    e.bender.st = { ...e.bender.st, wires: [false, false, false, false, false, false] };
+    run(e, 8);
+    const ref = new SamplerEngine(SR);
+    ref.setSample(0, loopBuf);
+    ref.setParams(0, { ...defaultPad(), loop: true });
+    ref.trigger(0, 1);
+    const [R] = run(ref, 6);
+    let diff = 0;
+    for (let j = 0; j < L.length; j++) diff += Math.abs(L[j] - R[j]);
+    finite && diff / L.length > 0.01 && hot > 0.05 && e.bender.heat < hot / 2
+      ? ok(`BEND：6 本つなぐと壊れた音（熱 ${hot.toFixed(2)}）→ 外すと冷める（${e.bender.heat.toFixed(2)}）・音割れなし`)
+      : ng(`BEND ${finite} ${diff / L.length} ${hot} ${e.bender.heat}`);
+  }
+}
+
 console.log(fails ? `失敗 ${fails} 件` : 'すべて OK');
 process.exit(fails ? 1 : 0);
