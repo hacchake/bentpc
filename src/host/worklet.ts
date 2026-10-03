@@ -3,7 +3,7 @@ import type { ToyEngine } from '../core/toy';
 import { fromInt8, toChipSample, toInt8 } from '../toys/blippy/dsp/mic';
 import { TOY_ENGINES } from '../toys/engines';
 import type { FromEngine, ToEngine } from './protocol';
-import { Sequencer } from './sequencer';
+import { Sequencer, toyCenter } from './sequencer';
 import { TestSignal } from '../core/testsignal';
 import { hashSeed } from '../core/rng';
 import { MasterBus } from './master';
@@ -71,6 +71,7 @@ class ToyRackProcessor extends AudioWorkletProcessor {
         this.customs.forEach((m, toy) => m.forEach((d) => this.toys[toy].custom?.(d)));
       },
     }, make);
+    this.seq.center = toyCenter(this.ids);
     this.port.onmessage = (e: MessageEvent<ToEngine>) => {
       const m = e.data;
       if (m.type === 'song') { this.seq.setSong(m.song); return; }
@@ -152,10 +153,10 @@ class ToyRackProcessor extends AudioWorkletProcessor {
       this.signal.render(this.sigBuf, this.seq.playing ? this.seq.pos : null, this.seq.song.bpm);
       input = this.sigBuf;
     }
-    this.seq.render(l, this.click, this.tmp, input);
     if (this.right.length !== l.length) this.right = new Float32Array(l.length);
     const r = this.right;
-    this.master.process(l, l, r);
+    this.seq.render(l, this.click, this.tmp, input, r);
+    this.master.process(l, r, l, r);
 
     if (this.recording) {
       let i = 0;

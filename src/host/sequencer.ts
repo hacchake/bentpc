@@ -46,6 +46,27 @@ export class Sequencer {
   private ramps: { toy: number; index: number; pts: SeqAuto[] }[] = [];
 
   /** factory：シード → 新品のおもちゃ一式（スタジオ）。無ければ作り直さない */
+  /** 真ん中に置くおもちゃ（ドラム・ベースを受け持つサンプラー） */
+  center: boolean[] = [];
+  private panNow: number[] = [];
+  private peakHold: number[] = [];
+  private lastPeak: number[] = [];
+
+  /** 鳴っているおもちゃを、バンドのように左右交互に並べる（1 台だけなら真ん中。真ん中担当はいつも真ん中） */
+  private spread(): number[] {
+    const out = this.toys.map(() => 0);
+    // 一度鳴ったおもちゃは、その場所に置いたまま（曲の途中で動かない）
+    this.toys.forEach((_, t) => { if ((this.lastPeak[t] ?? 0) > 1e-4 && !this.seen.includes(t)) this.seen.push(t); });
+    if (this.seen.length < 2) return out;
+    let k = 0;
+    for (const t of this.seen) if (!this.center[t]) out[t] = SPREAD[k++ % SPREAD.length];
+    return out;
+  }
+  /** 鳴った順のおもちゃ（左右の場所決め） */
+  private seen: number[] = [];
+  private tmpR = new Float32Array(128);
+  private monoTmp = new Float32Array(128);
+
   constructor(private sr: number, readonly toys: ToyEngine[], private cb: SeqCallbacks, private factory?: (seed: number) => ToyEngine[]) {
     this.song = emptySong(toys.length);
     this.held = toys.map(() => new Set());
@@ -190,29 +211,67 @@ export class Sequencer {
    * n サンプル分、すべてのおもちゃを動かして out（モノラル）に混ぜる。
    * click にはメトロノームの音だけを書く（録音には入れないため別にする）。
    */
-  render(out: Float32Array, click: Float32Array, tmp: Float32Array, input?: Float32Array): void {
+  render(out: Float32Array, click: Float32Array, tmp: Float32Array, input?: Float32Array, outR?: Float32Array): void {
     const n = out.length;
     const evs: Ev[][] = this.toys.map(() => []);
     click.fill(0);
     if (this.playing) this.schedule(n, evs);
     out.fill(0);
+    outR?.fill(0);
+    // ステレオ：鳴っているおもちゃが 2 台以上なら、バンドのように左右に並べる（1 台だけなら真ん中）
+    const glide = 1 - Math.exp(-n / (this.sr * 0.4));
+    const targets = outR ? this.spread() : [];
     this.toys.forEach((_, toy) => {
       const list = evs[toy].sort((a, b) => a.off - b.off);
       let cur = 0;
       const run = (to: number) => {
         const t = this.toys[toy]; // 途中で作り直されることがあるので毎回見る
         const seg = tmp.subarray(cur, to);
+        if (outR && t.processStereo) {
+          // ステレオのおもちゃ：左右のまま混ぜる（クラッシュ中は固まった音を左右同じに）
+          if (this.tmpR.length < n) this.tmpR = new Float32Array(n);
+          const segR = this.tmpR.subarray(cur, to);
+          t.processStereo(seg, segR);
+          const crashed = !!this.crash[toy];
+          if (this.monoTmp.length < n) this.monoTmp = new Float32Array(n);
+          const m = this.monoTmp.subarray(cur, to);
+          for (let i = 0; i < m.length; i++) m[i] = (seg[i] + segR[i]) * 0.5;
+          this.afterProcess(toy, m);
+          if (crashed) { seg.set(m); segR.set(m); }
+          let pk = 0;
+          for (let i = 0; i < seg.length; i++) {
+            out[cur + i] += seg[i] * gl; outR[cur + i] += segR[i] * gr;
+            const v = Math.abs(m[i]); if (v > pk) pk = v;
+          }
+          this.peakHold[toy] = Math.max(this.peakHold[toy] ?? 0, pk);
+          cur = to;
+          return;
+        }
         t.process(seg, t.wantsInput ? input?.subarray(cur, to) : undefined);
         this.afterProcess(toy, seg);
-        for (let i = cur; i < to; i++) out[i] += tmp[i];
+        if (outR) {
+          let pk = 0;
+          for (let i = cur; i < to; i++) { const v = tmp[i]; out[i] += v * gl; outR[i] += v * gr; if (v > pk) pk = v; else if (-v > pk) pk = -v; }
+          this.peakHold[toy] = Math.max(this.peakHold[toy] ?? 0, pk);
+        } else for (let i = cur; i < to; i++) out[i] += tmp[i];
         cur = to;
       };
+      // 左右の位置（なめらかに動かす）→ 音量の割り振り（真ん中で -3dB）
+      const target = targets[toy] ?? 0;
+      this.panNow[toy] = (this.panNow[toy] ?? 0) + (target - (this.panNow[toy] ?? 0)) * glide;
+      const ang = ((this.panNow[toy] + 1) * Math.PI) / 4;
+      const gl = Math.cos(ang) * Math.SQRT2, gr = Math.sin(ang) * Math.SQRT2;
       for (const e of list) {
         if (e.off > cur) run(e.off);
         e.apply();
       }
       if (cur < n) run(n);
     });
+    // 鳴っているかどうか（1 秒くらい覚えておく）
+    if (outR) for (let t = 0; t < this.toys.length; t++) {
+      this.lastPeak[t] = Math.max(this.peakHold[t] ?? 0, (this.lastPeak[t] ?? 0) * Math.exp(-n / this.sr));
+      this.peakHold[t] = 0;
+    }
     // メトロノーム
     if (this.song.metronome && this.playing) {
       for (let i = 0; i < n; i++) {
@@ -313,3 +372,8 @@ export class Sequencer {
     this.pos = beat;
   }
 }
+
+/** 鳴っている順に置く左右の位置（左・右・少し左・少し右…） */
+const SPREAD = [-0.55, 0.55, -0.3, 0.3, -0.8, 0.8];
+/** エンジンの番号 → 真ん中に置くか（サンプラー = ドラム・ベース担当） */
+export const toyCenter = (ids: number[]) => ids.map((id) => id === 6);

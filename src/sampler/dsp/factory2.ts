@@ -273,8 +273,8 @@ function koto(r: Rng): Float32Array {
 }
 const shakuhachi = (r: Rng) => wind(r, 72, 2.8, { harm: [1, 0.12, 0.08, 0.02], breath: 0.32, breathHz: 1400, scoop: 0.9, vib: 0.007 });
 const fue = (r: Rng) => wind(r, 72, 2.4, { harm: [1, 0.05, 0.18], breath: 0.22, breathHz: 3200, scoop: 0.5, vib: 0.006 });
-function strings(): Float32Array {
-  const x = saws(3, midiHz(60), [-9, -4, 0, 5, 10], (i) => 1 + 0.004 * Math.min(1, i / SR / 0.6) * Math.sin((TAU * 5.4 * i) / SR));
+function strings(cents = [-9, -4, 0, 5, 10]): Float32Array {
+  const x = saws(3, midiHz(60), cents, (i) => 1 + 0.004 * Math.min(1, i / SR / 0.6) * Math.sin((TAU * 5.4 * i) / SR));
   lpSweep(x, (i) => 1200 + 2000 * Math.min(1, i / (SR * 0.3)), 0.1);
   hp1(x, 150);
   for (let i = 0; i < x.length; i++) x[i] *= Math.min(1, i / (SR * 0.12));
@@ -516,8 +516,8 @@ function acid(): Float32Array {
   for (let i = 0; i < x.length; i++) x[i] = Math.tanh(x[i] * 2.2) * Math.min(1, i / 40);
   return normalize(fadeOut(x, 0.05));
 }
-function supersaw(): Float32Array {
-  const x = saws(2.2, midiHz(60), [-24, -15, -7, 0, 7, 16, 25, 1200]);
+function supersaw(cents = [-24, -15, -7, 0, 7, 16, 25, 1200]): Float32Array {
+  const x = saws(2.2, midiHz(60), cents);
   lp1(lp1(x, 7000), 9000);
   hp1(x, 180);
   return normalize(fadeOut(x, 0.08), 0.8);
@@ -615,41 +615,41 @@ function vinyl(r: Rng): Float32Array {
 
 // ================= バンクの並び =================
 /** 1 つの音（作るのは必要になったときだけ。乱数は音ごとに決まる） */
-interface Lazy { name: string; make: (r: Rng) => Float32Array; params?: FactorySound['params'] }
-const L = (name: string, make: (r: Rng) => Float32Array, params?: FactorySound['params']): Lazy => ({ name, make, params });
+interface Lazy { name: string; make: (r: Rng) => Float32Array | Float32Array[]; params?: FactorySound['params'] }
+const L = (name: string, make: (r: Rng) => Float32Array | Float32Array[], params?: FactorySound['params']): Lazy => ({ name, make, params });
 const SUS = { gate: true, release: 0.25 };
 
 function genreList(bank: number): Lazy[] {
   switch (bank) {
     case 2: return [
-      L('TAIKO', (r) => taikoDon(r)), L('TAIKO KA', (r) => taikoKa(r)), L('SHIME', (r) => shime(r)), L('CHANCHKI', (r) => chanchiki(r)),
-      L('TEBYOSHI', (r) => tebyoshi(r)), L('HYOSHIGI', (r) => hyoshigi(r)), L('KANE', (r) => kane(r)), L('YOOI!', (r) => yooi(r)),
-      L('SHAMISEN', (r) => shamisen(r)), L('KOTO', (r) => koto(r)), L('SHAKU', (r) => shakuhachi(r), { ...SUS, release: 0.3 }), L('STRINGS', () => strings(), { gate: true, attack: 0.25, release: 0.4 }),
-      L('NAKI GTR', (r) => nakiGtr(r), SUS), L('WOODBASS', (r) => woodBass(r), { gate: true, release: 0.12 }), L('FUE', (r) => fue(r), SUS), L('SUZU', (r) => suzu(r)),
+      L('TAIKO', (r) => taikoDon(r)), L('TAIKO KA', (r) => taikoKa(r)), L('SHIME', (r) => shime(r), { pan: -0.25 }), L('CHANCHKI', (r) => chanchiki(r), { pan: 0.3 }),
+      L('TEBYOSHI', (r) => tebyoshi(r), { pan: -0.35 }), L('HYOSHIGI', (r) => hyoshigi(r), { pan: 0.2 }), L('KANE', (r) => kane(r), { pan: -0.2 }), L('YOOI!', (r) => yooi(r)),
+      L('SHAMISEN', (r) => shamisen(r), { pan: 0.3 }), L('KOTO', (r) => koto(r), { pan: -0.25 }), L('SHAKU', (r) => shakuhachi(r), { ...SUS, release: 0.3, pan: -0.15 }), L('STRINGS', () => [strings([-11, -4, 3, 9]), strings([-8, 0, 6, 12])], { gate: true, attack: 0.25, release: 0.4 }),
+      L('NAKI GTR', (r) => nakiGtr(r), { ...SUS, pan: -0.2 }), L('WOODBASS', (r) => woodBass(r), { gate: true, release: 0.12 }), L('FUE', (r) => fue(r), { ...SUS, pan: -0.15 }), L('SUZU', (r) => suzu(r), { pan: 0.35 }),
     ];
     case 3: return [
-      L('ONEDROP', (r) => onedrop(r)), L('RIMSHOT', (r) => rimshot(r)), L('HAT', (r) => hh(r, 0.025, 5500, 1.6), { mute: 2 }), L('OP HAT', (r) => hh(r, 0.14, 5500, 1.6), { mute: 2 }),
-      L('SKANK', (r) => skank(r)), L('ORGAN', (r) => organ(r), { gate: true, release: 0.08 }), L('DUB BASS', () => dubBass(), { gate: true, release: 0.12 }), L('SIREN', () => siren()),
-      L('SPRING', (r) => springSnare(r)), L('HORNS', () => horns(), { gate: true, release: 0.15 }), L('MELODICA', (r) => melodica(r), SUS), L('SHAKER', (r) => shaker(r)),
-      L('DUB HIT', () => dubHit()), L('AKETE', (r) => akete(r)), L('STEPPER', (r) => steppers(r)), L('SKA PNO', (r) => piano(r, 60, 1.2, 0.5, 0.5)),
+      L('ONEDROP', (r) => onedrop(r)), L('RIMSHOT', (r) => rimshot(r)), L('HAT', (r) => hh(r, 0.025, 5500, 1.6), { mute: 2, pan: 0.25 }), L('OP HAT', (r) => hh(r, 0.14, 5500, 1.6), { mute: 2, pan: 0.25 }),
+      L('SKANK', (r) => skank(r), { pan: 0.35 }), L('ORGAN', (r) => organ(r), { gate: true, release: 0.08, pan: -0.35 }), L('DUB BASS', () => dubBass(), { gate: true, release: 0.12 }), L('SIREN', () => siren()),
+      L('SPRING', (r) => springSnare(r)), L('HORNS', () => horns(), { gate: true, release: 0.15, pan: -0.2 }), L('MELODICA', (r) => melodica(r), { ...SUS, pan: -0.15 }), L('SHAKER', (r) => shaker(r), { pan: -0.35 }),
+      L('DUB HIT', () => dubHit()), L('AKETE', (r) => akete(r), { pan: 0.3 }), L('STEPPER', (r) => steppers(r)), L('SKA PNO', (r) => piano(r, 60, 1.2, 0.5, 0.5), { pan: -0.35 }),
     ];
     case 4: return [
-      L('JAZZ BD', (r) => jazzKick(r)), L('BRUSH', (r) => brush(r)), L('RIDE', (r) => ride(r)), L('PEDAL HH', (r) => pedalHat(r)),
-      L('X-STICK', (r) => crossStick(r)), L('UPRIGHT', (r) => woodBass(r, 0.7), { gate: true, release: 0.1 }), L('E.PIANO', () => epiano(60, 2.6, 0.8, 0.12), SUS), L('NYLON', (r) => nylon(r)),
-      L('CLAV', (r) => clav(r), { gate: true, release: 0.05 }), L('SLAP', (r) => slap(r), { gate: true, release: 0.08 }), L('SAX', (r) => sax(r), SUS), L('VIBES', () => vibes()),
-      L('CLAVE', () => clave()), L('CABASA', (r) => cabasa(r)), L('FUNK SN', (r) => funkSnare(r)), L('CONGA', (r) => conga(r)),
+      L('JAZZ BD', (r) => jazzKick(r)), L('BRUSH', (r) => brush(r)), L('RIDE', (r) => ride(r), { pan: 0.3 }), L('PEDAL HH', (r) => pedalHat(r), { pan: 0.2 }),
+      L('X-STICK', (r) => crossStick(r)), L('UPRIGHT', (r) => woodBass(r, 0.7), { gate: true, release: 0.1 }), L('E.PIANO', () => epiano(60, 2.6, 0.8, 0.12), { ...SUS, pan: 0.3 }), L('NYLON', (r) => nylon(r), { pan: 0.3 }),
+      L('CLAV', (r) => clav(r), { gate: true, release: 0.05, pan: 0.35 }), L('SLAP', (r) => slap(r), { gate: true, release: 0.08 }), L('SAX', (r) => sax(r), { ...SUS, pan: -0.25 }), L('VIBES', () => vibes(), { pan: -0.2 }),
+      L('CLAVE', () => clave(), { pan: 0.4 }), L('CABASA', (r) => cabasa(r), { pan: -0.35 }), L('FUNK SN', (r) => funkSnare(r)), L('CONGA', (r) => conga(r), { pan: -0.3 }),
     ];
     case 5: return [
-      L('909 BD', (r) => kick909(r)), L('909 SN', (r) => snare909(r)), L('909 CH', (r) => hh(r, 0.03, 7000, 1.9), { mute: 3 }), L('909 OH', (r) => hh(r, 0.22, 7000, 1.9), { mute: 3 }),
-      L('909 CLAP', (r) => normalize(room(clap(r), 0.4, 0.15))), L('909 RIDE', (r) => ride(r, 1.3)), L('808', () => bass808(), { gate: true, release: 0.3 }), L('REESE', () => reese(), { gate: true, release: 0.1 }),
-      L('ACID', () => acid(), { gate: true, release: 0.06 }), L('HOUSE PN', (r) => piano(r, 60, 1.4, 0.9, 0.7)), L('SUPERSAW', () => supersaw(), { gate: true, release: 0.3 }), L('GABBER', (r) => gabber(r)),
-      L('BREAK SN', (r) => breakSnare(r)), L('TRAP HH', (r) => trapHat(r), { mute: 3 }), L('PERC', (r) => perc(r)), L('HEY!', (r) => hey(r)),
+      L('909 BD', (r) => kick909(r)), L('909 SN', (r) => snare909(r)), L('909 CH', (r) => hh(r, 0.03, 7000, 1.9), { mute: 3, pan: 0.25 }), L('909 OH', (r) => hh(r, 0.22, 7000, 1.9), { mute: 3, pan: 0.25 }),
+      L('909 CLAP', (r) => normalize(room(clap(r), 0.4, 0.15))), L('909 RIDE', (r) => ride(r, 1.3), { pan: 0.3 }), L('808', () => bass808(), { gate: true, release: 0.3 }), L('REESE', () => reese(), { gate: true, release: 0.1 }),
+      L('ACID', () => acid(), { gate: true, release: 0.06 }), L('HOUSE PN', (r) => piano(r, 60, 1.4, 0.9, 0.7), { pan: 0.3 }), L('SUPERSAW', () => [supersaw([-25, -14, -6, 5, 17, 1200]), supersaw([-19, -8, 2, 11, 24, 1199])], { gate: true, release: 0.3 }), L('GABBER', (r) => gabber(r)),
+      L('BREAK SN', (r) => breakSnare(r)), L('TRAP HH', (r) => trapHat(r), { mute: 3, pan: 0.25 }), L('PERC', (r) => perc(r), { pan: -0.35 }), L('HEY!', (r) => hey(r)),
     ];
     default: return [
-      L('MARCH BD', (r) => marchBd(r)), L('MARCH SN', (r) => marchSn(r)), L('CYMBAL', (r) => cymbal(r)), L('GLOCK', () => glock()),
-      L('BRASS', () => brassMarch(), SUS), L('TUBA', () => tuba(), { gate: true, release: 0.12 }), L('CHIP SQ', () => chipSq(), { gate: true, release: 0.02 }), L('CHIP NZ', (r) => chipNoise(r)),
+      L('MARCH BD', (r) => marchBd(r)), L('MARCH SN', (r) => marchSn(r)), L('CYMBAL', (r) => cymbal(r), { pan: 0.25 }), L('GLOCK', () => glock(), { pan: 0.3 }),
+      L('BRASS', () => brassMarch(), { ...SUS, pan: -0.2 }), L('TUBA', () => tuba(), { gate: true, release: 0.12 }), L('CHIP SQ', () => chipSq(), { gate: true, release: 0.02 }), L('CHIP NZ', (r) => chipNoise(r)),
       L('CHIP TRI', () => chipTri(), { gate: true, release: 0.02 }), L('POWER GT', () => powerGtr(), { gate: true, release: 0.1 }), L('ROCK BD', (r) => rockKick(r)), L('ROCK SN', (r) => rockSnare(r)),
-      L('LOFI BD', (r) => lofiKick(r)), L('DUSTY SN', (r) => dustySn(r)), L('LOFI EP', (r) => lofiKeys(r), SUS), L('VINYL', (r) => vinyl(r), { gate: true, loop: true, release: 0.3 }),
+      L('LOFI BD', (r) => lofiKick(r)), L('DUSTY SN', (r) => dustySn(r)), L('LOFI EP', (r) => lofiKeys(r), { ...SUS, pan: 0.3 }), L('VINYL', (r) => vinyl(r), { gate: true, loop: true, release: 0.3 }),
     ];
   }
 }
@@ -661,6 +661,7 @@ export const genreParams = (bank: number, i: number): FactorySound['params'] => 
 /** バンク C〜G の 1 音を作る */
 export function genreSound(bank: number, i: number): FactorySound {
   const s = genreList(bank)[i];
-  return { name: s.name, buf: mono(s.make(new Rng(31337 + bank * 1013 + i * 7919))), params: s.params };
+  const x = s.make(new Rng(31337 + bank * 1013 + i * 7919));
+  return { name: s.name, buf: Array.isArray(x) ? { sr: SR, ch: x } : mono(x), params: s.params }; // 配列なら左右（ステレオ）
 }
 export const genreBank = (bank: number): FactorySound[] => genreList(bank).map((_, i) => genreSound(bank, i));

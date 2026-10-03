@@ -2,7 +2,7 @@
 //   1. 直流カット（20Hz）… 音の中心がずれると、割れやすく・こもる
 //   2. バスコンプ（ゆるく 2:1）… バラバラのおもちゃを 1 つの曲にまとめる（のり付け）
 //   3. 部屋の響き（ステレオ）… 左右で少し違う響きで広げる。低い音は真ん中のまま（ぼやけないように）
-//   4. 先読みリミッター（-0.8dB）… 大きい音を前もって下げて、絶対に割れない（ガリッとならない）
+//   4. 先読みリミッター（-1dBTP）… サンプルの間の山まで見て前もって下げる。絶対に割れない（ガリッとならない）
 // DOM 非依存（AudioWorklet・Web Worker・テストのどこでも使う）。
 
 /** 響きの部品：くし形（中に吸音のローパス） */
@@ -68,11 +68,16 @@ class Room {
   }
 }
 
+/** トゥルーピークを見る位置（サンプルの間を 4 等分） */
+const TP_T = [0.25, 0.5, 0.75];
+
 export interface MasterOptions {
   /** 響きの量（0 = なし） */
   reverb?: number;
   /** バスコンプのかかり始め（dB） */
   threshold?: number;
+  /** コンプの後に足す音量（dB） */
+  makeup?: number;
 }
 
 export class MasterBus {
@@ -95,8 +100,13 @@ export class MasterBus {
   private lGain = 1;
   private lRel: number;
   private lAtk: number;
-  private ceiling = Math.pow(10, -0.8 / 20);
-  private makeup = Math.pow(10, 2 / 20);
+  /** 天井 -1dBTP（配信サービスの決まり）。リミッターは少し下をねらう */
+  private ceiling = Math.pow(10, -1 / 20);
+  private target = Math.pow(10, -1.3 / 20);
+  private dcXr = 0;
+  private dcYr = 0;
+  private tpHist = new Float32Array(8);
+  private makeup: number;
 
   /** 先読みの分の遅れ（サンプル） */
   get latency(): number { return this.la; }
@@ -109,6 +119,7 @@ export class MasterBus {
     this.roomHp = 1 - Math.exp((-2 * Math.PI * 250) / sr);
     this.wet = o.reverb ?? 0.11;
     this.thr = o.threshold ?? -16;
+    this.makeup = Math.pow(10, (o.makeup ?? 2) / 20);
     this.la = Math.max(8, Math.round(sr * 0.0025));
     this.dl = new Float32Array(this.la);
     this.dr = new Float32Array(this.la);
@@ -117,35 +128,40 @@ export class MasterBus {
     this.lAtk = Math.exp(-4 / this.la);
   }
 
-  /** mono（全部を混ぜた音）→ L・R。mono と L・R は同じ配列でもよい */
-  process(mono: Float32Array, L: Float32Array, R: Float32Array): void {
-    const n = mono.length;
+  /** 左右（おもちゃを並べて混ぜた音）→ 仕上げた左右。入力と出力は同じ配列でもよい。inR が無ければモノラル */
+  process(inL: Float32Array, inR: Float32Array | null, L: Float32Array, R: Float32Array): void {
+    const n = inL.length;
+    const h = this.tpHist;
     for (let i = 0; i < n; i++) {
-      // 1. 直流カット
-      const x0 = mono[i];
-      const x = x0 - this.dcX + this.dcA * this.dcY;
-      this.dcX = x0;
-      this.dcY = x;
-      // 2. バスコンプ（RMS で見て、2:1 でゆるく）
-      const p = x * x;
+      // 1. 直流カット（左右それぞれ）
+      const a0 = inL[i], b0 = inR ? inR[i] : a0;
+      const xl = a0 - this.dcX + this.dcA * this.dcY, xr = b0 - this.dcXr + this.dcA * this.dcYr;
+      this.dcX = a0; this.dcY = xl; this.dcXr = b0; this.dcYr = xr;
+      // 2. バスコンプ（左右いっしょに RMS で見て、2:1 でゆるく）
+      const p = (xl * xl + xr * xr) * 0.5;
       this.env = p > this.env ? this.atk * this.env + (1 - this.atk) * p : this.rel * this.env + (1 - this.rel) * p;
-      const db = 10 * Math.log10(this.env + 1e-12);
-      const over = db - this.thr;
+      const over = 10 * Math.log10(this.env + 1e-12) - this.thr;
       const g = (over > 0 ? Math.pow(10, (-over * 0.5) / 20) : 1) * this.makeup;
-      const y = x * g;
-      // 3. 部屋の響き（左右で違う）
-      let l = y, r = y;
+      let l = xl * g, r = xr * g;
+      // 3. 部屋の響き（真ん中の音から、左右で違う響き）
       if (this.wet > 0) {
-        const [wl, wr] = this.room.run(y, this.roomHp);
+        const [wl, wr] = this.room.run((l + r) * 0.5, this.roomHp);
         l += wl * this.wet;
         r += wr * this.wet;
       }
-      // 4. 先読みリミッター：これから出す音の一番大きい所に合わせて、前もって下げる
-      const pk = Math.max(Math.abs(l), Math.abs(r));
+      // 4. 先読みリミッター：サンプルとサンプルの間の山（トゥルーピーク）まで見て、前もって下げる
+      h[0] = h[1]; h[1] = h[2]; h[2] = h[3]; h[3] = l;
+      h[4] = h[5]; h[5] = h[6]; h[6] = h[7]; h[7] = r;
+      let pk = Math.max(Math.abs(l), Math.abs(r));
+      for (let c = 0; c < 8; c += 4) {
+        const xm1 = h[c], x0 = h[c + 1], x1 = h[c + 2], x2 = h[c + 3];
+        const c1 = 0.5 * (x1 - xm1), c2 = xm1 - 2.5 * x0 + 2 * x1 - 0.5 * x2, c3 = 0.5 * (x2 - xm1) + 1.5 * (x0 - x1);
+        for (const t of TP_T) { const v = Math.abs(((c3 * t + c2) * t + c1) * t + x0); if (v > pk) pk = v; }
+      }
       this.peakBuf[this.di] = pk;
       let m = 0;
       for (let k = 0; k < this.la; k++) if (this.peakBuf[k] > m) m = this.peakBuf[k];
-      const want = m > this.ceiling ? this.ceiling / m : 1;
+      const want = m > this.target ? this.target / m : 1;
       // 下げるのは先読みの間になめらかに（急に下げるとプツッと鳴る）、戻すのはゆっくり
       this.lGain = want < this.lGain ? want + (this.lGain - want) * this.lAtk : this.lRel * this.lGain + (1 - this.lRel) * want;
       const ol = this.dl[this.di], or = this.dr[this.di];
@@ -160,7 +176,10 @@ export class MasterBus {
 
   reset(): void {
     const sr = this.sr;
-    const w = this.wet, t = this.thr;
-    Object.assign(this, new MasterBus(sr, { reverb: w, threshold: t }));
+    const w = this.wet, t = this.thr, mk = 20 * Math.log10(this.makeup);
+    Object.assign(this, new MasterBus(sr, { reverb: w, threshold: t, makeup: mk }));
   }
 }
+
+/** 書き出しの音量合わせのめやす（LUFS）。配信サービスより少し大きめ、市販の CD よりは控えめ */
+export const EXPORT_LUFS = -12;

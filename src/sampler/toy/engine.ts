@@ -104,11 +104,14 @@ export class SamplerToy implements ToyEngine<SamplerDisplay> {
   /** サンプラーのページで決めたエフェクト（FX スイッチで丸ごと切れる） */
   private pageFx: FxSlot[] | undefined;
   // 出口の改造パーツ：フィルター・ドライブ・クラッシュ・エコー
-  private s1 = 0;
-  private s2 = 0;
-  private hold = 0;
+  private s1 = [0, 0];
+  private s2 = [0, 0];
+  private hold = [0, 0];
   private holdN = 0;
-  private echoBuf: Float32Array;
+  private echoL: Float32Array;
+  private echoR: Float32Array;
+  private ml = new Float32Array(128);
+  private mr = new Float32Array(128);
   private echoW = 0;
   private echoD = 0;
 
@@ -117,7 +120,8 @@ export class SamplerToy implements ToyEngine<SamplerDisplay> {
     this.params = Float32Array.from(SAMPLER_PARAMS.map((p) => p.default));
     factoryOnce().forEach((bank, b) => bank.forEach((s, i) => { this.eng.setSample(b * PADS + i, s.buf); this.eng.setParams(b * PADS + i, factoryParams(s)); }));
     this.boot = chomp(sr);
-    this.echoBuf = new Float32Array(Math.round(sr * 0.8));
+    this.echoL = new Float32Array(Math.round(sr * 0.8));
+    this.echoR = new Float32Array(Math.round(sr * 0.8));
   }
 
   setParam(index: number, value: number): void {
@@ -191,21 +195,29 @@ export class SamplerToy implements ToyEngine<SamplerDisplay> {
     }
   }
 
+  /** モノラル（左右を混ぜる） */
   process(out: Float32Array): void {
     const n = out.length;
-    if (this.l.length !== n) { this.l = new Float32Array(n); this.r = new Float32Array(n); }
+    if (this.ml.length !== n) { this.ml = new Float32Array(n); this.mr = new Float32Array(n); }
+    this.processStereo(this.ml, this.mr);
+    for (let i = 0; i < n; i++) out[i] = (this.ml[i] + this.mr[i]) * 0.5;
+  }
+
+  /** ステレオ：パッドごとの左右の位置（PAN）のまま出す */
+  processStereo(L: Float32Array, R: Float32Array): void {
+    const n = L.length;
     this.eng.master = HEADROOM; // 音量は改造パーツの後で（DRIVE で大きくならないように）。重なっても割れないよう少し余裕を持たせる
-    this.eng.process(null, null, this.l, this.r);
-    for (let i = 0; i < n; i++) out[i] = this.powered ? (this.l[i] + this.r[i]) * 0.5 : 0;
-    this.mangle(out);
+    this.eng.process(null, null, L, R);
+    if (!this.powered) { L.fill(0); R.fill(0); }
+    this.mangle(L, R);
     const vol = (this.params[SP.volume] * 1.25) / HEADROOM;
-    for (let i = 0; i < n; i++) {
+    for (const o of [L, R]) for (let i = 0; i < n; i++) {
       // 余裕を戻した分、大きすぎる所だけやわらかく抑える
-      const x = out[i] * vol, a = Math.abs(x);
-      out[i] = a < 0.8 ? x : Math.sign(x) * (0.8 + 0.2 * Math.tanh((a - 0.8) / 0.2));
+      const x = o[i] * vol, a = Math.abs(x);
+      o[i] = a < 0.8 ? x : Math.sign(x) * (0.8 + 0.2 * Math.tanh((a - 0.8) / 0.2));
     }
     if (this.bootPos >= 0) {
-      for (let i = 0; i < n && this.bootPos < this.boot.length; i++) out[i] += this.boot[this.bootPos++] * this.params[SP.volume];
+      for (let i = 0; i < n && this.bootPos < this.boot.length; i++) { const v = this.boot[this.bootPos++] * this.params[SP.volume]; L[i] += v; R[i] += v; }
       if (this.bootPos >= this.boot.length) this.bootPos = -1;
     }
     // 鳴っているパッドを画面へ（変わったときだけ、ときどき）
@@ -218,49 +230,58 @@ export class SamplerToy implements ToyEngine<SamplerDisplay> {
     }
   }
 
-  /** 出口の改造パーツ：CRUSH（ビットとサンプルを落とす）→ DRIVE → CUTOFF・RESO（ローパス）→ ECHO */
-  private mangle(out: Float32Array): void {
-    const P = this.params, n = out.length;
+  /** 出口の改造パーツ（左右それぞれ）：CRUSH（ビットとサンプルを落とす）→ DRIVE → CUTOFF・RESO（ローパス）→ ECHO（左右に跳ねる） */
+  private mangle(Lo: Float32Array, Ro: Float32Array): void {
+    const P = this.params, n = Lo.length;
     const crush = P[SP.crush], drive = P[SP.drive], cut = P[SP.cutoff], reso = P[SP.reso], echo = P[SP.echo];
     if (crush > 0.01) {
       const q = Math.pow(2, 12 - crush * 10), every = 1 + Math.floor(crush * crush * 24);
       for (let i = 0; i < n; i++) {
-        if (this.holdN++ % every === 0) this.hold = Math.round(out[i] * q) / q;
-        out[i] = this.hold;
+        if (this.holdN++ % every === 0) { this.hold[0] = Math.round(Lo[i] * q) / q; this.hold[1] = Math.round(Ro[i] * q) / q; }
+        Lo[i] = this.hold[0];
+        Ro[i] = this.hold[1];
       }
     }
     if (drive > 0.01) {
       const g = 1 + drive * 30, norm = 0.8 / Math.tanh(g); // いちばん大きい音はそのままの大きさ
-      for (let i = 0; i < n; i++) out[i] = Math.tanh(out[i] * g) * norm;
+      for (let i = 0; i < n; i++) { Lo[i] = Math.tanh(Lo[i] * g) * norm; Ro[i] = Math.tanh(Ro[i] * g) * norm; }
     }
     if (cut < 0.995 || reso > 0.01) {
       const fc = Math.min(20 * Math.pow(1000, cut), this.sr * 0.45);
       const g = Math.tan((Math.PI * fc) / this.sr), k = 2 - 1.95 * reso;
       const a1 = 1 / (1 + g * (g + k)), a2 = g * a1, a3 = g * a2;
-      for (let i = 0; i < n; i++) {
-        const v3 = out[i] - this.s2, v1 = a1 * this.s1 + a2 * v3, v2 = this.s2 + a2 * this.s1 + a3 * v3;
-        this.s1 = 2 * v1 - this.s1;
-        this.s2 = 2 * v2 - this.s2;
-        out[i] = Math.tanh(v2);
-      }
+      [Lo, Ro].forEach((o, c) => {
+        let s1 = this.s1[c], s2 = this.s2[c];
+        for (let i = 0; i < n; i++) {
+          const v3 = o[i] - s2, v1 = a1 * s1 + a2 * v3, v2 = s2 + a2 * s1 + a3 * v3;
+          s1 = 2 * v1 - s1;
+          s2 = 2 * v2 - s2;
+          o[i] = Math.tanh(v2);
+        }
+        this.s1[c] = s1; this.s2[c] = s2;
+      });
     }
-    // エコー：止めても余韻は残す（中身が無くなるまで回す）
-    const L = this.echoBuf.length;
+    // エコー：左 → 右 → 左…と跳ねる（ピンポン）。止めても余韻は残す（中身が無くなるまで回す）
+    const len = this.echoL.length;
     const target = (0.03 + P[SP.echoTime] * 0.72) * this.sr;
     if (echo > 0.01 || this.echoD > 0) {
+      const fb = 0.25 + echo * 0.55;
+      const rd0 = (b: Float32Array, rd: number) => { const i0 = Math.floor(rd), f = rd - i0; const a = b[((i0 % len) + len) % len], c = b[(((i0 + 1) % len) + len) % len]; return a + (c - a) * f; };
       for (let i = 0; i < n; i++) {
         this.echoD += (target - this.echoD) * 0.0005;
-        const rd = this.echoW - this.echoD, i0 = Math.floor(rd), f = rd - i0;
-        const a = this.echoBuf[((i0 % L) + L) % L], b = this.echoBuf[(((i0 + 1) % L) + L) % L];
-        const y = a + (b - a) * f;
-        this.echoBuf[this.echoW % L] = out[i] * echo + y * (0.25 + echo * 0.55);
+        const rd = this.echoW - this.echoD;
+        const yl = rd0(this.echoL, rd), yr = rd0(this.echoR, rd);
+        const w = this.echoW % len;
+        this.echoL[w] = (Lo[i] + Ro[i]) * 0.5 * echo + yr * fb;
+        this.echoR[w] = yl * fb;
         this.echoW++;
-        out[i] += y;
+        Lo[i] += yl;
+        Ro[i] += yr;
       }
       if (echo <= 0.01) {
         let e = 0;
-        for (let i = 0; i < L; i += 64) e = Math.max(e, Math.abs(this.echoBuf[i]));
-        if (e < 1e-4) { this.echoD = 0; this.echoBuf.fill(0); }
+        for (let i = 0; i < len; i += 64) e = Math.max(e, Math.abs(this.echoL[i]), Math.abs(this.echoR[i]));
+        if (e < 1e-4) { this.echoD = 0; this.echoL.fill(0); this.echoR.fill(0); }
       }
     }
   }

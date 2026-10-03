@@ -1,6 +1,11 @@
 // マスター（仕上げ）の検査：割れない・小さい音はほぼそのまま・左右に広がる・遅れは決まった分だけ・止めたら静かになる
 import { MasterBus } from '../src/host/master';
 import { pulseBL, sawBL } from '../src/core/blep';
+import { correlation, lufs, truePeak } from '../src/core/loudness';
+import { EXPORT_LUFS } from '../src/host/master';
+import { defaultComposer } from '../src/compose/rules';
+import { styleOf } from '../src/compose/styles';
+import { renderSongStereo } from '../src/studio/render';
 
 const SR = 48000;
 let fails = 0;
@@ -8,7 +13,7 @@ const ng = (m: string) => { fails++; console.log('NG', m); };
 const ok = (m: string) => console.log('OK', m);
 function run(x: Float32Array, m = new MasterBus(SR)): [Float32Array, Float32Array] {
   const L = new Float32Array(x.length), R = new Float32Array(x.length);
-  for (let o = 0; o < x.length; o += 128) m.process(x.subarray(o, o + 128), L.subarray(o, o + 128), R.subarray(o, o + 128));
+  for (let o = 0; o < x.length; o += 128) m.process(x.subarray(o, o + 128), null, L.subarray(o, o + 128), R.subarray(o, o + 128));
   return [L, R];
 }
 const rms = (a: Float32Array, s = 0, e = a.length) => { let q = 0; for (let i = s; i < e; i++) q += a[i] * a[i]; return Math.sqrt(q / (e - s)); };
@@ -19,7 +24,7 @@ const sine = (sec: number, hz: number, amp: number) => Float32Array.from({ lengt
   const [L, R] = run(sine(2, 80, 4));
   let pk = 0;
   for (let i = 0; i < L.length; i++) pk = Math.max(pk, Math.abs(L[i]), Math.abs(R[i]));
-  pk <= 0.913 ? ok(`割れない：4 倍の音でも最大 ${pk.toFixed(3)}`) : ng(`最大 ${pk}`);
+  pk <= 0.8913 ? ok(`割れない：4 倍の音でも最大 ${pk.toFixed(3)}（-1dB 以下）`) : ng(`最大 ${pk}`);
 }
 // 小さめの音はほぼそのまま（±3dB）
 {
@@ -52,6 +57,20 @@ const sine = (sec: number, hz: number, amp: number) => Float32Array.from({ lengt
   let ph = 0;
   for (let i = 0; i < SR; i++) { const a = sawBL(ph, 0.05), b = pulseBL(ph, 0.05, 0.3); mx = Math.max(mx, Math.abs(a), Math.abs(b)); sum += a; ph = (ph + 0.05) % 1; }
   mx <= 1.0001 && Math.abs(sum / SR) < 0.01 ? ok('帯域制限ののこぎり・矩形波：±1 に収まる') : ng(`BLEP ${mx} ${sum / SR}`);
+}
+// 書き出し：市販品のものさし（大きさ EXPORT_LUFS・トゥルーピーク -1dBTP 以下・2 台以上なら左右に広がる）
+{
+  const C = defaultComposer();
+  const res: string[] = [];
+  for (const [style, kinds] of [['house', ['dj', 'sampler']], ['ambient', ['blippy', 'vroom']], ['punk', ['blippy', 'piko', 'typo', 'sampler']]] as const) {
+    const s = C.compose({ settings: { seed: 77, style, chaos: 0.5, lengthSec: 30, bpm: styleOf(style).bpm }, toys: kinds.map((kind, toy) => ({ toy, kind })) });
+    const ids = kinds.map((k) => ['blippy', 'piko', 'dj', 'vroom', 'typo', 'tele', 'sampler'].indexOf(k));
+    const [L, R] = renderSongStereo(s, SR, { toys: ids, normalize: true });
+    const lu = lufs(L, R, SR), tp = truePeak(L, R), co = correlation(L, R);
+    res.push(`${style} ${lu.toFixed(1)}LUFS ${tp.toFixed(2)}dBTP 相関 ${co.toFixed(2)}`);
+    if (Math.abs(lu - EXPORT_LUFS) > 0.7 || tp > -1 || co > 0.97 || co < 0.3) ng(`書き出し ${style}：${res[res.length - 1]}`);
+  }
+  ok(`書き出しは市販品のものさしに合う：${res.join(' / ')}`);
 }
 console.log(fails ? `NG ${fails} 個` : 'すべて OK');
 process.exit(fails ? 1 : 0);

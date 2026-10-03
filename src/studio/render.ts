@@ -1,11 +1,12 @@
 // 曲をオフラインで最初から最後まで鳴らして、音の波形にする（DOM・Web Audio に依存しない）。
 // スタジオの Worklet とまったく同じ部品（シーケンサー・おもちゃ・テスト信号）を使うので、同じ音になる。
 // テストと WAV の書き出しで使う。
-import { MasterBus } from '../host/master';
+import { EXPORT_LUFS, MasterBus } from '../host/master';
+import { lufs } from '../core/loudness';
 import { hashSeed } from '../core/rng';
 import { cloneSong, songBeats, type Song } from '../core/song';
 import { TestSignal } from '../core/testsignal';
-import { Sequencer } from '../host/sequencer';
+import { Sequencer, toyCenter } from '../host/sequencer';
 import { TOY_ENGINES } from '../toys/engines';
 import { STUDIO_TOYS } from './songs';
 
@@ -19,6 +20,8 @@ export interface RenderOpts {
   toys?: number[]; tail?: number; onProgress?: (f: number) => void; userSamples?: { toy: number; key: number; data: Float32Array }[];
   /** おもちゃ専用のデータ（サンプラーの音など） */
   customs?: { toy: number; data: unknown }[];
+  /** 書き出し用：曲全体の大きさをそろえる（EXPORT_LUFS） */
+  normalize?: boolean;
 }
 
 /**
@@ -46,14 +49,31 @@ export function renderSongStereo(song: Song, sr: number, opts: RenderOpts = {}):
   // 先読みリミッターの遅れの分だけ多めに作って、頭を捨てる（音の位置がずれないように）
   const lat = master.latency;
   const L = new Float32Array(total + lat + BLOCK), R = new Float32Array(total + lat + BLOCK);
-  const out = new Float32Array(BLOCK), click = new Float32Array(BLOCK), tmp = new Float32Array(BLOCK), inp = new Float32Array(BLOCK);
+  seq.center = toyCenter(ids);
+  const out = new Float32Array(BLOCK), outR = new Float32Array(BLOCK), click = new Float32Array(BLOCK), tmp = new Float32Array(BLOCK), inp = new Float32Array(BLOCK);
   for (let i = 0; i < total + lat; i += BLOCK) {
     sig.render(inp, seq.playing ? seq.pos : null, s.bpm);
-    seq.render(out, click, tmp, inp);
-    master.process(out, L.subarray(i, i + BLOCK), R.subarray(i, i + BLOCK));
+    seq.render(out, click, tmp, inp, outR);
+    master.process(out, outR, L.subarray(i, i + BLOCK), R.subarray(i, i + BLOCK));
     if (opts.onProgress && (i / BLOCK) % 2000 === 0) opts.onProgress(i / total);
   }
-  return [L.slice(lat, lat + total), R.slice(lat, lat + total)];
+  const outL = L.slice(lat, lat + total), outR2 = R.slice(lat, lat + total);
+  if (opts.normalize) normalizeLoudness(outL, outR2, sr);
+  return [outL, outR2];
+}
+
+/** 曲全体の大きさ（LUFS）をそろえる：足りなければ上げて、リミッターだけもう一度通す（-1dBTP を守る） */
+export function normalizeLoudness(L: Float32Array, R: Float32Array, sr: number, target = EXPORT_LUFS): void {
+  const now = lufs(L, R, sr);
+  if (now < -60) return;
+  const g = Math.pow(10, Math.max(-12, Math.min(9, target - now)) / 20);
+  const lim = new MasterBus(sr, { reverb: 0, threshold: 99, makeup: 0 });
+  const lat = lim.latency, n = L.length;
+  const a = new Float32Array(n + lat), b = new Float32Array(n + lat);
+  for (let i = 0; i < n; i++) { a[i] = L[i] * g; b[i] = R[i] * g; }
+  for (let o = 0; o < n + lat; o += BLOCK) { const e = Math.min(n + lat, o + BLOCK); lim.process(a.subarray(o, e), b.subarray(o, e), a.subarray(o, e), b.subarray(o, e)); }
+  L.set(a.subarray(lat, lat + n));
+  R.set(b.subarray(lat, lat + n));
 }
 
 /** 左右を混ぜたモノラル（テスト・解析用） */

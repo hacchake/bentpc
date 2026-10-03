@@ -23,6 +23,8 @@ export interface ToyEngine<Display = unknown> {
   powerOff(): void;
   /** モノラルで out を埋める。input は外から入ってくる音（映像の音など。wantsInput のおもちゃだけ） */
   process(out: Float32Array, input?: Float32Array): void;
+  /** ステレオで出せるおもちゃ（サンプラー）はこちらも。あればラック・スタジオはこちらを使う */
+  processStereo?(outL: Float32Array, outR: Float32Array): void;
   /** 外の音（取り込んだ動画の音）を受け取るおもちゃは true */
   readonly wantsInput?: boolean;
   readonly display: Display;

@@ -6,6 +6,6 @@ interface Req { song: Song; sr: number; toys?: number[]; userSamples: { toy: num
 
 self.onmessage = (e: MessageEvent<Req>) => {
   const { song, sr, userSamples, toys, customs } = e.data;
-  const [data, dataR] = renderSongStereo(song, sr, { toys, userSamples, customs, onProgress: (f) => self.postMessage({ type: 'progress', f }) });
+  const [data, dataR] = renderSongStereo(song, sr, { toys, userSamples, customs, normalize: true, onProgress: (f) => self.postMessage({ type: 'progress', f }) });
   (self as unknown as Worker).postMessage({ type: 'done', data, dataR }, [data.buffer, dataR.buffer]);
 };
