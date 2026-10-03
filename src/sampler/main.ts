@@ -4,7 +4,7 @@
 import { setupLang } from '../i18n';
 import './sampler.css';
 import { Knob } from '../core/controls';
-import { factoryBank, factoryParams } from './dsp/factory';
+import { FACTORY_BANKS, factoryBank, factoryParams } from './dsp/factory';
 import {
   BANKS, BANK_NAMES, PADS, PAD_COUNT, ROLL_NAMES, ROLL_RATES, attackSec, cutoffHz, defaultPad, padLabel, releaseSec,
   type FromSampler, type PadParams, type SampleBuf, type TrigMod,
@@ -29,10 +29,12 @@ const names: string[] = Array.from({ length: PAD_COUNT }, () => '');
 interface Meta {
   bpm: number; rollRate: number; lvParam: number; fx: FxSlot[]; fxSel: number; bend: BendState;
   patterns: Pattern[]; song: SongStep[]; ptn: number; quant: number; swing: number; metro: boolean;
+  /** 工場出荷の音の版（2 = バンク C〜G のジャンル編あり） */
+  factoryVer?: number;
 }
 const newMeta = (): Meta => ({
   bpm: 120, rollRate: 2, lvParam: 0, fx: defaultSlots(), fxSel: 0, bend: defaultBend(),
-  patterns: Array.from({ length: PATTERNS }, emptyPattern), song: [], ptn: 0, quant: 2, swing: 0.5, metro: true,
+  patterns: Array.from({ length: PATTERNS }, emptyPattern), song: [], ptn: 0, quant: 2, swing: 0.5, metro: true, factoryVer: 2,
 });
 const meta: Meta = newMeta();
 let bank = 0;
@@ -1212,15 +1214,24 @@ $('midiBtn').addEventListener('click', async () => {
 
 // ---------------- 工場出荷・ヘルプ・はじめる ----------------
 function loadFactory(): void {
-  for (const b of [0, 1] as const) {
+  for (let b = 0; b < FACTORY_BANKS; b++) {
     factoryBank(b).forEach((s, i) => setPad(b * PADS + i, s.name, s.buf, factoryParams(s)));
   }
 }
+/** 前の版で保存した人：新しく増えた工場出荷の音（バンク C〜G）を、空いているパッドにだけ入れる */
+function addNewFactory(): number {
+  let n = 0;
+  for (let b = 2; b < FACTORY_BANKS; b++) {
+    if (!samples.slice(b * PADS, b * PADS + PADS).some((s) => !s)) continue;
+    factoryBank(b).forEach((s, i) => { if (!samples[b * PADS + i]) { setPad(b * PADS + i, s.name, s.buf, factoryParams(s)); n++; } });
+  }
+  return n;
+}
 $('factoryBtn').addEventListener('click', () => {
-  if (!confirm('バンク A・B を最初の音に戻します（ほかのバンクはそのまま）。よろしいですか？')) return;
+  if (!confirm('バンク A〜G を最初の音に戻します（H〜J はそのまま）。よろしいですか？')) return;
   loadFactory();
   setBank(0);
-  msg('バンク A・B を最初の音に戻しました', 2500);
+  msg('バンク A〜G を最初の音に戻しました', 2500);
 });
 $('pk-help').innerHTML = `
   <h3>PAKU-PAKU 16 の使い方</h3>
@@ -1272,7 +1283,7 @@ $('pk-cover').addEventListener('pointerdown', () => {
 // ---------------- 起動：保存してあった音を戻す（無ければ工場出荷） ----------------
 (async () => {
   const [stored, savedMeta] = await Promise.all([loadAll(), loadMeta<Partial<Meta>>()]);
-  if (savedMeta) Object.assign(meta, savedMeta);
+  if (savedMeta) Object.assign(meta, { factoryVer: 1 }, savedMeta);
   applyMeta();
   if (stored && stored.length) {
     for (const s of stored) {
@@ -1284,9 +1295,16 @@ $('pk-cover').addEventListener('pointerdown', () => {
       host.post({ type: 'params', pad: s.pad, p: params[s.pad] });
     }
   } else loadFactory();
+  let added = 0;
+  if ((meta.factoryVer ?? 1) < 2) {
+    meta.factoryVer = 2;
+    markMeta();
+    added = stored && stored.length ? addNewFactory() : 0;
+  }
   select(0);
   setMode('play');
   setLevels(false);
+  if (added) msg(`ジャンルの楽器 ${added} 音をバンク C〜G に入れました（和・レゲエ・ジャズ・ダンス・ポップ）`, 6000);
 })();
 setTab('pad');
 select(0);

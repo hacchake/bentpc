@@ -2,21 +2,24 @@
 // キー   0〜159 = パッド（A-01〜J-16）
 //      160〜207 = メロディ：MELO PAD の音を、音程を変えて弾く（184 = 元の高さ、±24 半音）
 //      208〜255 = ベース：BASS PAD の音を、音程を変えて弾く（232 = 元の高さ）
-// 音と設定は、最初は工場出荷の音（バンク A = ドラム、B = おもちゃの音）。画面がサンプラーのページの保存を読んだら custom で上書きする。
+//      256〜303 = 和音：CHORD PAD の音を、音程を変えて重ねて弾く（280 = 元の高さ）
+// 音と設定は、最初は工場出荷の音（バンク A = ドラム、B = おもちゃの音、C〜G = ジャンルの楽器）。画面がサンプラーのページの保存を読んだら custom で上書きする。
 import type { ParamDef } from '../../core/params';
 import type { ToyEngine, ToyStatus } from '../../core/toy';
 import type { BendState } from '../dsp/bend';
 import { SamplerEngine } from '../dsp/engine';
-import { factoryBank, factoryParams, type FactorySound } from '../dsp/factory';
+import { FACTORY_BANKS, factoryBank, factoryParams, type FactorySound } from '../dsp/factory';
 import type { FxSlot } from '../dsp/fx';
 import { PADS, PAD_COUNT, type PadParams, type SampleBuf } from '../dsp/types';
 
 export const MELO_KEY = 160;
 export const BASS_KEY = 208;
-export const KEY_COUNT = 256;
+export const CHORD_KEY = 256;
+export const KEY_COUNT = 304;
 /** メロディ・ベースのキーの「元の高さ」（真ん中） */
 export const MELO_ROOT_KEY = MELO_KEY + 24;
 export const BASS_ROOT_KEY = BASS_KEY + 24;
+export const CHORD_ROOT_KEY = CHORD_KEY + 24;
 /** 工場出荷の音で、メロディ（B-09 TOY PNO＝C5）とベース（B-02 BASS C＝C2）の元の高さ（MIDI） */
 export const MELO_ROOT_MIDI = 72;
 export const BASS_ROOT_MIDI = 36;
@@ -39,10 +42,11 @@ export const SAMPLER_PARAMS: readonly ParamDef[] = [
   { id: 'bendSpeed', name: 'B.SPEED', kind: 'continuous', min: 0, max: 1, default: 0.5, midiCC: 93 },
   { id: 'reverse', name: 'REV', kind: 'toggle', min: 0, max: 1, default: 0, labels: ['OFF', 'ON'] },
   { id: 'fx', name: 'FX', kind: 'toggle', min: 0, max: 1, default: 1, labels: ['BYPASS', 'ON'] },
+  { id: 'chordPad', name: 'CHORD PAD', kind: 'stepped', min: 0, max: PAD_COUNT - 1, default: 24 },
 ];
 export const SP = {
   volume: 0, stop: 1, meloPad: 2, bassPad: 3, bend: 4,
-  pitch: 5, start: 6, cutoff: 7, reso: 8, drive: 9, crush: 10, echo: 11, echoTime: 12, bendSpeed: 13, reverse: 14, fx: 15,
+  pitch: 5, start: 6, cutoff: 7, reso: 8, drive: 9, crush: 10, echo: 11, echoTime: 12, bendSpeed: 13, reverse: 14, fx: 15, chordPad: 16,
 } as const;
 
 /** 画面 → エンジンの専用データ */
@@ -57,9 +61,16 @@ export interface SamplerDisplay {
   pos: [number, number][];
 }
 
+/** MIDI 書き出し：キー → ノート（パッド = 36〜51、メロディ = C5、ベース = C2、和音 = C4 が元の高さ） */
+export const samplerNote = (k: number): number =>
+  k < PAD_COUNT ? 36 + (k % PADS) : k < BASS_KEY ? 72 + (k - MELO_ROOT_KEY) : k < CHORD_KEY ? 36 + (k - BASS_ROOT_KEY) : 60 + (k - CHORD_ROOT_KEY);
+
+/** 中の音の合計を下げておく量（和音・ドラム・ベースが重なっても中で歪まないように） */
+const HEADROOM = 0.7;
+
 // 工場出荷の音は重いので、1 回だけ作る（作り直すたびに使い回す）
 let factory: FactorySound[][] | null = null;
-const factoryOnce = () => (factory ??= [factoryBank(0), factoryBank(1)]);
+const factoryOnce = () => (factory ??= Array.from({ length: FACTORY_BANKS }, (_, b) => factoryBank(b)));
 
 /** 電源を入れたときの「パクッ、パクッ」 */
 function chomp(sr: number): Float32Array {
@@ -122,10 +133,17 @@ export class SamplerToy implements ToyEngine<SamplerDisplay> {
     this.pageFx.forEach((f, i) => this.eng.setFx(i, { ...f, on: f.on && on }));
   }
 
-  /** 鳴らすときの変化（PITCH・START・REV のツマミ） */
-  private mod(extraPitch = 0, poly = false) {
+  /** 鳴らすときの変化（PITCH・START・REV のツマミ）。tag = 音程を変えて弾くキー（離すときにその音だけ止める） */
+  private mod(extraPitch = 0, tag?: number) {
     const st = this.params[SP.start];
-    return { pitch: Math.round(this.params[SP.pitch]) + extraPitch, start: st > 0.005 ? st : undefined, reverse: this.params[SP.reverse] > 0.5 || undefined, poly: poly || undefined };
+    return { pitch: Math.round(this.params[SP.pitch]) + extraPitch, start: st > 0.005 ? st : undefined, reverse: this.params[SP.reverse] > 0.5 || undefined, poly: tag !== undefined || undefined, tag };
+  }
+  /** 音程を変えて弾くキー → [パッド, 元の高さからの半音]（パッドのキーなら null） */
+  private keyed(key: number): [number, number] | null {
+    if (key >= MELO_KEY && key < BASS_KEY) return [this.params[SP.meloPad] | 0, key - MELO_ROOT_KEY];
+    if (key >= BASS_KEY && key < CHORD_KEY) return [this.params[SP.bassPad] | 0, key - BASS_ROOT_KEY];
+    if (key >= CHORD_KEY && key < KEY_COUNT) return [this.params[SP.chordPad] | 0, key - CHORD_ROOT_KEY];
+    return null;
   }
 
   /** BEND ノブ：上げるほどジャンパー線が増え、強くなる（0 ならサンプラーのページの設定） */
@@ -137,14 +155,18 @@ export class SamplerToy implements ToyEngine<SamplerDisplay> {
 
   keyDown(key: number): void {
     if (!this.powered) return;
-    if (key >= 0 && key < PAD_COUNT) this.eng.trigger(key, 1, this.mod());
-    else if (key >= MELO_KEY && key < BASS_KEY) this.eng.trigger(this.params[SP.meloPad] | 0, 1, this.mod(key - MELO_ROOT_KEY, true));
-    else if (key >= BASS_KEY && key < KEY_COUNT) this.eng.trigger(this.params[SP.bassPad] | 0, 1, this.mod(key - BASS_ROOT_KEY));
+    if (key >= 0 && key < PAD_COUNT) { this.eng.trigger(key, 1, this.mod()); return; }
+    const k = this.keyed(key);
+    if (!k) return;
+    this.eng.releaseTag(k[0], key); // 同じ音の押し直し
+    // ベースは 1 音ずつ（前の音を止める）。メロディ・和音は重ねる。重ねる和音は 1 音ずつ少し弱く（積んでも割れないように）
+    if (key >= BASS_KEY && key < CHORD_KEY) this.eng.trigger(k[0], 0.9, { ...this.mod(k[1]), poly: undefined, tag: key });
+    else this.eng.trigger(k[0], key >= CHORD_KEY ? 0.55 : 0.85, this.mod(k[1], key));
   }
   keyUp(key: number): void {
-    if (key >= 0 && key < PAD_COUNT) this.eng.releasePad(key);
-    else if (key >= MELO_KEY && key < BASS_KEY) this.eng.releasePad(this.params[SP.meloPad] | 0);
-    else if (key >= BASS_KEY && key < KEY_COUNT) this.eng.releasePad(this.params[SP.bassPad] | 0);
+    if (key >= 0 && key < PAD_COUNT) { this.eng.releasePad(key); return; }
+    const k = this.keyed(key);
+    if (k) this.eng.releaseTag(k[0], key);
   }
   powerOn(): void {
     if (this.powered) return;
@@ -172,12 +194,16 @@ export class SamplerToy implements ToyEngine<SamplerDisplay> {
   process(out: Float32Array): void {
     const n = out.length;
     if (this.l.length !== n) { this.l = new Float32Array(n); this.r = new Float32Array(n); }
-    this.eng.master = 1; // 音量は改造パーツの後で（DRIVE で大きくならないように）
+    this.eng.master = HEADROOM; // 音量は改造パーツの後で（DRIVE で大きくならないように）。重なっても割れないよう少し余裕を持たせる
     this.eng.process(null, null, this.l, this.r);
     for (let i = 0; i < n; i++) out[i] = this.powered ? (this.l[i] + this.r[i]) * 0.5 : 0;
     this.mangle(out);
-    const vol = this.params[SP.volume] * 1.25;
-    for (let i = 0; i < n; i++) out[i] *= vol;
+    const vol = (this.params[SP.volume] * 1.25) / HEADROOM;
+    for (let i = 0; i < n; i++) {
+      // 余裕を戻した分、大きすぎる所だけやわらかく抑える
+      const x = out[i] * vol, a = Math.abs(x);
+      out[i] = a < 0.8 ? x : Math.sign(x) * (0.8 + 0.2 * Math.tanh((a - 0.8) / 0.2));
+    }
     if (this.bootPos >= 0) {
       for (let i = 0; i < n && this.bootPos < this.boot.length; i++) out[i] += this.boot[this.bootPos++] * this.params[SP.volume];
       if (this.bootPos >= this.boot.length) this.bootPos = -1;

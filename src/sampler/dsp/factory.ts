@@ -1,9 +1,10 @@
 // 工場出荷の音：すべてプログラムで合成する（録音素材は使わない）。乱数はシード付きなので、いつも同じ音。
-// バンク A = ドラム、バンク B = 魔改造おもちゃの音とループ。
+// バンク A = ドラム、バンク B = 魔改造おもちゃの音とループ。C〜G = ジャンル編（factory2.ts）。
 import { Rng } from '../../core/rng';
+import { genreBank, genreNames, genreParams, genreSound } from './factory2';
 import { defaultPad, type PadParams, type SampleBuf } from './types';
 
-const SR = 44100;
+export const SR = 44100;
 
 export interface FactorySound {
   name: string;
@@ -11,25 +12,25 @@ export interface FactorySound {
   params?: Partial<PadParams>;
 }
 
-const mono = (x: Float32Array): SampleBuf => ({ sr: SR, ch: [x] });
-const len = (sec: number) => new Float32Array(Math.round(sec * SR));
-const TAU = Math.PI * 2;
+export const mono = (x: Float32Array): SampleBuf => ({ sr: SR, ch: [x] });
+export const len = (sec: number) => new Float32Array(Math.round(sec * SR));
+export const TAU = Math.PI * 2;
 
 /** 1 次のローパス・ハイパス（係数は周波数から） */
-function lp1(x: Float32Array, hz: number): Float32Array {
+export function lp1(x: Float32Array, hz: number): Float32Array {
   const a = 1 - Math.exp((-TAU * hz) / SR);
   let y = 0;
   for (let i = 0; i < x.length; i++) { y += a * (x[i] - y); x[i] = y; }
   return x;
 }
-function hp1(x: Float32Array, hz: number): Float32Array {
+export function hp1(x: Float32Array, hz: number): Float32Array {
   const a = 1 - Math.exp((-TAU * hz) / SR);
   let y = 0;
   for (let i = 0; i < x.length; i++) { y += a * (x[i] - y); x[i] = x[i] - y; }
   return x;
 }
 /** バンドパス（共振） */
-function bp(x: Float32Array, hz: number, q: number): Float32Array {
+export function bp(x: Float32Array, hz: number, q: number): Float32Array {
   const w = (TAU * hz) / SR, al = Math.sin(w) / (2 * q);
   const b0 = al, b2 = -al, a0 = 1 + al, a1 = -2 * Math.cos(w), a2 = 1 - al;
   let x1 = 0, x2 = 0, y1 = 0, y2 = 0;
@@ -40,18 +41,18 @@ function bp(x: Float32Array, hz: number, q: number): Float32Array {
   }
   return x;
 }
-function normalize(x: Float32Array, peak = 0.9): Float32Array {
+export function normalize(x: Float32Array, peak = 0.9): Float32Array {
   let m = 0;
   for (const v of x) m = Math.max(m, Math.abs(v));
   if (m > 0) for (let i = 0; i < x.length; i++) x[i] *= peak / m;
   return x;
 }
-const dec = (i: number, sec: number) => Math.exp(-i / (sec * SR));
-const noise = (r: Rng, n: Float32Array) => { for (let i = 0; i < n.length; i++) n[i] = r.bi(); return n; };
-const midiHz = (m: number) => 440 * Math.pow(2, (m - 69) / 12);
+export const dec = (i: number, sec: number) => Math.exp(-i / (sec * SR));
+export const noise = (r: Rng, n: Float32Array) => { for (let i = 0; i < n.length; i++) n[i] = r.bi(); return n; };
+export const midiHz = (m: number) => 440 * Math.pow(2, (m - 69) / 12);
 
 // ---------------- ドラム ----------------
-function kick(boom = false): Float32Array {
+export function kick(boom = false): Float32Array {
   const x = len(boom ? 1.4 : 0.5);
   let ph = 0;
   for (let i = 0; i < x.length; i++) {
@@ -62,7 +63,7 @@ function kick(boom = false): Float32Array {
   }
   return normalize(x);
 }
-function snare(r: Rng, lofi = false): Float32Array {
+export function snare(r: Rng, lofi = false): Float32Array {
   const x = len(0.35);
   const n = hp1(noise(r, len(0.35)), lofi ? 900 : 1500);
   for (let i = 0; i < x.length; i++) {
@@ -71,7 +72,7 @@ function snare(r: Rng, lofi = false): Float32Array {
   if (lofi) for (let i = 0; i < x.length; i++) x[i] = Math.round(x[i] * 12) / 12; // ビットを落とす
   return normalize(lofi ? lp1(x, 5000) : x);
 }
-function hat(r: Rng, open: boolean): Float32Array {
+export function hat(r: Rng, open: boolean): Float32Array {
   const x = len(open ? 0.5 : 0.08);
   // 金属っぽさ：四角波 6 本 ＋ ノイズ
   const fs = [205, 304, 369, 522, 540, 800];
@@ -84,7 +85,7 @@ function hat(r: Rng, open: boolean): Float32Array {
   for (let i = 0; i < x.length; i++) x[i] *= dec(i, open ? 0.16 : 0.018);
   return normalize(x, 0.7);
 }
-function clap(r: Rng): Float32Array {
+export function clap(r: Rng): Float32Array {
   const x = len(0.4);
   const n = bp(noise(r, len(0.4)), 1200, 1.2);
   const hits = [0, 0.011, 0.022, 0.034];
@@ -118,12 +119,12 @@ function cowbell(): Float32Array {
   }
   return normalize(bp(x, 800, 2));
 }
-function shaker(r: Rng): Float32Array {
+export function shaker(r: Rng): Float32Array {
   const x = hp1(noise(r, len(0.18)), 5000);
   for (let i = 0; i < x.length; i++) { const t = i / x.length; x[i] *= Math.sin(Math.PI * Math.pow(t, 0.4)) * (1 - t); }
   return normalize(x, 0.6);
 }
-function crash(r: Rng): Float32Array {
+export function crash(r: Rng): Float32Array {
   const x = len(2.2);
   noise(r, x);
   hp1(x, 4000);
@@ -159,7 +160,7 @@ function sweep(r: Rng): Float32Array {
 }
 
 // ---------------- おもちゃの音 ----------------
-function saw(hz: number, sec: number, cut: number): Float32Array {
+export function saw(hz: number, sec: number, cut: number): Float32Array {
   const x = len(sec);
   let ph = 0;
   for (let i = 0; i < x.length; i++) { ph = (ph + hz / SR) % 1; x[i] = (ph * 2 - 1) * 0.5; }
@@ -177,7 +178,7 @@ function chordStab(): Float32Array {
   return normalize(x);
 }
 /** 声っぽい音：パルス列を 3 つの共振（フォルマント）に通す */
-function vox(f: [number, number, number], hz: number, sec: number, r: Rng): Float32Array {
+export function vox(f: [number, number, number], hz: number, sec: number, r: Rng): Float32Array {
   const src = len(sec);
   let ph = 0;
   for (let i = 0; i < src.length; i++) {
@@ -287,7 +288,11 @@ function beatLoop(r: Rng): Float32Array {
   return normalize(lp1(x, 9000), 0.85);
 }
 
-export function factoryBank(bank: 0 | 1): FactorySound[] {
+/** 工場出荷の音が入っているバンクの数（A〜G） */
+export const FACTORY_BANKS = 7;
+
+export function factoryBank(bank: number): FactorySound[] {
+  if (bank >= 2) return genreBank(bank);
   const r = new Rng(bank === 0 ? 404016 : 909016);
   if (bank === 0) {
     return [
@@ -328,5 +333,22 @@ export function factoryBank(bank: 0 | 1): FactorySound[] {
     { name: 'BOOM -12', buf: mono(kick(true)), params: { pitch: -12 } },
   ];
 }
+
+// ---- 1 音ずつ（画面の液晶用。バンク C〜G は必要になったときだけ作る） ----
+const abCache: FactorySound[][] = [];
+const ab = (b: number) => (abCache[b] ??= factoryBank(b));
+/** 工場出荷の音の名前（音は作らない。A・B は作る） */
+export const factoryNames = (bank: number): string[] => (bank >= 2 ? genreNames(bank) : ab(bank).map((s) => s.name));
+/** 工場出荷の音を 1 つ（パッド番号で） */
+export function factorySound(pad: number): FactorySound | null {
+  const b = Math.floor(pad / 16), i = pad % 16;
+  if (b >= FACTORY_BANKS) return null;
+  return b >= 2 ? genreSound(b, i) : ab(b)[i];
+}
+/** 工場出荷の設定だけ（音は作らない） */
+export const factoryPadParams = (pad: number): PadParams => {
+  const b = Math.floor(pad / 16), i = pad % 16;
+  return { ...defaultPad(), ...(b >= 2 ? genreParams(b, i) : ab(b)[i]?.params) };
+};
 
 export const factoryParams = (s: FactorySound): PadParams => ({ ...defaultPad(), ...s.params });

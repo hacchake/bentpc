@@ -1,7 +1,8 @@
 // サンプラー（PAKU-PAKU 16）の音の中心の検査：鳴る・GATE・LOOP・REV・ミュートグループ・POLY・音程・フィルター・録音・工場出荷の音
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { SamplerEngine } from '../src/sampler/dsp/engine';
-import { factoryBank, factoryParams } from '../src/sampler/dsp/factory';
+import { FACTORY_BANKS, factoryBank, factoryParams, factorySound } from '../src/sampler/dsp/factory';
+import { ROOTS } from '../src/sampler/dsp/factory2';
 import { defaultPad, type SampleBuf } from '../src/sampler/dsp/types';
 
 const SR = 48000;
@@ -146,15 +147,16 @@ const freq = (x: Float32Array, a: number, b: number) => { let z = 0; for (let i 
 // ---- 工場出荷の音：全部鳴る・大きすぎない ----
 {
   mkdirSync('out', { recursive: true });
-  for (const b of [0, 1] as const) {
+  for (let b = 0; b < FACTORY_BANKS; b++) {
     const bank = factoryBank(b);
     const quiet: string[] = [];
     for (const s of bank) {
       let peak = 0;
-      for (const v of s.buf.ch[0]) peak = Math.max(peak, Math.abs(v));
-      if (!(peak > 0.3 && peak <= 1)) quiet.push(`${s.name}(${peak.toFixed(2)})`);
+      for (const v of s.buf.ch[0]) peak = Number.isFinite(v) ? Math.max(peak, Math.abs(v)) : 99;
+      if (!(peak > 0.3 && peak <= 1) || rms(s.buf.ch[0]) < 0.005) quiet.push(`${s.name}(${peak.toFixed(2)})`);
     }
-    quiet.length ? ng(`バンク ${'AB'[b]} の音量がおかしい：${quiet.join(' ')}`) : ok(`バンク ${'AB'[b]} の 16 音（${bank.map((s) => s.name).join(' / ')}）`);
+    const L = 'ABCDEFG'[b];
+    bank.length === 16 && !quiet.length ? ok(`バンク ${L} の 16 音（${bank.map((s) => s.name).join(' / ')}）`) : ng(`バンク ${L} の音量がおかしい：${quiet.join(' ')}`);
     // 全部を順に鳴らして WAV に
     const e = new SamplerEngine(SR);
     bank.forEach((s, i) => { e.setSample(i, s.buf); e.setParams(i, factoryParams(s)); });
@@ -163,8 +165,26 @@ const freq = (x: Float32Array, a: number, b: number) => { let z = 0; for (let i 
     const all = new Float32Array(out.reduce((n, x) => n + x.length, 0));
     let o = 0;
     for (const x of out) { all.set(x, o); o += x.length; }
-    writeFileSync(`out/sampler-bank${'AB'[b]}.raw`, Buffer.from(all.buffer));
+    writeFileSync(`out/sampler-bank${L}.raw`, Buffer.from(all.buffer));
   }
+  // 1 音ずつ作っても（画面の液晶用）、まとめて作ったのと同じ音
+  const same = [40, 77, 111].every((pad) => JSON.stringify(Array.from(factorySound(pad)!.buf.ch[0].slice(0, 400))) === JSON.stringify(Array.from(factoryBank(Math.floor(pad / 16))[pad % 16].buf.ch[0].slice(0, 400))));
+  same ? ok('1 音ずつ作っても同じ音') : ng('1 音ずつ作ると違う音になる');
+  // 音程のある楽器は、書いてある高さで鳴る（自己相関。オクターブ違いは許す）
+  const off: string[] = [];
+  for (const [ps, root] of Object.entries(ROOTS)) {
+    const pad = Number(ps), x = factorySound(pad)!.buf.ch[0], f0 = 440 * Math.pow(2, (root - 69) / 12), o0 = 11025, N = 4096;
+    let best = 0, lag0 = 0;
+    for (let lag = Math.floor(44100 / (f0 * 2.2)); lag < 44100 / (f0 / 2.2); lag++) {
+      let c = 0, e1 = 0, e2 = 0;
+      for (let i = 0; i < N; i++) { c += x[o0 + i] * x[o0 + i + lag]; e1 += x[o0 + i] ** 2; e2 += x[o0 + i + lag] ** 2; }
+      c /= Math.sqrt(e1 * e2) + 1e-9;
+      if (c > best) { best = c; lag0 = lag; }
+    }
+    const cents = 1200 * Math.log2(44100 / lag0 / f0), fold = Math.abs(((cents % 1200) + 1800) % 1200 - 600);
+    if (fold > 40) off.push(`${pad}(${cents.toFixed(0)})`);
+  }
+  off.length ? ng(`音程がずれている：${off.join(' ')}`) : ok(`音程のある ${Object.keys(ROOTS).length} 音は、書いてある高さで鳴る`);
   // 決まった音（シード付き）
   JSON.stringify(Array.from(factoryBank(0)[1].buf.ch[0].slice(0, 50))) === JSON.stringify(Array.from(factoryBank(0)[1].buf.ch[0].slice(0, 50)))
     ? ok('工場出荷の音はいつも同じ') : ng('工場出荷の音が毎回違う');
@@ -419,6 +439,25 @@ const freq = (x: Float32Array, a: number, b: number) => { let z = 0; for (let i 
     for (let o2 = 0; o2 + B <= L.length; o2 += B) { t.process(out); L.set(out, o2); }
     const f = freq(L, at(0.02), at(0.28));
     Math.abs(f - 880) < 10 ? ok(`♪ MELO のキー：+12 → ${f.toFixed(1)}Hz`) : ng(`MELO ${f}`);
+  }
+  // 和音のキー：CHORD PAD の音を重ねて弾き、1 音だけ離すとその音だけ止まる
+  {
+    const { SamplerToy, SP, CHORD_ROOT_KEY } = await import('../src/sampler/toy/engine');
+    const t = new SamplerToy(SR);
+    t.custom({ kind: 'pad', pad: 50, data: tone(2), p: { ...defaultPad(), gate: true, release: 0 } });
+    t.setParam(SP.chordPad, 50);
+    t.powerOn();
+    const out = new Float32Array(B);
+    for (let i = 0; i < 200; i++) t.process(out);
+    t.keyDown(CHORD_ROOT_KEY);
+    t.keyDown(CHORD_ROOT_KEY + 12);
+    const grab = (sec: number) => { const L = new Float32Array(Math.round(SR * sec)); for (let o2 = 0; o2 + B <= L.length; o2 += B) { t.process(out); L.set(out, o2); } return L; };
+    const both = grab(0.2);
+    t.keyUp(CHORD_ROOT_KEY + 12);
+    grab(0.05);
+    const one = grab(0.2);
+    const f1 = freq(one, at(0.02), at(0.18));
+    Math.abs(f1 - 440) < 10 && rms(both) > rms(one) * 1.2 ? ok(`CHORD のキー：2 音重ねて、上の音だけ離すと ${f1.toFixed(0)}Hz が残る`) : ng(`CHORD ${f1} ${rms(both)} ${rms(one)}`);
   }
   // 後付けのツマミ：PITCH・CUTOFF・DRIVE・CRUSH・ECHO が音を変える
   {

@@ -19,6 +19,7 @@ import { PANEL_H, PANEL_W, mountComposerPanel } from '../compose/panel';
 import { PART_COMPOSERS } from '../compose/rules';
 import { copyText, setPageQuery, settingsFromQuery, settingsToQuery, toast } from '../compose/share';
 import type { ToyKind } from '../compose/types';
+import { samplerNote } from '../sampler/toy/engine';
 
 const $ = (id: string) => document.getElementById(id) as HTMLElement;
 const KINDS: ToyKind[] = ['blippy', 'piko', 'dj', 'vroom', 'typo', 'tele', 'sampler'];
@@ -294,7 +295,7 @@ const webmBtn = arr.addButton('WebM', '曲を最初から最後まで再生し�
   onSongEnd = () => setTimeout(() => vrec?.state === 'recording' && vrec.stop(), 1200);
 });
 arr.addButton('MIDI', '曲を MIDI ファイルに書き出す（チャンネル = ラックの番号：トイPC = 1 … TELEKEY = 6。将来の VST 用）', () =>
-  exportMidi(arr.song, lineup.map((id, i) => ({ title: toys[i].title, channel: id, noteOf: (k: number) => (id === 6 ? (k < 160 ? 36 + (k % 16) : k < 208 ? 48 + (k - 160) : 12 + (k - 208)) : Math.min(127, (id === 5 ? 24 : 36) + k)), paramDefs: toys[i].paramDefs }))));
+  exportMidi(arr.song, lineup.map((id, i) => ({ title: toys[i].title, channel: id, noteOf: (k: number) => (id === 6 ? samplerNote(k) : Math.min(127, (id === 5 ? 24 : 36) + k)), paramDefs: toys[i].paramDefs }))));
 
 // ---- おもちゃを選ぶ（並べ直すとページを開き直す） ----
 {

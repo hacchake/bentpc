@@ -16,6 +16,7 @@ import { emptySong } from './core/song';
 import { startMidi } from './host/midi';
 import { download, encodeWav } from './host/wav';
 import { TOY_UIS } from './toys/uis';
+import { samplerNote } from './sampler/toy/engine';
 
 const $ = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
 const audio = new AudioHost();
@@ -246,7 +247,7 @@ const wavBtn = arr.addButton('WAV', '曲を最初から最後まで WAV に書�
   wavBtn.disabled = false;
 });
 arr.addButton('MIDI', '曲を MIDI ファイルに書き出す（チャンネル n = n 台目）', () =>
-  exportMidi(arr.song, toys.map((t, i) => ({ title: t.title, channel: i, noteOf: (k: number) => (i === 6 ? (k < 160 ? 36 + (k % 16) : k < 208 ? 48 + (k - 160) : 12 + (k - 208)) : Math.min(127, (i === 5 ? 24 : 36) + k)), paramDefs: t.paramDefs }))));
+  exportMidi(arr.song, toys.map((t, i) => ({ title: t.title, channel: i, noteOf: (k: number) => (i === 6 ? samplerNote(k) : Math.min(127, (i === 5 ? 24 : 36) + k)), paramDefs: t.paramDefs }))));
 
 // ---- PC キーボード（表示中のおもちゃへ） ----
 window.addEventListener('keydown', (e) => {

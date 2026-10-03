@@ -80,6 +80,8 @@ export interface TrigMod {
   poly?: boolean;
   /** 逆再生を反対にする */
   reverse?: boolean;
+  /** 目印（同じパッドを音程を変えて重ねたとき、どの音を止めるか見分ける） */
+  tag?: number;
 }
 
 /** ロール（連打）の速さ（拍）：1/4・1/8・1/16・1/32・1/8 3 連・1/16 3 連 */

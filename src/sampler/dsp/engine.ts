@@ -207,6 +207,13 @@ export class SamplerEngine {
     this.releaseVoices(pad);
   }
 
+  /** 目印 tag を付けて鳴らした GATE の音だけ止める（同じパッドで和音を弾いたとき、1 音ずつ離す） */
+  releaseTag(pad: number, tag: number): void {
+    for (const v of this.voices) {
+      if (v.active && v.pad === pad && v.gate && v.stage !== 2 && v.mod?.tag === tag) v.release(Math.exp(-1 / (releaseSec(this.pads[pad].release) * this.sr)));
+    }
+  }
+
   /** GATE のパッドの音を止める（シーケンサーの音の終わりにも使う） */
   private releaseVoices(pad: number): void {
     for (const v of this.voices) {

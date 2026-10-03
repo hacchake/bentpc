@@ -42,9 +42,10 @@
 .pkt-val { font: 700 13px 'Share Tech Mono', monospace; background: #20301a; color: #c8f0a0; padding: 4px 6px; border-radius: 5px; min-width: 96px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 130px; }
 .pkt-knob { display: flex; flex-direction: column; align-items: center; font: 700 10px 'Share Tech Mono', monospace; margin-left: 4px; }
 .pkt-knob .knob { position: relative; }
-.pkt-pad.melo::after, .pkt-pad.bass::after { position: absolute; right: 8px; top: 6px; font: 900 13px 'Fredoka', sans-serif; color: #fff; background: #2b2118; border-radius: 6px; padding: 0 5px; }
+.pkt-pad.melo::after, .pkt-pad.bass::after, .pkt-pad.chord::after { position: absolute; right: 8px; top: 6px; font: 900 13px 'Fredoka', sans-serif; color: #fff; background: #2b2118; border-radius: 6px; padding: 0 5px; }
 .pkt-pad.melo::after { content: '♪'; }
 .pkt-pad.bass::after { content: 'BASS'; }
+.pkt-pad.chord::after { content: 'CHORD'; }
 .toy-pkt.off .pkt-pads { filter: brightness(.6) saturate(.5); }
 .toy-pkt.off .pkt-lcd { background: #6f7f5c; color: #3a4a2a; }
 
@@ -71,7 +72,7 @@
 .pkt-scrawl { position: absolute; left: 350px; top: -2px; font: 20px 'Permanent Marker', cursive; color: #1b1b1b; transform: rotate(-7deg); font-style: normal; }
 .pkt-row { gap: 6px; }
 .pkt-btn { padding: 6px 10px; font-size: 14px; }
-.pkt-val { min-width: 0; max-width: 150px; }
+.pkt-val { min-width: 0; max-width: 112px; }
 .pkt-banks button { width: 42px; height: 42px; }
 .pkt-pads { gap: 10px; padding: 12px; }
 .pkt-heat { position: absolute; left: 350px; top: 30px; display: flex; align-items: center; gap: 5px; font: 700 10px 'Share Tech Mono', monospace; }

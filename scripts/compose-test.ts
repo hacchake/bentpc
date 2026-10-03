@@ -105,6 +105,23 @@ for (const style of STYLE_IDS) {
   }
 }
 
+// ---- サンプラー：スタイルの楽器（工場出荷のバンク A〜G）を使う ----
+{
+  const want: Record<string, number[]> = { ondo: [32, 39, 46], enka: [42, 43, 44], reggae: [48, 52, 54], jazz: [66, 69, 74], house: [80, 89], march: [96, 100, 101], lofi: [108, 110, 111] };
+  const bad: string[] = [];
+  for (const style of STYLE_IDS) {
+    const s = C.compose({ settings: { seed: 4321, style, chaos: 0.3, lengthSec: 60, bpm: styleOf(style).bpm }, toys: [{ toy: 0, kind: 'sampler' }] });
+    const used = new Set<number>();
+    for (const t of s.tracks) {
+      for (const n of t.notes) if (n.key < 160) used.add(n.key);
+      for (const a of t.autos) if (a.index === 2 || a.index === 3 || a.index === 16) used.add(a.v); // MELO・BASS・CHORD PAD
+    }
+    if ([...used].some((p) => p >= 112)) bad.push(`${style}：工場出荷の音が無いパッドを使う`);
+    for (const p of want[style] ?? []) if (!used.has(p)) bad.push(`${style}：パッド ${p} を使っていない`);
+  }
+  bad.length ? bad.forEach(ng) : console.log('サンプラー：スタイルごとの楽器（音頭 = 太鼓・掛け声・篠笛、演歌 = 尺八・ストリングス・泣きのギター…）を使う OK');
+}
+
 // ---- 合同の曲（スタジオ）：役割分担・掛け合い・ブレイクで 1 台だけ・鳴る ----
 {
   const KINDS = ['blippy', 'piko', 'dj', 'vroom', 'typo', 'tele', 'sampler'] as const;

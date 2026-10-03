@@ -9,7 +9,9 @@ import type { BendState } from '../dsp/bend';
 import type { FxSlot } from '../dsp/fx';
 import { BANK_NAMES, PADS, PAD_COUNT, defaultPad, padLabel, type PadParams, type SampleBuf } from '../dsp/types';
 import { loadAll, loadMeta } from '../store';
-import { BASS_KEY, BASS_ROOT_KEY, KEY_COUNT, MELO_ROOT_KEY, SAMPLER_PARAMS, SP, type SamplerCustom, type SamplerDisplay } from './engine';
+import { FACTORY_BANKS, factoryNames, factoryPadParams, factorySound } from '../dsp/factory';
+import { ROOTS } from '../dsp/factory2';
+import { BASS_KEY, BASS_ROOT_KEY, CHORD_KEY, CHORD_ROOT_KEY, KEY_COUNT, MELO_ROOT_KEY, SAMPLER_PARAMS, SP, type SamplerCustom, type SamplerDisplay } from './engine';
 
 const W = 760;
 const H = 1080;
@@ -42,10 +44,11 @@ const HELP = `
   <tr><td>パッド</td><td>押すと鳴る。シーケンサーではキー A-01〜J-16 の行になる</td></tr>
   <tr><td>A〜J</td><td>バンクの切り替え（PC は [ ]）</td></tr>
   <tr><td>Z X C V・A S D F・Q W E R・1 2 3 4</td><td>いまのバンクのパッド 1〜16（下の段から）</td></tr>
-  <tr><td>♪ MELO / BASS</td><td>いま選んでいるパッドを、メロディ用・ベース用にする。シーケンサーの「♪」「BASS」の行で、そのパッドの音を音程を変えて弾ける（自動作曲もこれを使う。最初は B-09 TOY PNO と B-02 BASS C）</td></tr>
+  <tr><td>♪ MELO / BASS / CHORD</td><td>いま選んでいるパッドを、メロディ用・ベース用・和音用にする。シーケンサーの「♪」「BASS」「CHORD」の行で、そのパッドの音を音程を変えて弾ける（自動作曲は、スタイルに合う楽器をここに自動で選ぶ）</td></tr>
+  <tr><td>工場出荷の音</td><td>A = ドラム、B = おもちゃの音、C = 和（太鼓・三味線・尺八…）、D = レゲエ・ダブ・スカ、E = ジャズ・ボサノバ・ファンク、F = ダンス（909・808・アシッド）、G = マーチ・チップ・パンク・ローファイ</td></tr>
   <tr><td>改造パーツ</td><td>PITCH（全部のパッドを ±12 半音）・START（鳴らし始めをずらす）・CUTOFF / RESO（こもらせる・クセ）・DRIVE（歪み）・CRUSH（ビットとサンプルを落とす）・ECHO / E.TIME（やまびこ）・BEND / B.SPEED（上げるほど基板のジャンパー線が増えて壊れる・壊れる頻度。0 ならサンプラーのページの設定）・VOL・REV（全部逆再生）・FX（サンプラーのページのエフェクトを入／切）・STOP</td></tr>
   <tr><td>音を作る</td><td>「サンプラーを開く」で PAKU-PAKU 16 のページへ。録音・チョップ・エフェクト・パターンはそちらで。戻ったら「↻ 読み直す」</td></tr>
-  <tr><td>自動作曲</td><td>バンク A をドラム（1 KICK・2 SNARE・3 CL HAT・4 OP HAT・5 CLAP・11 BOOM・12 LOFI SN・13 CRASH）、メロディ・ベースのパッドで曲を作る</td></tr>
+  <tr><td>自動作曲</td><td>スタイルごとに工場出荷の楽器を選んで曲を作る（音頭なら太鼓・篠笛・三味線・掛け声、レゲエならワンドロップ・スカンク・オルガン…）。パッドの音を入れ替えると、その音で鳴る</td></tr>
   <tr><td>MIDI</td><td>ノート 36〜51 = いまのバンクのパッド 1〜16、CC1 = BEND</td></tr>
 </table>`;
 
@@ -69,6 +72,7 @@ export function mountSamplerToy(api: HostApi): ToyUI {
       <div class="pkt-row">
         <button class="pkt-btn" data-a="melo" title="いま選んでいるパッドをメロディ用に">♪ MELO</button><span class="pkt-val" data-id="melo"></span>
         <button class="pkt-btn" data-a="bass" title="いま選んでいるパッドをベース用に">BASS</button><span class="pkt-val" data-id="bass"></span>
+        <button class="pkt-btn" data-a="chord" title="いま選んでいるパッドを和音用に">CHORD</button><span class="pkt-val" data-id="chord"></span>
         <button class="pkt-btn" data-a="reload" title="サンプラーのページで変えた音を読み直す">↻</button>
         <a class="pkt-btn" href="sampler.html" target="_blank" rel="noopener" title="サンプラーのページを開く（音の作り込みはこちら）">SAMPLER ↗</a>
       </div>
@@ -86,7 +90,10 @@ export function mountSamplerToy(api: HostApi): ToyUI {
   let playPos: [number, number][] = [];
   const wave = q('.pkt-wave') as HTMLCanvasElement;
   const wg = wave.getContext('2d')!;
+  /** 工場出荷の音のままのパッド（波形は見るときに作る） */
+  const fromFactory = new Set<number>();
   function peaksOf(pad: number): Float32Array | null {
+    if (!bufs.has(pad) && fromFactory.has(pad)) { const f = factorySound(pad); if (f) bufs.set(pad, f.buf); }
     const s = bufs.get(pad);
     if (!s) return null;
     let pk = peaks.get(pad);
@@ -154,7 +161,7 @@ export function mountSamplerToy(api: HostApi): ToyUI {
   }
   const padText = (p: number) => `${padLabel(p)} ${names[p] || ''}`.trim();
   function render(): void {
-    const melo = params[SP.meloPad] | 0, bass = params[SP.bassPad] | 0;
+    const melo = params[SP.meloPad] | 0, bass = params[SP.bassPad] | 0, chord = params[SP.chordPad] | 0;
     for (let i = 0; i < PADS; i++) {
       const pad = bank * PADS + i;
       padEls[i].classList.toggle('empty', !has[pad]);
@@ -162,6 +169,7 @@ export function mountSamplerToy(api: HostApi): ToyUI {
       padEls[i].classList.toggle('on', lit.has(pad) || shown.has(pad));
       padEls[i].classList.toggle('melo', pad === melo);
       padEls[i].classList.toggle('bass', pad === bass);
+      padEls[i].classList.toggle('chord', pad === chord && pad !== melo);
       (padEls[i].querySelector('.nm') as HTMLElement).textContent = names[pad];
     }
     root.querySelectorAll<HTMLElement>('.pkt-banks button').forEach((b) => {
@@ -173,6 +181,7 @@ export function mountSamplerToy(api: HostApi): ToyUI {
     q('.pkt-name').textContent = names[cur] || (has[cur] ? '—' : '（からっぽ）');
     $('melo').textContent = padText(melo);
     $('bass').textContent = padText(bass);
+    $('chord').textContent = padText(chord);
     $('led').classList.toggle('on', powered);
     showValues();
     drawWave();
@@ -204,6 +213,7 @@ export function mountSamplerToy(api: HostApi): ToyUI {
   };
   q('[data-a="melo"]').addEventListener('click', () => setParam(SP.meloPad, cur));
   q('[data-a="bass"]').addEventListener('click', () => setParam(SP.bassPad, cur));
+  q('[data-a="chord"]').addEventListener('click', () => setParam(SP.chordPad, cur));
   const stopBtn = q('[data-a="stop"]');
   momentary(stopBtn, () => setParam(SP.stop, 1), () => setParam(SP.stop, 0));
 
@@ -223,8 +233,18 @@ export function mountSamplerToy(api: HostApi): ToyUI {
     pparams.clear();
     peaks.clear();
     sent = [];
+    fromFactory.clear();
+    // 工場出荷の音（エンジンにはもう入っている）。サンプラーのページで保存した音があれば、その上に重ねる
+    for (let b = 0; b < FACTORY_BANKS; b++) factoryNames(b).forEach((nm, i) => {
+      const pad = b * PADS + i;
+      names[pad] = nm;
+      has[pad] = true;
+      pparams.set(pad, factoryPadParams(pad));
+      fromFactory.add(pad);
+    });
     if (stored && stored.length) {
       for (const s of stored) {
+        fromFactory.delete(s.pad);
         names[s.pad] = s.name;
         has[s.pad] = !!s.sample;
         if (s.sample) bufs.set(s.pad, s.sample);
@@ -233,16 +253,6 @@ export function mountSamplerToy(api: HostApi): ToyUI {
         sent.push({ key: `pad${s.pad}`, data });
         api.post({ type: 'custom', key: `pad${s.pad}`, data });
       }
-    } else {
-      // まだサンプラーを開いていない：工場出荷の音（エンジンにはもう入っている）
-      const { factoryBank, factoryParams } = await import('../dsp/factory');
-      for (const b of [0, 1] as const) factoryBank(b).forEach((s, i) => {
-        const pad = b * PADS + i;
-        names[pad] = s.name;
-        has[pad] = true;
-        bufs.set(pad, s.buf);
-        pparams.set(pad, factoryParams(s));
-      });
     }
     if (meta) {
       const m: SamplerCustom = { kind: 'meta', bpm: meta.bpm ?? 120, fx: Array.isArray(meta.fx) && meta.fx.length === 3 ? meta.fx : (await import('../dsp/fx')).defaultSlots(), bend: meta.bend };
@@ -290,9 +300,11 @@ export function mountSamplerToy(api: HostApi): ToyUI {
     powerButton: pwr,
     keyName: (k) => {
       if (k < PAD_COUNT) return `${padLabel(k)}${names[k] ? ` ${names[k]}` : ''}`;
-      if (k < BASS_KEY) { const d = k - MELO_ROOT_KEY; return `♪ ${d > 0 ? '+' : ''}${d}（${noteName(72 + d)}）`; }
-      const d = k - BASS_ROOT_KEY;
-      return `BASS ${d > 0 ? '+' : ''}${d}（${noteName(36 + d)}）`;
+      // 音名は、そのパッドの工場出荷の音の高さから（入れ替えた音ならずれることも）
+      const name = (lbl: string, d: number, pad: number, def: number) => `${lbl} ${d > 0 ? '+' : ''}${d}（${noteName((ROOTS[params[pad] | 0] ?? def) + d)}）`;
+      if (k < BASS_KEY) return name('♪', k - MELO_ROOT_KEY, SP.meloPad, 72);
+      if (k < CHORD_KEY) return name('BASS', k - BASS_ROOT_KEY, SP.bassPad, 36);
+      return name('CHORD', k - CHORD_ROOT_KEY, SP.chordPad, 60);
     },
     keyKind: () => 'play',
     onMessage(m: FromToy) {
@@ -333,7 +345,7 @@ export function mountSamplerToy(api: HostApi): ToyUI {
     powerOn,
     powerOff,
     showKey(key, on) {
-      const pad = key < PAD_COUNT ? key : key < BASS_KEY ? params[SP.meloPad] | 0 : params[SP.bassPad] | 0;
+      const pad = key < PAD_COUNT ? key : key < BASS_KEY ? params[SP.meloPad] | 0 : key < CHORD_KEY ? params[SP.bassPad] | 0 : params[SP.chordPad] | 0;
       if (on) shown.add(pad); else shown.delete(pad);
       render();
     },
