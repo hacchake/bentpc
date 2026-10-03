@@ -423,6 +423,7 @@ function withMod(p: PadParams, m?: TrigMod): PadParams {
     cutoff: m.cutoff ?? p.cutoff,
     attack: m.attack ?? p.attack,
     start: m.start !== undefined ? p.start + (p.end - p.start) * m.start : p.start,
+    reverse: m.reverse ? !p.reverse : p.reverse,
   };
 }
 

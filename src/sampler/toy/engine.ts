@@ -27,8 +27,23 @@ export const SAMPLER_PARAMS: readonly ParamDef[] = [
   { id: 'meloPad', name: 'MELO PAD', kind: 'stepped', min: 0, max: PAD_COUNT - 1, default: 24 },
   { id: 'bassPad', name: 'BASS PAD', kind: 'stepped', min: 0, max: PAD_COUNT - 1, default: 17 },
   { id: 'bend', name: 'BEND', kind: 'continuous', min: 0, max: 1, default: 0, midiCC: 1 },
+  // ---- 後付けの改造パーツ（全部のパッドに効く） ----
+  { id: 'pitch', name: 'PITCH', kind: 'stepped', min: -12, max: 12, default: 0, midiCC: 70 },
+  { id: 'start', name: 'START', kind: 'continuous', min: 0, max: 1, default: 0, midiCC: 71 },
+  { id: 'cutoff', name: 'CUTOFF', kind: 'continuous', min: 0, max: 1, default: 1, midiCC: 74 },
+  { id: 'reso', name: 'RESO', kind: 'continuous', min: 0, max: 1, default: 0, midiCC: 75 },
+  { id: 'drive', name: 'DRIVE', kind: 'continuous', min: 0, max: 1, default: 0, midiCC: 72 },
+  { id: 'crush', name: 'CRUSH', kind: 'continuous', min: 0, max: 1, default: 0, midiCC: 73 },
+  { id: 'echo', name: 'ECHO', kind: 'continuous', min: 0, max: 1, default: 0, midiCC: 91 },
+  { id: 'echoTime', name: 'E.TIME', kind: 'continuous', min: 0, max: 1, default: 0.45, midiCC: 92 },
+  { id: 'bendSpeed', name: 'B.SPEED', kind: 'continuous', min: 0, max: 1, default: 0.5, midiCC: 93 },
+  { id: 'reverse', name: 'REV', kind: 'toggle', min: 0, max: 1, default: 0, labels: ['OFF', 'ON'] },
+  { id: 'fx', name: 'FX', kind: 'toggle', min: 0, max: 1, default: 1, labels: ['BYPASS', 'ON'] },
 ];
-export const SP = { volume: 0, stop: 1, meloPad: 2, bassPad: 3, bend: 4 } as const;
+export const SP = {
+  volume: 0, stop: 1, meloPad: 2, bassPad: 3, bend: 4,
+  pitch: 5, start: 6, cutoff: 7, reso: 8, drive: 9, crush: 10, echo: 11, echoTime: 12, bendSpeed: 13, reverse: 14, fx: 15,
+} as const;
 
 /** 画面 → エンジンの専用データ */
 export type SamplerCustom =
@@ -75,32 +90,56 @@ export class SamplerToy implements ToyEngine<SamplerDisplay> {
   private bootPos = -1;
   /** サンプラーのページで決めたベンド（BEND ノブが 0 のときはこれ） */
   private pageBend: BendState | undefined;
+  /** サンプラーのページで決めたエフェクト（FX スイッチで丸ごと切れる） */
+  private pageFx: FxSlot[] | undefined;
+  // 出口の改造パーツ：フィルター・ドライブ・クラッシュ・エコー
+  private s1 = 0;
+  private s2 = 0;
+  private hold = 0;
+  private holdN = 0;
+  private echoBuf: Float32Array;
+  private echoW = 0;
+  private echoD = 0;
 
   constructor(private sr: number) {
     this.eng = new SamplerEngine(sr);
     this.params = Float32Array.from(SAMPLER_PARAMS.map((p) => p.default));
     factoryOnce().forEach((bank, b) => bank.forEach((s, i) => { this.eng.setSample(b * PADS + i, s.buf); this.eng.setParams(b * PADS + i, factoryParams(s)); }));
     this.boot = chomp(sr);
+    this.echoBuf = new Float32Array(Math.round(sr * 0.8));
   }
 
   setParam(index: number, value: number): void {
     this.params[index] = value;
     if (index === SP.stop && value > 0.5) this.eng.stopAll();
-    if (index === SP.bend) this.applyBend();
+    if (index === SP.bend || index === SP.bendSpeed) this.applyBend();
+    if (index === SP.fx) this.applyFx();
+  }
+
+  private applyFx(): void {
+    if (!this.pageFx) return;
+    const on = this.params[SP.fx] > 0.5;
+    this.pageFx.forEach((f, i) => this.eng.setFx(i, { ...f, on: f.on && on }));
+  }
+
+  /** 鳴らすときの変化（PITCH・START・REV のツマミ） */
+  private mod(extraPitch = 0, poly = false) {
+    const st = this.params[SP.start];
+    return { pitch: Math.round(this.params[SP.pitch]) + extraPitch, start: st > 0.005 ? st : undefined, reverse: this.params[SP.reverse] > 0.5 || undefined, poly: poly || undefined };
   }
 
   /** BEND ノブ：上げるほどジャンパー線が増え、強くなる（0 ならサンプラーのページの設定） */
   private applyBend(): void {
     const k = this.params[SP.bend];
     if (k < 0.02) { if (this.pageBend) this.eng.bender.st = { ...this.pageBend, wires: [...this.pageBend.wires] }; else this.eng.bender.st = { ...this.eng.bender.st, wires: this.eng.bender.st.wires.map(() => false) }; return; }
-    this.eng.bender.st = { wires: [k > 0.05, k > 0.35, k > 0.7, k > 0.15, k > 0.55, k > 0.85], amount: Math.min(1, 0.3 + k * 0.7), speed: 0.3 + k * 0.6 };
+    this.eng.bender.st = { wires: [k > 0.05, k > 0.35, k > 0.7, k > 0.15, k > 0.55, k > 0.85], amount: Math.min(1, 0.3 + k * 0.7), speed: this.params[SP.bendSpeed] };
   }
 
   keyDown(key: number): void {
     if (!this.powered) return;
-    if (key >= 0 && key < PAD_COUNT) this.eng.trigger(key, 1);
-    else if (key >= MELO_KEY && key < BASS_KEY) this.eng.trigger(this.params[SP.meloPad] | 0, 1, { pitch: key - MELO_ROOT_KEY, poly: true });
-    else if (key >= BASS_KEY && key < KEY_COUNT) this.eng.trigger(this.params[SP.bassPad] | 0, 1, { pitch: key - BASS_ROOT_KEY });
+    if (key >= 0 && key < PAD_COUNT) this.eng.trigger(key, 1, this.mod());
+    else if (key >= MELO_KEY && key < BASS_KEY) this.eng.trigger(this.params[SP.meloPad] | 0, 1, this.mod(key - MELO_ROOT_KEY, true));
+    else if (key >= BASS_KEY && key < KEY_COUNT) this.eng.trigger(this.params[SP.bassPad] | 0, 1, this.mod(key - BASS_ROOT_KEY));
   }
   keyUp(key: number): void {
     if (key >= 0 && key < PAD_COUNT) this.eng.releasePad(key);
@@ -123,7 +162,8 @@ export class SamplerToy implements ToyEngine<SamplerDisplay> {
     if (m.kind === 'pad') { this.eng.setSample(m.pad, m.data); this.eng.setParams(m.pad, m.p); }
     else if (m.kind === 'meta') {
       this.eng.bpm = m.bpm;
-      m.fx.forEach((f, i) => this.eng.setFx(i, f));
+      this.pageFx = m.fx.map((f) => ({ ...f, k: [...f.k] }));
+      this.applyFx();
       this.pageBend = m.bend;
       this.applyBend();
     }
@@ -132,9 +172,12 @@ export class SamplerToy implements ToyEngine<SamplerDisplay> {
   process(out: Float32Array): void {
     const n = out.length;
     if (this.l.length !== n) { this.l = new Float32Array(n); this.r = new Float32Array(n); }
-    this.eng.master = this.params[SP.volume] * 1.25;
+    this.eng.master = 1; // 音量は改造パーツの後で（DRIVE で大きくならないように）
     this.eng.process(null, null, this.l, this.r);
     for (let i = 0; i < n; i++) out[i] = this.powered ? (this.l[i] + this.r[i]) * 0.5 : 0;
+    this.mangle(out);
+    const vol = this.params[SP.volume] * 1.25;
+    for (let i = 0; i < n; i++) out[i] *= vol;
     if (this.bootPos >= 0) {
       for (let i = 0; i < n && this.bootPos < this.boot.length; i++) out[i] += this.boot[this.bootPos++] * this.params[SP.volume];
       if (this.bootPos >= this.boot.length) this.bootPos = -1;
@@ -146,6 +189,53 @@ export class SamplerToy implements ToyEngine<SamplerDisplay> {
       const p = [...new Set(pos.map((x) => x[0]))].sort((a, b) => a - b);
       const k = pos.map((x) => `${x[0]}:${x[1].toFixed(3)}`).join(',');
       if (k !== this.lastKey) { this.lastKey = k; this.display = { playing: p, pos }; this.displayVersion++; }
+    }
+  }
+
+  /** 出口の改造パーツ：CRUSH（ビットとサンプルを落とす）→ DRIVE → CUTOFF・RESO（ローパス）→ ECHO */
+  private mangle(out: Float32Array): void {
+    const P = this.params, n = out.length;
+    const crush = P[SP.crush], drive = P[SP.drive], cut = P[SP.cutoff], reso = P[SP.reso], echo = P[SP.echo];
+    if (crush > 0.01) {
+      const q = Math.pow(2, 12 - crush * 10), every = 1 + Math.floor(crush * crush * 24);
+      for (let i = 0; i < n; i++) {
+        if (this.holdN++ % every === 0) this.hold = Math.round(out[i] * q) / q;
+        out[i] = this.hold;
+      }
+    }
+    if (drive > 0.01) {
+      const g = 1 + drive * 30, norm = 0.8 / Math.tanh(g); // いちばん大きい音はそのままの大きさ
+      for (let i = 0; i < n; i++) out[i] = Math.tanh(out[i] * g) * norm;
+    }
+    if (cut < 0.995 || reso > 0.01) {
+      const fc = Math.min(20 * Math.pow(1000, cut), this.sr * 0.45);
+      const g = Math.tan((Math.PI * fc) / this.sr), k = 2 - 1.95 * reso;
+      const a1 = 1 / (1 + g * (g + k)), a2 = g * a1, a3 = g * a2;
+      for (let i = 0; i < n; i++) {
+        const v3 = out[i] - this.s2, v1 = a1 * this.s1 + a2 * v3, v2 = this.s2 + a2 * this.s1 + a3 * v3;
+        this.s1 = 2 * v1 - this.s1;
+        this.s2 = 2 * v2 - this.s2;
+        out[i] = Math.tanh(v2);
+      }
+    }
+    // エコー：止めても余韻は残す（中身が無くなるまで回す）
+    const L = this.echoBuf.length;
+    const target = (0.03 + P[SP.echoTime] * 0.72) * this.sr;
+    if (echo > 0.01 || this.echoD > 0) {
+      for (let i = 0; i < n; i++) {
+        this.echoD += (target - this.echoD) * 0.0005;
+        const rd = this.echoW - this.echoD, i0 = Math.floor(rd), f = rd - i0;
+        const a = this.echoBuf[((i0 % L) + L) % L], b = this.echoBuf[(((i0 + 1) % L) + L) % L];
+        const y = a + (b - a) * f;
+        this.echoBuf[this.echoW % L] = out[i] * echo + y * (0.25 + echo * 0.55);
+        this.echoW++;
+        out[i] += y;
+      }
+      if (echo <= 0.01) {
+        let e = 0;
+        for (let i = 0; i < L; i += 64) e = Math.max(e, Math.abs(this.echoBuf[i]));
+        if (e < 1e-4) { this.echoD = 0; this.echoBuf.fill(0); }
+      }
     }
   }
 

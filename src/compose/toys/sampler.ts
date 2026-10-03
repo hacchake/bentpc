@@ -3,7 +3,7 @@
 //   bass   … BASS PAD の音を、音程を変えて弾くベース
 //   melody … MELO PAD の音でメロディ
 //   chords … MELO PAD の音で和音（1 オクターブ下・スタイルの弾き方）
-//   mods   … 電源・クラッシュ・音量・BEND（壊れ度）・ワンショット（ZAP・SWEEP・RISER・LASER・GLITCH・VOX）
+//   mods   … 電源・クラッシュ・音量・BEND（壊れ度）・後付けのツマミ（CUTOFF・ECHO・CRUSH・DRIVE・REV）・ワンショット（ZAP・SWEEP・RISER・LASER・GLITCH・VOX）
 // パッドの中身はサンプラーのページで変えられる。工場出荷の並び（バンク A = ドラム、B = おもちゃの音）を前提に作る。
 import { bassLine, compHits, degToMidi, drumBar, makeMotif, realize, steps } from '../harmony';
 import { powerAndCrash, type Part, type PartContext } from '../context';
@@ -79,6 +79,20 @@ export function composeSampler(ctx: PartContext): Part[] {
       }
     }
 
+    // ---- mods：後付けのツマミ ----
+    // 盛り上げ（展開）はフィルターを閉じたところから開く。ほかは開けたまま
+    if (sec.kind === 'build') mods.ramp(SP.cutoff, s0, 0.35, sEnd - 0.25, 1);
+    else mods.set(SP.cutoff, s0, sec.energy < 0.3 ? 0.75 : 1);
+    mods.set(SP.reso, s0, sec.kind === 'build' ? 0.45 : 0);
+    // ブレイク・アウトロ・ただようは付点 8 分のエコー
+    const echo = sec.kind === 'break' || sec.kind === 'outro' || st.id === 'dub' ? 0.45 : sec.kind === 'drift' ? 0.3 : 0;
+    mods.set(SP.echo, s0, echo);
+    mods.set(SP.echoTime, s0, Math.max(0, Math.min(1, ((0.75 * 60) / plan.bpm - 0.03) / 0.72)));
+    // 壊れ度でクラッシュ（ビット落とし）と歪み
+    mods.set(SP.crush, s0, Math.min(0.7, heat * 0.35));
+    mods.set(SP.drive, s0, Math.min(0.3, heat * sec.energy * 0.2));
+    mods.set(SP.pitch, s0, 0);
+    mods.set(SP.reverse, s0, sec.kind === 'break' && rx.chance(heat * 0.5) ? 1 : 0);
     // ---- mods：BEND（壊れ度）とワンショット ----
     mods.ramp(SP.bend, s0, Math.min(0.9, heat * 0.4), sEnd - 0.5, Math.min(1, heat * sec.energy * 0.8));
     if (sec.kind === 'build' || (sec.energy > 0.6 && rx.chance(0.4))) mods.note(PAD.riser, Math.max(s0, sEnd - 8), 0.5);

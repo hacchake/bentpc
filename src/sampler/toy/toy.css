@@ -47,3 +47,39 @@
 .pkt-pad.bass::after { content: 'BASS'; }
 .toy-pkt.off .pkt-pads { filter: brightness(.6) saturate(.5); }
 .toy-pkt.off .pkt-lcd { background: #6f7f5c; color: #3a4a2a; }
+
+/* ---- 後付けの金属板：ツマミとスイッチをぎっしり ---- */
+.pkt-body { gap: 9px; padding: 14px 18px; }
+.pkt-plate {
+  position: relative; display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px 2px; padding: 10px 14px 6px; border-radius: 8px;
+  background: linear-gradient(180deg, rgba(255,255,255,.35), rgba(0,0,0,.1)), repeating-linear-gradient(90deg, #c9c9c9 0 2px, #b9b9b9 2px 4px);
+  border: 2px solid #6d6d6d; box-shadow: 0 4px 0 rgba(0,0,0,.3), inset 0 0 0 1px rgba(255,255,255,.6);
+}
+.pkt-screw { position: absolute; width: 9px; height: 9px; border-radius: 50%; background: radial-gradient(circle at 40% 35%, #eee, #777 60%, #444); }
+.pkt-screw.a { left: 4px; top: 4px; } .pkt-screw.b { right: 4px; top: 4px; } .pkt-screw.c { left: 4px; bottom: 4px; } .pkt-screw.d { right: 4px; bottom: 4px; }
+.pkt-k { display: flex; flex-direction: column; align-items: center; gap: 3px; }
+.pkt-k .knob.small { position: relative; width: 46px; height: 46px; }
+.pkt-tape { font: 700 11px 'Share Tech Mono', monospace; color: #fff; background: linear-gradient(180deg, #e8322a, #b51d18); padding: 1px 5px; letter-spacing: .5px; box-shadow: 1px 1px 0 #5a0808; white-space: nowrap; }
+.pkt-k:nth-child(3n) .pkt-tape { transform: rotate(-2deg); } .pkt-k:nth-child(4n) .pkt-tape { transform: rotate(2deg); }
+.pkt-kv { font: 700 11px 'Share Tech Mono', monospace; color: #222; background: #f4efe0; border: 1px solid #888; border-radius: 2px; min-width: 40px; text-align: center; height: 15px; }
+.pkt-sw { position: relative; width: 46px; height: 46px; border-radius: 50%; border: 3px solid #2b2118; cursor: pointer; padding: 0; background: radial-gradient(circle at 40% 30%, #888, #222 60%); box-shadow: 0 3px 0 #000; }
+.pkt-sw i { position: absolute; left: 50%; top: 50%; width: 12px; height: 12px; margin: -6px; border-radius: 50%; background: #3a1a0a; }
+.pkt-sw.on i { background: #fff36b; box-shadow: 0 0 10px #fff36b; }
+.pkt-sw.stop { background: radial-gradient(circle at 40% 30%, #ff9a92, #e8322a 50%, #7a0f0a); }
+.pkt-sw.stop i { display: none; }
+.pkt-sw.down { transform: translateY(2px); box-shadow: 0 1px 0 #000; }
+.pkt-scrawl { position: absolute; left: 350px; top: -2px; font: 20px 'Permanent Marker', cursive; color: #1b1b1b; transform: rotate(-7deg); font-style: normal; }
+.pkt-row { gap: 6px; }
+.pkt-btn { padding: 6px 10px; font-size: 14px; }
+.pkt-val { min-width: 0; max-width: 150px; }
+.pkt-banks button { width: 42px; height: 42px; }
+.pkt-pads { gap: 10px; padding: 12px; }
+.pkt-heat { position: absolute; left: 350px; top: 30px; display: flex; align-items: center; gap: 5px; font: 700 10px 'Share Tech Mono', monospace; }
+.pkt-heat small { background: #2b2118; color: #ffd43b; padding: 1px 4px; font: 700 10px "Share Tech Mono", monospace; }
+.pkt-heat::after { content: ''; }
+.pkt-heat u { display: block; height: 10px; width: 0; max-width: 110px; background: linear-gradient(90deg, #ffd43b, #ff3b30); border-radius: 5px; }
+.pkt-heat { width: 150px; }
+.pkt-heat { background: linear-gradient(90deg, transparent 38px, #2b2118 38px); border-radius: 6px; padding-right: 4px; }
+.pkt-jacks { position: absolute; left: 520px; top: 6px; display: grid; grid-template-columns: repeat(2, 16px); gap: 6px; }
+.pkt-jacks i { width: 16px; height: 16px; border-radius: 50%; background: radial-gradient(circle, #111 35%, #c9a74a 40%, #8a6a20 70%); box-shadow: 0 1px 2px rgba(0,0,0,.5); }
+.pkt-jacks i:nth-child(1)::after { content: ''; }

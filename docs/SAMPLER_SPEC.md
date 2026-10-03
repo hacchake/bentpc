@@ -149,8 +149,8 @@ FX タブで置き場所（BUS 1・BUS 2・MASTER）を選び、◀ ▶ で種�
 ## フェーズ5：スタジオ（DAW）との連携
 
 - 7 台目のおもちゃとして `src/toys/engines.ts`・`uis.ts` に登録（`src/sampler/toy/`）。ほかのおもちゃと同じ扱い：ラックの 7 つ目のタブ（F7・MIDI チャンネル 7）、スタジオの「おもちゃを選ぶ」、電源ボタン（パクッ、パクッと鳴って起動）、自動作曲ユニット
-- キー 160〜207 = メロディ（MELO PAD の音を ±24 半音、184 が元の高さ）、208〜255 = ベース（BASS PAD の音、232 が元の高さ）。パラメーター：VOLUME・STOP・MELO PAD・BASS PAD・BEND（上げるほどジャンパー線が増える）
-- 自動作曲（`src/compose/toys/sampler.ts`）：drums（バンク A：KICK・SNARE・CL/OP HAT・CLAP・CRASH、トラップやドラムンベースでは BOOM、ローファイやレゲエでは LOFI SN）・bass・melody・chords（MELO PAD を 1 オクターブ下で）・mods（電源・クラッシュ・音量・BEND を壊れ度で・ZAP や RISER のワンショット）。合同の曲では、ビートを刻む係の 2 番目の候補（TELEKEY の次）、メロディの掛け合いにも入る
+- キー 160〜207 = メロディ（MELO PAD の音を ±24 半音、184 が元の高さ）、208〜255 = ベース（BASS PAD の音、232 が元の高さ）。パラメーター：VOLUME・STOP・MELO PAD・BASS PAD・BEND（上げるほどジャンパー線が増える）・後付けの改造パーツ（PITCH ±12・START・CUTOFF・RESO・DRIVE・CRUSH・ECHO・E.TIME・B.SPEED・REV・FX）。出口の順は CRUSH → DRIVE → ローパス → ECHO → VOL（音量はいちばん後ろ）。液晶には波形・鳴らす範囲・再生位置
+- 自動作曲（`src/compose/toys/sampler.ts`）：drums（バンク A：KICK・SNARE・CL/OP HAT・CLAP・CRASH、トラップやドラムンベースでは BOOM、ローファイやレゲエでは LOFI SN）・bass・melody・chords（MELO PAD を 1 オクターブ下で）・mods（電源・クラッシュ・音量・BEND を壊れ度で・盛り上げで CUTOFF を開く・ブレイクとアウトロで付点 8 分の ECHO・壊れ度で CRUSH と DRIVE・ZAP や RISER のワンショット）。合同の曲では、ビートを刻む係の 2 番目の候補（TELEKEY の次）、メロディの掛け合いにも入る
 - エンジンは最初から工場出荷の 32 音を持っている（サンプラーのページを開いたことがなくても鳴る）。保存した音があれば上書き
 - キー 0〜159 = パッド A-01〜J-16。シーケンサーの行の名前は「A-01 KICK」など。強さはパッドの VEL の設定で 1.0 として鳴る（スタジオのシーケンサーには強さが無いため）
 - 音と設定は、サンプラーのページでこのブラウザ（IndexedDB）に保存したものを、スタジオの画面が読んで `custom` メッセージでエンジンへ送る（無ければ工場出荷の音）。エンジンを作り直したとき（頭から再生）も送り直す。WAV の書き出しにも同じデータを渡すので、同じ音になる

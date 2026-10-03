@@ -420,6 +420,33 @@ const freq = (x: Float32Array, a: number, b: number) => { let z = 0; for (let i 
     const f = freq(L, at(0.02), at(0.28));
     Math.abs(f - 880) < 10 ? ok(`♪ MELO のキー：+12 → ${f.toFixed(1)}Hz`) : ng(`MELO ${f}`);
   }
+  // 後付けのツマミ：PITCH・CUTOFF・DRIVE・CRUSH・ECHO が音を変える
+  {
+    const { SamplerToy, SP } = await import('../src/sampler/toy/engine');
+    const play = (set: (t: InstanceType<typeof SamplerToy>) => void) => {
+      const t = new SamplerToy(SR);
+      t.custom({ kind: 'pad', pad: 0, data: tone(0.5, 3000), p: defaultPad() });
+      t.powerOn();
+      const out = new Float32Array(B);
+      for (let i = 0; i < 200; i++) t.process(out);
+      set(t);
+      t.keyDown(0);
+      const L = new Float32Array(Math.round(SR * 0.8));
+      for (let o2 = 0; o2 + B <= L.length; o2 += B) { t.process(out); L.set(out, o2); }
+      return L;
+    };
+    const dry = play(() => {});
+    const d = (x: Float32Array) => { let s2 = 0; for (let i = 0; i < x.length; i++) s2 += Math.abs(x[i] - dry[i]); return s2 / x.length; };
+    const fp = freq(play((t) => t.setParam(SP.pitch, 12)), at(0.03), at(0.2)); // 2 倍の速さなので 0.25 秒で終わる
+    const res = {
+      cutoff: rms(play((t) => t.setParam(SP.cutoff, 0.3)), at(0.05), at(0.4)) < rms(dry, at(0.05), at(0.4)) * 0.3,
+      drive: d(play((t) => t.setParam(SP.drive, 0.8))) > 0.01,
+      crush: d(play((t) => t.setParam(SP.crush, 0.8))) > 0.01,
+      echo: rms(play((t) => { t.setParam(SP.echo, 0.6); t.setParam(SP.echoTime, 0.3); }), at(0.55), at(0.8)) > 0.01,
+      pitch: Math.abs(fp - 6000) < 60,
+    };
+    Object.values(res).every(Boolean) ? ok(`後付けのツマミ（PITCH +12 → ${fp.toFixed(0)}Hz・CUTOFF・DRIVE・CRUSH・ECHO）が効く`) : ng(`ツマミ ${JSON.stringify(res)} ${fp}`);
+  }
 }
 
 console.log(fails ? `失敗 ${fails} 件` : 'すべて OK');

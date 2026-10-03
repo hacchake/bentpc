@@ -12,11 +12,28 @@ import { loadAll, loadMeta } from '../store';
 import { BASS_KEY, BASS_ROOT_KEY, KEY_COUNT, MELO_ROOT_KEY, SAMPLER_PARAMS, SP, type SamplerCustom, type SamplerDisplay } from './engine';
 
 const W = 760;
-const H = 960;
+const H = 1080;
 const KEYMAP: Record<string, number> = {
   KeyZ: 0, KeyX: 1, KeyC: 2, KeyV: 3, KeyA: 4, KeyS: 5, KeyD: 6, KeyF: 7,
   KeyQ: 8, KeyW: 9, KeyE: 10, KeyR: 11, Digit1: 12, Digit2: 13, Digit3: 14, Digit4: 15,
 };
+
+/** 後付けのツマミ：[パラメーター, ラベル, 色] */
+const KNOBS: [keyof typeof SP, string, string][] = [
+  ['pitch', 'PITCH', 'blue'], ['start', 'START', 'black'], ['cutoff', 'CUTOFF', ''], ['reso', 'RESO', ''], ['drive', 'DRIVE', 'black'],
+  ['crush', 'CRUSH', 'black'], ['echo', 'ECHO', 'blue'], ['echoTime', 'E.TIME', 'blue'], ['bend', 'BEND', ''], ['bendSpeed', 'B.SPEED', ''], ['volume', 'VOL', 'black'],
+];
+/** ツマミの値の表示 */
+function fmt(id: keyof typeof SP, v: number): string {
+  switch (id) {
+    case 'pitch': { const s = Math.round(v); return `${s > 0 ? '+' : ''}${s}`; }
+    case 'cutoff': return v >= 0.995 ? 'OPEN' : `${Math.round(20 * Math.pow(1000, v))}`;
+    case 'echoTime': return `${Math.round(30 + v * 720)}ms`;
+    case 'reverse': return v > 0.5 ? 'ON' : 'OFF';
+    case 'fx': return v > 0.5 ? 'ON' : 'BYP';
+    default: return `${Math.round(v * 100)}`;
+  }
+}
 
 const HELP = `
 <h3>PAKU-PAKU 16（サンプラー）</h3>
@@ -26,7 +43,7 @@ const HELP = `
   <tr><td>A〜J</td><td>バンクの切り替え（PC は [ ]）</td></tr>
   <tr><td>Z X C V・A S D F・Q W E R・1 2 3 4</td><td>いまのバンクのパッド 1〜16（下の段から）</td></tr>
   <tr><td>♪ MELO / BASS</td><td>いま選んでいるパッドを、メロディ用・ベース用にする。シーケンサーの「♪」「BASS」の行で、そのパッドの音を音程を変えて弾ける（自動作曲もこれを使う。最初は B-09 TOY PNO と B-02 BASS C）</td></tr>
-  <tr><td>BEND</td><td>ノブを上げるほど基板のジャンパー線が増えて壊れる（0 ならサンプラーのページの設定）</td></tr>
+  <tr><td>改造パーツ</td><td>PITCH（全部のパッドを ±12 半音）・START（鳴らし始めをずらす）・CUTOFF / RESO（こもらせる・クセ）・DRIVE（歪み）・CRUSH（ビットとサンプルを落とす）・ECHO / E.TIME（やまびこ）・BEND / B.SPEED（上げるほど基板のジャンパー線が増えて壊れる・壊れる頻度。0 ならサンプラーのページの設定）・VOL・REV（全部逆再生）・FX（サンプラーのページのエフェクトを入／切）・STOP</td></tr>
   <tr><td>音を作る</td><td>「サンプラーを開く」で PAKU-PAKU 16 のページへ。録音・チョップ・エフェクト・パターンはそちらで。戻ったら「↻ 読み直す」</td></tr>
   <tr><td>自動作曲</td><td>バンク A をドラム（1 KICK・2 SNARE・3 CL HAT・4 OP HAT・5 CLAP・11 BOOM・12 LOFI SN・13 CRASH）、メロディ・ベースのパッドで曲を作る</td></tr>
   <tr><td>MIDI</td><td>ノート 36〜51 = いまのバンクのパッド 1〜16、CC1 = BEND</td></tr>
@@ -39,19 +56,21 @@ export function mountSamplerToy(api: HostApi): ToyUI {
     <div class="pkt-body">
       <div class="pkt-head">
         <div class="pkt-power"><div class="dome big pkt-pwr" data-id="power"></div><span class="pkt-led" data-id="led"></span><small>POWER</small></div>
-        <b>PAKU-PAKU</b><span>16</span><i class="pkt-mouth"></i>
+        <b>PAKU-PAKU</b><span>16</span><em class="pkt-scrawl">改 MOD!!</em><div class="pkt-heat"><small>HEAT</small><u data-id="heat"></u></div><div class="pkt-jacks"><i></i><i></i><i></i><i></i></div><i class="pkt-mouth"></i>
       </div>
       <div class="pkt-lcd"><div class="pkt-lcd-top"><b class="pkt-no">A-01</b><span class="pkt-name"></span><span class="pkt-st"></span></div><canvas class="pkt-wave" width="680" height="96"></canvas></div>
+      <div class="pkt-plate">
+        <i class="pkt-screw a"></i><i class="pkt-screw b"></i><i class="pkt-screw c"></i><i class="pkt-screw d"></i>
+        ${KNOBS.map(([id, label, cls]) => `<div class="pkt-k"><span class="pkt-tape">${label}</span><div class="knob small ${cls}" data-k="${id}"><div class="cap"></div></div><b class="pkt-kv" data-v="${id}"></b></div>`).join('')}
+        <div class="pkt-k sw"><span class="pkt-tape">REV</span><button class="pkt-sw" data-sw="reverse"><i></i></button><b class="pkt-kv" data-v="reverse"></b></div>
+        <div class="pkt-k sw"><span class="pkt-tape">FX</span><button class="pkt-sw" data-sw="fx"><i></i></button><b class="pkt-kv" data-v="fx"></b></div>
+        <div class="pkt-k sw"><span class="pkt-tape">STOP</span><button class="pkt-sw stop" data-a="stop"><i></i></button><b class="pkt-kv"></b></div>
+      </div>
       <div class="pkt-row">
         <button class="pkt-btn" data-a="melo" title="いま選んでいるパッドをメロディ用に">♪ MELO</button><span class="pkt-val" data-id="melo"></span>
         <button class="pkt-btn" data-a="bass" title="いま選んでいるパッドをベース用に">BASS</button><span class="pkt-val" data-id="bass"></span>
-        <div class="pkt-knob"><div class="knob black small" data-id="bend"><div class="cap"></div></div><small>BEND</small></div>
-        <div class="pkt-knob"><div class="knob small" data-id="vol"><div class="cap"></div></div><small>VOL</small></div>
-      </div>
-      <div class="pkt-row">
-        <button class="pkt-btn" data-a="reload" title="サンプラーのページで変えた音を読み直す">↻ 読み直す</button>
-        <a class="pkt-btn" href="sampler.html" target="_blank" rel="noopener">サンプラーを開く ↗</a>
-        <button class="pkt-btn" data-a="stop">■ STOP</button>
+        <button class="pkt-btn" data-a="reload" title="サンプラーのページで変えた音を読み直す">↻</button>
+        <a class="pkt-btn" href="sampler.html" target="_blank" rel="noopener" title="サンプラーのページを開く（音の作り込みはこちら）">SAMPLER ↗</a>
       </div>
       <div class="pkt-banks">${[...BANK_NAMES].map((b, i) => `<button data-b="${i}">${b}</button>`).join('')}</div>
       <div class="pkt-pads"></div>
@@ -155,6 +174,7 @@ export function mountSamplerToy(api: HostApi): ToyUI {
     $('melo').textContent = padText(melo);
     $('bass').textContent = padText(bass);
     $('led').classList.toggle('on', powered);
+    showValues();
     drawWave();
     root.classList.toggle('off', !powered);
   }
@@ -163,9 +183,25 @@ export function mountSamplerToy(api: HostApi): ToyUI {
 
   // ---- パラメーター ----
   const setParam = (i: number, v: number) => { params[i] = v; api.post({ type: 'param', index: i, value: v }); render(); };
-  const bendKnob = new Knob($('bend'), { default: 0 }, (v) => setParam(SP.bend, v));
-  const volKnob = new Knob($('vol'), { default: 0.8 }, (v) => setParam(SP.volume, v));
-  volKnob.set(0.8, false);
+  // ツマミ：0〜1 とパラメーターの範囲をつなぐ
+  const def = (i: number) => SAMPLER_PARAMS[i];
+  const toK = (i: number, v: number) => (v - def(i).min) / (def(i).max - def(i).min);
+  const fromK = (i: number, k: number) => { const d = def(i); const v = d.min + k * (d.max - d.min); return d.kind === 'stepped' ? Math.round(v) : v; };
+  const knobs = new Map<number, Knob>();
+  for (const [id] of KNOBS) {
+    const i = SP[id];
+    const kn = new Knob(q(`[data-k="${id}"]`), { default: toK(i, def(i).default) }, (k) => setParam(i, fromK(i, k)));
+    kn.set(toK(i, params[i]), false);
+    knobs.set(i, kn);
+  }
+  for (const id of ['reverse', 'fx'] as const) q(`[data-sw="${id}"]`).addEventListener('click', () => setParam(SP[id], params[SP[id]] > 0.5 ? 0 : 1));
+  const showValues = () => {
+    for (const [id] of KNOBS) q(`[data-v="${id}"]`).textContent = fmt(id, params[SP[id]]);
+    for (const id of ['reverse', 'fx'] as const) {
+      q(`[data-v="${id}"]`).textContent = fmt(id, params[SP[id]]);
+      q(`[data-sw="${id}"]`).classList.toggle('on', params[SP[id]] > 0.5);
+    }
+  };
   q('[data-a="melo"]').addEventListener('click', () => setParam(SP.meloPad, cur));
   q('[data-a="bass"]').addEventListener('click', () => setParam(SP.bassPad, cur));
   const stopBtn = q('[data-a="stop"]');
@@ -266,9 +302,9 @@ export function mountSamplerToy(api: HostApi): ToyUI {
         for (const p of d.playing) shown.add(p);
         playPos = d.pos ?? [];
         render();
-      } else if (m.type === 'status' && m.status.powered !== powered) {
-        powered = m.status.powered;
-        render();
+      } else if (m.type === 'status') {
+        $('heat').style.width = `${Math.min(100, (m.status.fx.heat ?? 0) * 100)}%`;
+        if (m.status.powered !== powered) { powered = m.status.powered; render(); }
       }
     },
     keyDown(e) {
@@ -289,7 +325,7 @@ export function mountSamplerToy(api: HostApi): ToyUI {
     },
     midi(status, d1, d2) {
       const cmd = status & 0xf0, i = d1 - 36;
-      if (cmd === 0xb0 && d1 === 1) { bendKnob.set(d2 / 127); return; }
+      if (cmd === 0xb0) { const p = SAMPLER_PARAMS.findIndex((x) => x.midiCC === d1); if (p >= 0) { const kn = knobs.get(p); if (kn) kn.set(d2 / 127); else setParam(p, d2 >= 64 ? 1 : 0); } return; }
       if (i < 0 || i >= PADS) return;
       if (cmd === 0x90 && d2 > 0) down(i);
       else if (cmd === 0x80 || cmd === 0x90) up(i);
@@ -303,8 +339,7 @@ export function mountSamplerToy(api: HostApi): ToyUI {
     },
     showParam(index, v) {
       params[index] = v;
-      if (index === SP.bend) bendKnob.set(v, false);
-      if (index === SP.volume) volKnob.set(v, false);
+      knobs.get(index)?.set(toK(index, v), false);
       render();
     },
     customData: () => sent.map((s) => ({ key: s.key, data: s.data })),
