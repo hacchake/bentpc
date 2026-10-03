@@ -58,6 +58,18 @@ const sine = (sec: number, hz: number, amp: number) => Float32Array.from({ lengt
   for (let i = 0; i < SR; i++) { const a = sawBL(ph, 0.05), b = pulseBL(ph, 0.05, 0.3); mx = Math.max(mx, Math.abs(a), Math.abs(b)); sum += a; ph = (ph + 0.05) % 1; }
   mx <= 1.0001 && Math.abs(sum / SR) < 0.01 ? ok('帯域制限ののこぎり・矩形波：±1 に収まる') : ng(`BLEP ${mx} ${sum / SR}`);
 }
+// 低音は真ん中：左だけの 50Hz → 左右ほぼ同じ。高い音（2kHz）は左に残る
+{
+  const m = new MasterBus(SR, { reverb: 0 });
+  const lo = sine(2, 50, 0.3), hi = sine(2, 2000, 0.3), z = new Float32Array(lo.length);
+  const L = new Float32Array(lo.length), R = new Float32Array(lo.length);
+  for (let o = 0; o < lo.length; o += 128) m.process(lo.subarray(o, o + 128), z.subarray(o, o + 128), L.subarray(o, o + 128), R.subarray(o, o + 128));
+  const m2 = new MasterBus(SR, { reverb: 0 });
+  const L2 = new Float32Array(hi.length), R2 = new Float32Array(hi.length);
+  for (let o = 0; o < hi.length; o += 128) m2.process(hi.subarray(o, o + 128), z.subarray(o, o + 128), L2.subarray(o, o + 128), R2.subarray(o, o + 128));
+  const lr = rms(R, SR, SR * 2) / rms(L, SR, SR * 2), hr = rms(R2, SR, SR * 2) / rms(L2, SR, SR * 2);
+  lr > 0.85 && hr < 0.1 ? ok(`低音は真ん中（50Hz 右/左 ${lr.toFixed(2)}）、高い音は左のまま（2kHz ${hr.toFixed(2)}）`) : ng(`低音 ${lr} 高音 ${hr}`);
+}
 // 書き出し：市販品のものさし（大きさ EXPORT_LUFS・トゥルーピーク -1dBTP 以下・2 台以上なら左右に広がる）
 {
   const C = defaultComposer();

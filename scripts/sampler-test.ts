@@ -170,6 +170,10 @@ const freq = (x: Float32Array, a: number, b: number) => { let z = 0; for (let i 
   // 1 音ずつ作っても（画面の液晶用）、まとめて作ったのと同じ音
   const same = [40, 77, 111].every((pad) => JSON.stringify(Array.from(factorySound(pad)!.buf.ch[0].slice(0, 400))) === JSON.stringify(Array.from(factoryBank(Math.floor(pad / 16))[pad % 16].buf.ch[0].slice(0, 400))));
   same ? ok('1 音ずつ作っても同じ音') : ng('1 音ずつ作ると違う音になる');
+  // 頭と終わりがなめらか（プチッと鳴らない）
+  const clicky: string[] = [];
+  for (let b = 0; b < FACTORY_BANKS; b++) factoryBank(b).forEach((s) => { for (const x of s.buf.ch) if (Math.abs(x[0]) > 1e-6 || Math.abs(x[x.length - 1]) > 1e-6) clicky.push(s.name); });
+  clicky.length ? ng(`頭か終わりが切れている：${clicky.join(' ')}`) : ok('工場出荷の音は、頭も終わりもなめらか（プチッと鳴らない）');
   // 音程のある楽器は、書いてある高さで鳴る（自己相関。オクターブ違いは許す）
   const off: string[] = [];
   for (const [ps, root] of Object.entries(ROOTS)) {

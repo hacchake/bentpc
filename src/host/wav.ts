@@ -11,7 +11,8 @@ export function encodeWav(chunks: Float32Array[], sampleRate: number, right?: Fl
   v.setUint32(24, sampleRate, true); v.setUint32(28, sampleRate * 2 * ch, true); v.setUint16(32, 2 * ch, true); v.setUint16(34, 16, true);
   str(36, 'data'); v.setUint32(40, len * 2 * ch, true);
   let o = 44;
-  const q = (x: number) => Math.round(Math.max(-1, Math.min(1, x)) * 32767);
+  // 16bit にするときは TPDF ディザー（1LSB の三角分布の小さなノイズ）を足す：静かな所・フェードアウトがザラつかない（市販の CD と同じ作り方）
+  const q = (x: number) => Math.max(-32768, Math.min(32767, Math.round(Math.max(-1, Math.min(1, x)) * 32767 + Math.random() - Math.random())));
   chunks.forEach((c, k) => {
     const rc = right?.[k] ?? c;
     for (let i = 0; i < c.length; i++) {

@@ -6,7 +6,7 @@
 //   G = マーチ・チップ・パンク・ローファイ
 // 音程のある音は、ROOTS に「元の高さ（MIDI）」を書いておく（作曲係と画面が使う）。
 import { Rng } from '../../core/rng';
-import { SR, TAU, bp, clap, crash, dec, hp1, len, lp1, midiHz, mono, noise, normalize, shaker, snare, type FactorySound } from './factory';
+import { SR, TAU, bp, declick, clap, crash, dec, hp1, len, lp1, midiHz, mono, noise, normalize, shaker, snare, type FactorySound } from './factory';
 
 /** パッド番号 → 元の高さ（MIDI）。音程を変えて弾く音だけ */
 export const ROOTS: Record<number, number> = {
@@ -662,6 +662,6 @@ export const genreParams = (bank: number, i: number): FactorySound['params'] => 
 export function genreSound(bank: number, i: number): FactorySound {
   const s = genreList(bank)[i];
   const x = s.make(new Rng(31337 + bank * 1013 + i * 7919));
-  return { name: s.name, buf: Array.isArray(x) ? { sr: SR, ch: x } : mono(x), params: s.params }; // 配列なら左右（ステレオ）
+  return declick({ name: s.name, buf: Array.isArray(x) ? { sr: SR, ch: x } : mono(x), params: s.params }); // 配列なら左右（ステレオ）
 }
 export const genreBank = (bank: number): FactorySound[] => genreList(bank).map((_, i) => genreSound(bank, i));

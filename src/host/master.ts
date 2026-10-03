@@ -1,6 +1,7 @@
 // マスター（全部のおもちゃを混ぜた後の仕上げ）。スピーカー・録音・WAV 書き出しのどれも同じ音になるよう、ここ 1 つで処理する。
 //   1. 直流カット（20Hz）… 音の中心がずれると、割れやすく・こもる
 //   2. バスコンプ（ゆるく 2:1）… バラバラのおもちゃを 1 つの曲にまとめる（のり付け）
+//   2.5 低音を真ん中に（120Hz より下）
 //   3. 部屋の響き（ステレオ）… 左右で少し違う響きで広げる。低い音は真ん中のまま（ぼやけないように）
 //   4. 先読みリミッター（-1dBTP）… サンプルの間の山まで見て前もって下げる。絶対に割れない（ガリッとならない）
 // DOM 非依存（AudioWorklet・Web Worker・テストのどこでも使う）。
@@ -68,6 +69,26 @@ class Room {
   }
 }
 
+/** リンクウィッツ・ライリー 4 次（バターワース 2 段）。low と high を足すと元の大きさに戻る（位相だけ回る） */
+class LR4 {
+  private c: number[];
+  private z = new Float64Array(8);
+  constructor(sr: number, hz: number, high: boolean) {
+    const w = (2 * Math.PI * hz) / sr, al = Math.sin(w) / (2 * Math.SQRT1_2), c = Math.cos(w), a0 = 1 + al;
+    const b0 = (high ? (1 + c) / 2 : (1 - c) / 2) / a0, b1 = (high ? -(1 + c) : 1 - c) / a0;
+    this.c = [b0, b1, b0, (-2 * c) / a0, (1 - al) / a0];
+  }
+  run(x: number): number {
+    const z = this.z, [b0, b1, b2, a1, a2] = this.c;
+    for (let k = 0; k < 8; k += 4) {
+      const y = b0 * x + b1 * z[k] + b2 * z[k + 1] - a1 * z[k + 2] - a2 * z[k + 3];
+      z[k + 1] = z[k]; z[k] = x; z[k + 3] = z[k + 2]; z[k + 2] = y;
+      x = y;
+    }
+    return x;
+  }
+}
+
 /** トゥルーピークを見る位置（サンプルの間を 4 等分） */
 const TP_T = [0.25, 0.5, 0.75];
 
@@ -106,6 +127,10 @@ export class MasterBus {
   private dcXr = 0;
   private dcYr = 0;
   private tpHist = new Float32Array(8);
+  private lowL: LR4;
+  private lowR: LR4;
+  private highL: LR4;
+  private highR: LR4;
   private makeup: number;
 
   /** 先読みの分の遅れ（サンプル） */
@@ -120,6 +145,10 @@ export class MasterBus {
     this.wet = o.reverb ?? 0.11;
     this.thr = o.threshold ?? -16;
     this.makeup = Math.pow(10, (o.makeup ?? 2) / 20);
+    this.lowL = new LR4(sr, 120, false);
+    this.lowR = new LR4(sr, 120, false);
+    this.highL = new LR4(sr, 120, true);
+    this.highR = new LR4(sr, 120, true);
     this.la = Math.max(8, Math.round(sr * 0.0025));
     this.dl = new Float32Array(this.la);
     this.dr = new Float32Array(this.la);
@@ -143,6 +172,10 @@ export class MasterBus {
       const over = 10 * Math.log10(this.env + 1e-12) - this.thr;
       const g = (over > 0 ? Math.pow(10, (-over * 0.5) / 20) : 1) * this.makeup;
       let l = xl * g, r = xr * g;
+      // 低音（120Hz より下）は真ん中にまとめる（市販の仕上げと同じ。スマホのスピーカーでも低音が消えない）
+      const lowMid = (this.lowL.run(l) + this.lowR.run(r)) * 0.5;
+      l = this.highL.run(l) + lowMid;
+      r = this.highR.run(r) + lowMid;
       // 3. 部屋の響き（真ん中の音から、左右で違う響き）
       if (this.wet > 0) {
         const [wl, wr] = this.room.run((l + r) * 0.5, this.roomHp);

@@ -5,6 +5,9 @@ import type { FxSlot } from './fx';
 import type { Pattern, SongStep } from './seq';
 import { PADS, PAD_COUNT, type PadParams, type SampleBuf } from './types';
 
+/** 16bit に：TPDF ディザー付き（静かな所がザラつかない） */
+const dither16 = (x: number) => Math.max(-32768, Math.min(32767, Math.round(Math.max(-1, Math.min(1, x)) * 32767 + Math.random() - Math.random())));
+
 export interface RenderSetup {
   samples: (SampleBuf | null)[];
   params: PadParams[];
@@ -64,8 +67,8 @@ export function wavBytes(L: Float32Array, R: Float32Array, sr: number): Uint8Arr
   v.setUint32(24, sr, true); v.setUint32(28, sr * 4, true); v.setUint16(32, 4, true); v.setUint16(34, 16, true);
   str(36, 'data'); v.setUint32(40, n * 4, true);
   for (let i = 0, o = 44; i < n; i++, o += 4) {
-    v.setInt16(o, Math.round(Math.max(-1, Math.min(1, L[i])) * 32767), true);
-    v.setInt16(o + 2, Math.round(Math.max(-1, Math.min(1, R[i])) * 32767), true);
+    v.setInt16(o, dither16(L[i]), true);
+    v.setInt16(o + 2, dither16(R[i]), true);
   }
   return new Uint8Array(buf);
 }

@@ -291,8 +291,22 @@ function beatLoop(r: Rng): Float32Array {
 /** 工場出荷の音が入っているバンクの数（A〜G） */
 export const FACTORY_BANKS = 7;
 
+/** 仕上げ：頭 1ms・終わり 8ms だけなめらかに（いきなり始まる・切れる所の「プチッ」を消す。アタックの鋭さはそのまま） */
+export function declick(s: FactorySound): FactorySound {
+  for (const x of s.buf.ch) {
+    const a = Math.min(x.length >> 2, Math.round(SR * 0.001)), b = Math.min(x.length >> 2, Math.round(SR * 0.008));
+    for (let i = 0; i < a; i++) x[i] *= 0.5 - 0.5 * Math.cos((Math.PI * i) / a);
+    for (let i = 0; i < b; i++) x[x.length - 1 - i] *= 0.5 - 0.5 * Math.cos((Math.PI * i) / b);
+  }
+  return s;
+}
+
 export function factoryBank(bank: number): FactorySound[] {
   if (bank >= 2) return genreBank(bank);
+  return factoryAB(bank).map(declick);
+}
+
+function factoryAB(bank: number): FactorySound[] {
   const r = new Rng(bank === 0 ? 404016 : 909016);
   if (bank === 0) {
     return [
