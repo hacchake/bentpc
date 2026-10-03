@@ -28,7 +28,7 @@ export default URL.createObjectURL(new Blob([code], { type: 'application/javascr
   };
 }
 
-// 単一 HTML にするため、ページごとに作る：ふつうは index.html（ラック）、--mode studio で studio.html（スタジオ）
+// 単一 HTML にするため、ページごとに作る：ふつうは index.html（ラック）、--mode studio で studio.html（スタジオ）、--mode sampler で sampler.html（サンプラー）
 export default defineConfig(({ mode }) => ({
   plugins: [workletPlugin(), viteSingleFile()],
   // GitHub Pages（https://hacchake.github.io/bentpc/）で公開するための置き場所。
@@ -37,8 +37,8 @@ export default defineConfig(({ mode }) => ({
   server: { port: 5178 },
   build: {
     outDir: 'dist',
-    emptyOutDir: mode !== 'studio',
+    emptyOutDir: mode !== 'studio' && mode !== 'sampler',
     assetsInlineLimit: 100000000,
-    rollupOptions: { input: mode === 'studio' ? 'studio.html' : 'index.html' },
+    rollupOptions: { input: mode === 'studio' ? 'studio.html' : mode === 'sampler' ? 'sampler.html' : 'index.html' },
   },
 }));

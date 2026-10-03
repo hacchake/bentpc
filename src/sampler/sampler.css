@@ -1,0 +1,205 @@
+/* PAKU-PAKU 16：子ども用の録音おもちゃ（黄色いプラスチック・ワニの口のスピーカー）を魔改造したサンプラー */
+@import '../core/parts.css';
+
+html, body { margin: 0; height: 100%; overflow: hidden; background: #1d1a22; overscroll-behavior: none; }
+body {
+  font-family: 'Fredoka', sans-serif; color: #eee; -webkit-user-select: none; user-select: none;
+  -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent;
+  background: radial-gradient(ellipse at 50% 30%, #3a3346, #1d1a22 70%);
+}
+
+/* ---- 上のバー ---- */
+#pk-top {
+  position: fixed; left: 0; right: 0; top: 0; z-index: 10; display: flex; align-items: center; gap: 8px;
+  padding: max(6px, env(safe-area-inset-top)) 10px 6px; background: #121016; border-bottom: 2px solid #000;
+}
+#pk-top .app { font: 900 15px 'Fredoka', sans-serif; letter-spacing: 2px; color: #ffd43b; margin-right: 4px; white-space: nowrap; }
+#pk-top .sp { flex: 1; }
+#pk-top a, #pk-top button {
+  font: 700 12px 'Fredoka', sans-serif; color: #ddd; background: #2a2631; border: 1px solid #000; border-radius: 6px;
+  padding: 5px 9px; text-decoration: none; cursor: pointer; white-space: nowrap;
+}
+#pk-top .led { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: #333; margin-right: 5px; vertical-align: 1px; }
+#pk-top button.on .led { background: #5f5; box-shadow: 0 0 6px #5f5; }
+@media (max-width: 480px) { #pk-top a, #pk-top button { padding: 5px 6px; font-size: 11px; } #pk-top .app, #pk-top .wide { display: none; } }
+
+#pk-stage { position: fixed; left: 0; right: 0; bottom: 0; top: 40px; }
+
+/* ---- はじめる ---- */
+#pk-cover { position: fixed; inset: 0; z-index: 20; display: grid; place-items: center; background: rgba(10,8,14,.72); cursor: pointer; }
+#pk-cover div { text-align: center; padding: 26px 34px; border-radius: 22px; background: #ffd43b; color: #222; border: 4px solid #222; box-shadow: 6px 8px 0 rgba(0,0,0,.5); }
+#pk-cover b { display: block; font-size: 26px; }
+#pk-cover span { font-size: 14px; }
+
+/* ---- ヘルプ ---- */
+#pk-help {
+  position: fixed; z-index: 30; left: 50%; top: 52px; transform: translateX(-50%); width: min(720px, 94vw); max-height: 80vh; overflow: auto;
+  background: #fffbe8; color: #222; border: 3px solid #222; border-radius: 14px; padding: 14px 18px; box-shadow: 6px 8px 0 rgba(0,0,0,.5);
+  font: 500 14px 'Fredoka', sans-serif;
+}
+#pk-help h3 { margin: 0 0 8px; }
+#pk-help td { padding: 4px 6px; border-bottom: 1px dashed #ccc; vertical-align: top; }
+#pk-help td:first-child { font-weight: 700; white-space: nowrap; }
+
+/* ================= 本体 ================= */
+.paku {
+  position: absolute; left: 50%; top: 50%; transform-origin: 50% 50%; box-sizing: border-box;
+  display: grid; gap: 14px; padding: 26px 30px 30px; border-radius: 48px;
+  background:
+    radial-gradient(circle at 20% 10%, rgba(255,255,255,.45), transparent 35%),
+    linear-gradient(160deg, #ffe066, #ffc929 55%, #f0a800);
+  box-shadow: inset 0 -10px 0 rgba(170,100,0,.35), inset 0 6px 0 rgba(255,255,255,.5), 0 0 0 6px #e09400, 0 26px 50px rgba(0,0,0,.6);
+  color: #2b2118;
+}
+.paku.land {
+  grid-template-columns: 560px 1fr;
+  grid-template-rows: 112px 196px 178px 1fr;
+  grid-template-areas: "head banks" "lcd pads" "knobs pads" "funcs pads";
+}
+.paku.port {
+  grid-template-columns: 1fr;
+  grid-template-rows: 112px 196px 178px 150px 56px 1fr;
+  grid-template-areas: "head" "lcd" "knobs" "funcs" "banks" "pads";
+}
+.pk-head { grid-area: head; position: relative; }
+.pk-lcd { grid-area: lcd; }
+.pk-knobs { grid-area: knobs; }
+.pk-funcs { grid-area: funcs; }
+.pk-banks { grid-area: banks; }
+.pk-pads { grid-area: pads; }
+
+.screw { position: absolute; width: 16px; height: 16px; border-radius: 50%; background: radial-gradient(circle at 40% 35%, #eee, #888 60%, #555); box-shadow: 0 1px 2px rgba(0,0,0,.5); }
+.screw::after { content: ''; position: absolute; left: 3px; right: 3px; top: 7px; height: 2px; background: #444; transform: rotate(35deg); }
+.screw.s1 { left: 16px; top: 16px; } .screw.s2 { right: 16px; top: 16px; } .screw.s3 { left: 16px; bottom: 16px; } .screw.s4 { right: 16px; bottom: 16px; }
+
+/* ---- 頭：名前・ワニの口のスピーカー・マイク ---- */
+.pk-brand { position: absolute; left: 6px; top: 0; display: flex; align-items: baseline; gap: 6px; transform: rotate(-3deg); }
+.pk-brand b { font: 900 40px 'Fredoka', sans-serif; color: #e8322a; -webkit-text-stroke: 2px #5a0e08; letter-spacing: 1px; text-shadow: 3px 4px 0 #5a0e08; }
+.pk-brand span { font: 900 34px 'Fredoka', sans-serif; color: #fff; background: #1aa3e8; border: 3px solid #0b3a5c; border-radius: 12px; padding: 0 8px; box-shadow: 3px 3px 0 #0b3a5c; }
+.pk-sub { position: absolute; left: 10px; top: 60px; font: 700 15px 'Fredoka', sans-serif; color: #6b3a00; }
+.pk-sub small { display: block; font: 700 10px 'Share Tech Mono', monospace; letter-spacing: 2px; color: #8a5a10; }
+.pk-mouth {
+  position: absolute; right: 70px; top: 8px; width: 150px; height: 86px; border-radius: 50% 50% 46% 46% / 40% 40% 60% 60%;
+  background: repeating-radial-gradient(circle at 50% 50%, #2a0c0c 0 2px, #4a1414 2px 5px);
+  border: 5px solid #1f9d3a; box-shadow: inset 0 6px 10px rgba(0,0,0,.6), 0 3px 0 #0d5a1e; overflow: hidden;
+}
+.pk-mouth i { position: absolute; top: -2px; width: 0; height: 0; border-left: 9px solid transparent; border-right: 9px solid transparent; border-top: 16px solid #fff; }
+.pk-mouth i:nth-child(1) { left: 14px; } .pk-mouth i:nth-child(2) { left: 36px; } .pk-mouth i:nth-child(3) { left: 58px; }
+.pk-mouth i:nth-child(4) { left: 80px; } .pk-mouth i:nth-child(5) { left: 102px; }
+.pk-mouth i:nth-child(6) { left: 58px; top: auto; bottom: -2px; border-top: 0; border-bottom: 16px solid #fff; }
+.pk-mic {
+  position: absolute; right: 0; top: 14px; width: 54px; height: 54px; border-radius: 50%;
+  background: repeating-linear-gradient(0deg, #333 0 2px, #777 2px 4px); border: 5px solid #c0c0c0; box-shadow: 0 3px 0 #555, inset 0 0 8px #000;
+}
+.pk-mic .led { position: absolute; right: -6px; top: -6px; width: 14px; height: 14px; border-radius: 50%; background: #5a1010; border: 2px solid #222; }
+.pk-mic .led.on { background: #ff3b30; box-shadow: 0 0 12px #ff3b30; animation: pk-blink .8s infinite; }
+.pk-scribble { position: absolute; right: 236px; top: 64px; font: 22px 'Permanent Marker', cursive; color: #1b1b1b; transform: rotate(-6deg); opacity: .85; }
+.paku.land .pk-scribble { right: 0; top: 84px; font-size: 17px; }
+
+/* ---- 液晶 ---- */
+.pk-lcd {
+  box-sizing: border-box; padding: 10px 14px; border-radius: 16px; background: #2b2b2b;
+  border: 4px solid #111; box-shadow: inset 0 0 0 3px #555, 0 4px 0 rgba(0,0,0,.35);
+  display: flex; flex-direction: column; gap: 4px; font: 700 15px 'Share Tech Mono', monospace; color: #20301a;
+}
+.pk-lcd > div { background: #a9c98a; padding: 2px 8px; display: flex; gap: 12px; align-items: center; white-space: nowrap; overflow: hidden; }
+.pk-lcd-top { border-radius: 6px 6px 0 0; }
+.pk-lcd-top b { font-size: 18px; }
+.pk-lcd-top .tags { margin-left: auto; font-size: 13px; }
+.pk-lcd canvas { width: 100%; flex: 1; min-height: 0; display: block; image-rendering: pixelated; }
+.pk-lcd-bot { border-radius: 0 0 6px 6px; font-size: 13px; }
+.pk-lcd-bot #pk-msg { flex: 1; overflow: hidden; text-overflow: ellipsis; }
+.meters { display: flex; align-items: center; gap: 4px; font-size: 11px; }
+.meters i { font-style: normal; }
+.meters b { width: 50px; height: 8px; background: rgba(32,48,26,.2); display: block; }
+.meters u { display: block; height: 100%; width: 0; background: #20301a; }
+
+/* ---- 後付けの金属板（ノブ） ---- */
+.pk-plate {
+  position: relative; box-sizing: border-box; border-radius: 10px; padding: 10px 14px;
+  background: linear-gradient(180deg, rgba(255,255,255,.35), rgba(0,0,0,.08)), repeating-linear-gradient(90deg, #c9c9c9 0 2px, #bdbdbd 2px 4px);
+  border: 2px solid #777; box-shadow: 0 4px 0 rgba(0,0,0,.3), inset 0 0 0 1px rgba(255,255,255,.6);
+}
+.pk-plate::before, .pk-plate::after { content: ''; position: absolute; top: 8px; width: 10px; height: 10px; border-radius: 50%; background: radial-gradient(circle, #666, #222); }
+.pk-plate::before { left: 8px; } .pk-plate::after { right: 8px; }
+.pk-pages { display: flex; gap: 6px; justify-content: center; margin-bottom: 4px; }
+.pk-pages button {
+  font: 700 12px 'Share Tech Mono', monospace; letter-spacing: 1px; padding: 4px 10px; border-radius: 4px; cursor: pointer;
+  background: #2b2b2b; color: #aaa; border: 2px solid #111;
+}
+.pk-pages button.on { background: #e8322a; color: #fff; box-shadow: 0 0 8px rgba(232,50,42,.7); }
+.pk-krow { display: flex; justify-content: space-around; }
+.pk-k { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.pk-kname { font: 700 12px 'Share Tech Mono', monospace; color: #fff; background: #d42020; padding: 1px 6px; border-radius: 2px; letter-spacing: 1px; box-shadow: 1px 1px 0 #5a0808; }
+.pk-kval { font: 700 13px 'Share Tech Mono', monospace; color: #222; min-width: 60px; text-align: center; background: #f4efe0; border: 1px solid #888; border-radius: 3px; }
+.pk-k .knob { position: relative; width: 70px; height: 70px; }
+
+/* ---- 機能ボタン ---- */
+.pk-funcs { display: flex; flex-wrap: wrap; gap: 8px 10px; align-content: flex-start; position: relative; padding-right: 86px; }
+.pk-grp { display: flex; gap: 6px; flex-wrap: wrap; }
+.pk-btn {
+  position: relative; font: 700 13px 'Fredoka', sans-serif; letter-spacing: .5px; padding: 9px 12px 9px 26px; border-radius: 12px; cursor: pointer;
+  color: #fff; border: 3px solid #2b2118; box-shadow: 0 4px 0 #2b2118; touch-action: manipulation; white-space: nowrap;
+  background: linear-gradient(180deg, #5c95ff, #2b62d9);
+}
+.pk-btn:active, .pk-btn.down { transform: translateY(3px); box-shadow: 0 1px 0 #2b2118; }
+.pk-btn .lamp { position: absolute; left: 9px; top: 50%; width: 10px; height: 10px; margin-top: -5px; border-radius: 50%; background: rgba(0,0,0,.4); box-shadow: inset 0 1px 2px #000; }
+.pk-btn.lit .lamp { background: #fff36b; box-shadow: 0 0 8px #fff36b; }
+.pk-btn.blink .lamp { animation: pk-blink .5s infinite; }
+.pk-btn.red { background: linear-gradient(180deg, #ff6a5c, #d42020); }
+.pk-btn.orange { background: linear-gradient(180deg, #ffab4a, #e86a00); }
+.pk-btn.gray { background: linear-gradient(180deg, #f4efe0, #cfc6ad); color: #2b2118; padding-left: 12px; }
+.pk-btn.gray .lamp { position: static; display: inline-block; margin: 0 6px 0 0; vertical-align: -1px; }
+.pk-btn.black { background: linear-gradient(180deg, #555, #1b1b1b); padding-left: 12px; }
+.pk-btn.small { padding: 9px 10px 9px 24px; font-size: 12px; background: linear-gradient(180deg, #9a8fb0, #625879); }
+.pk-btn.mode { background: linear-gradient(180deg, #4fd36b, #1f9d3a); }
+.pk-vol { position: absolute; right: 4px; top: 0; display: flex; flex-direction: column; align-items: center; gap: 2px; font: 700 12px 'Share Tech Mono', monospace; }
+.pk-vol .knob { position: relative; width: 64px; height: 64px; }
+@keyframes pk-blink { 50% { opacity: .25; } }
+
+/* ---- バンク ---- */
+.pk-banks { display: flex; gap: 6px; align-items: center; justify-content: center; align-self: end; }
+.pk-bank, .pk-bnav {
+  width: 42px; height: 42px; border-radius: 50%; cursor: pointer; font: 900 17px 'Fredoka', sans-serif; color: #2b2118;
+  background: radial-gradient(circle at 40% 30%, #fff, #f4efe0 50%, #cfc6ad); border: 3px solid #2b2118; box-shadow: 0 3px 0 #2b2118; touch-action: manipulation; padding: 0;
+}
+.pk-bank.has { background: radial-gradient(circle at 40% 30%, #fff, #bfe6ff 50%, #6cbcf0); }
+.pk-bank.on { background: radial-gradient(circle at 40% 30%, #fff, #ff9a92 45%, #e8322a); color: #fff; box-shadow: 0 0 12px rgba(232,50,42,.8), 0 3px 0 #2b2118; }
+.pk-bnav { border-radius: 10px; width: 46px; background: #2b2118; color: #ffd43b; }
+
+/* ---- パッド ---- */
+.pk-pads {
+  display: grid; grid-template-columns: repeat(4, 1fr); grid-template-rows: repeat(4, 1fr); gap: 14px; padding: 16px;
+  border-radius: 26px; background: #2b2118; box-shadow: inset 0 6px 12px rgba(0,0,0,.6), 0 4px 0 rgba(255,255,255,.4);
+}
+.pk-pad {
+  --c1: #ff8fb8; --c2: #e83f86;
+  position: relative; border-radius: 18px; cursor: pointer; touch-action: none; overflow: hidden;
+  background: radial-gradient(circle at 35% 25%, rgba(255,255,255,.75), transparent 40%), linear-gradient(180deg, var(--c1), var(--c2));
+  box-shadow: 0 6px 0 rgba(0,0,0,.45), inset 0 -6px 10px rgba(0,0,0,.25);
+  transition: transform .05s, filter .1s;
+}
+.pk-pad.r3 { --c1: #ff8fb8; --c2: #e83f86; }
+.pk-pad.r2 { --c1: #ffc061; --c2: #f07c00; }
+.pk-pad.r1 { --c1: #b8f06b; --c2: #4fae1f; }
+.pk-pad.r0 { --c1: #8fd8ff; --c2: #2a8fe0; }
+.pk-pad.empty { filter: saturate(.25) brightness(.75); }
+.pk-pad .no { position: absolute; left: 10px; top: 6px; font: 900 18px 'Fredoka', sans-serif; color: rgba(0,0,0,.45); }
+.pk-pad .nm { position: absolute; left: 8px; right: 8px; bottom: 10px; font: 700 13px 'Share Tech Mono', monospace; color: rgba(0,0,0,.65); text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pk-pad .ph { position: absolute; left: 0; bottom: 0; height: 5px; width: 0; background: rgba(255,255,255,.9); }
+.pk-pad.sel { outline: 4px solid #fff; outline-offset: -4px; }
+.pk-pad.playing { filter: brightness(1.25) saturate(1.2); box-shadow: 0 6px 0 rgba(0,0,0,.45), 0 0 22px var(--c1), inset 0 -6px 10px rgba(0,0,0,.25); }
+.pk-pad.hit { transform: translateY(4px) scale(.98); box-shadow: 0 2px 0 rgba(0,0,0,.45); }
+.pk-pad.drop { outline: 4px dashed #fff; }
+.paku.picking .pk-pad { animation: pk-pick .7s infinite; }
+@keyframes pk-pick { 50% { filter: brightness(1.35); } }
+
+/* ---- 改造のしるし（テープ） ---- */
+.pk-tape {
+  position: absolute; font: 700 12px 'Share Tech Mono', monospace; letter-spacing: 1px; color: #fff; padding: 2px 8px;
+  background: linear-gradient(180deg, #e8322a, #b51d18); box-shadow: 1px 2px 2px rgba(0,0,0,.4); pointer-events: none;
+}
+.paku .t1 { right: 30px; top: 108px; transform: rotate(4deg); }
+.paku.land .t1 { display: none; }
+.paku.land .t2 { right: 40px; bottom: 6px; transform: rotate(-2deg); }
+.paku.port .t2 { right: 40px; bottom: 6px; transform: rotate(-2deg); }
