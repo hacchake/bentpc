@@ -10,9 +10,11 @@
 .pkt-head b { font: 900 36px 'Fredoka', sans-serif; color: #e8322a; -webkit-text-stroke: 2px #5a0e08; text-shadow: 3px 3px 0 #5a0e08; }
 .pkt-head span { font: 900 28px 'Fredoka', sans-serif; color: #fff; background: #1aa3e8; border: 3px solid #0b3a5c; border-radius: 10px; padding: 0 7px; }
 .pkt-mouth { position: absolute; right: 0; top: 0; width: 110px; height: 56px; border-radius: 50%; background: repeating-radial-gradient(circle, #2a0c0c 0 2px, #4a1414 2px 5px); border: 5px solid #1f9d3a; }
-.pkt-lcd { display: flex; gap: 12px; align-items: center; padding: 8px 12px; border-radius: 8px; background: #a9c98a; border: 5px solid #2b2b2b; font: 700 18px 'Share Tech Mono', monospace; color: #20301a; }
-.pkt-lcd .pkt-name { flex: 1; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
-.pkt-lcd .pkt-st { font-size: 14px; }
+.pkt-lcd { display: flex; flex-direction: column; gap: 4px; padding: 6px 10px 8px; border-radius: 8px; background: #a9c98a; border: 5px solid #2b2b2b; font: 700 18px 'Share Tech Mono', monospace; color: #20301a; }
+.pkt-lcd-top { display: flex; gap: 12px; align-items: center; }
+.pkt-wave { width: 100%; height: 96px; display: block; border-radius: 3px; image-rendering: pixelated; }
+.pkt-lcd-top .pkt-name { flex: 1; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.pkt-lcd-top .pkt-st { font-size: 14px; }
 .pkt-row { display: flex; gap: 10px; }
 .pkt-btn { font: 700 15px 'Fredoka', sans-serif; padding: 8px 14px; border-radius: 10px; border: 3px solid #2b2118; background: linear-gradient(180deg, #f4efe0, #cfc6ad); color: #2b2118; box-shadow: 0 3px 0 #2b2118; cursor: pointer; text-decoration: none; }
 .pkt-banks { display: flex; gap: 6px; justify-content: center; }

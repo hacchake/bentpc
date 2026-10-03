@@ -7,12 +7,12 @@ import { noteName, type HostApi, type ToyUI } from '../../core/ui';
 import type { FromToy } from '../../host/protocol';
 import type { BendState } from '../dsp/bend';
 import type { FxSlot } from '../dsp/fx';
-import { BANK_NAMES, PADS, PAD_COUNT, defaultPad, padLabel } from '../dsp/types';
+import { BANK_NAMES, PADS, PAD_COUNT, defaultPad, padLabel, type PadParams, type SampleBuf } from '../dsp/types';
 import { loadAll, loadMeta } from '../store';
 import { BASS_KEY, BASS_ROOT_KEY, KEY_COUNT, MELO_ROOT_KEY, SAMPLER_PARAMS, SP, type SamplerCustom, type SamplerDisplay } from './engine';
 
 const W = 760;
-const H = 860;
+const H = 960;
 const KEYMAP: Record<string, number> = {
   KeyZ: 0, KeyX: 1, KeyC: 2, KeyV: 3, KeyA: 4, KeyS: 5, KeyD: 6, KeyF: 7,
   KeyQ: 8, KeyW: 9, KeyE: 10, KeyR: 11, Digit1: 12, Digit2: 13, Digit3: 14, Digit4: 15,
@@ -41,7 +41,7 @@ export function mountSamplerToy(api: HostApi): ToyUI {
         <div class="pkt-power"><div class="dome big pkt-pwr" data-id="power"></div><span class="pkt-led" data-id="led"></span><small>POWER</small></div>
         <b>PAKU-PAKU</b><span>16</span><i class="pkt-mouth"></i>
       </div>
-      <div class="pkt-lcd"><b class="pkt-no">A-01</b><span class="pkt-name"></span><span class="pkt-st"></span></div>
+      <div class="pkt-lcd"><div class="pkt-lcd-top"><b class="pkt-no">A-01</b><span class="pkt-name"></span><span class="pkt-st"></span></div><canvas class="pkt-wave" width="680" height="96"></canvas></div>
       <div class="pkt-row">
         <button class="pkt-btn" data-a="melo" title="いま選んでいるパッドをメロディ用に">♪ MELO</button><span class="pkt-val" data-id="melo"></span>
         <button class="pkt-btn" data-a="bass" title="いま選んでいるパッドをベース用に">BASS</button><span class="pkt-val" data-id="bass"></span>
@@ -60,6 +60,62 @@ export function mountSamplerToy(api: HostApi): ToyUI {
   const $ = (id: string) => q(`[data-id="${id}"]`);
   const names: string[] = Array.from({ length: PAD_COUNT }, () => '');
   const has: boolean[] = Array.from({ length: PAD_COUNT }, () => false);
+  // 液晶の波形用：パッドの音と、鳴らす範囲（START・END）
+  const bufs = new Map<number, SampleBuf>();
+  const pparams = new Map<number, PadParams>();
+  const peaks = new Map<number, Float32Array>();
+  let playPos: [number, number][] = [];
+  const wave = q('.pkt-wave') as HTMLCanvasElement;
+  const wg = wave.getContext('2d')!;
+  function peaksOf(pad: number): Float32Array | null {
+    const s = bufs.get(pad);
+    if (!s) return null;
+    let pk = peaks.get(pad);
+    if (pk) return pk;
+    const W = wave.width, d = s.ch[0], n = d.length;
+    pk = new Float32Array(W * 2);
+    for (let x = 0; x < W; x++) {
+      const a = Math.floor((x / W) * n), b = Math.max(a + 1, Math.floor(((x + 1) / W) * n));
+      let lo = 0, hi = 0;
+      for (let i = a; i < Math.min(n, b); i += Math.max(1, Math.floor((b - a) / 48))) { lo = Math.min(lo, d[i]); hi = Math.max(hi, d[i]); }
+      pk[x * 2] = lo; pk[x * 2 + 1] = hi;
+    }
+    peaks.set(pad, pk);
+    return pk;
+  }
+  /** 液晶：いまのパッドの波形・鳴らす範囲（赤い線）・再生位置（明るい線） */
+  function drawWave(): void {
+    const W = wave.width, H2 = wave.height, c = wg;
+    c.fillStyle = powered ? '#a9c98a' : '#6f7f5c';
+    c.fillRect(0, 0, W, H2);
+    c.fillStyle = 'rgba(40,60,20,.08)';
+    for (let x = 0; x < W; x += 4) c.fillRect(x, 0, 1, H2);
+    const pk = peaksOf(cur);
+    if (!pk) {
+      c.fillStyle = '#2b3a1c';
+      c.font = '700 16px "Share Tech Mono", monospace';
+      c.textAlign = 'center';
+      c.fillText('からっぽ', W / 2, H2 / 2 + 6);
+      c.textAlign = 'left';
+      return;
+    }
+    c.fillStyle = '#20301a';
+    for (let x = 0; x < W; x++) {
+      const lo = pk[x * 2], hi = pk[x * 2 + 1];
+      const y0 = H2 / 2 - hi * (H2 / 2 - 3), y1 = H2 / 2 - lo * (H2 / 2 - 3);
+      c.fillRect(x, y0, 1, Math.max(1, y1 - y0));
+    }
+    const p = pparams.get(cur) ?? defaultPad();
+    const xs = Math.min(p.start, p.end) * W, xe = Math.max(p.start, p.end) * W;
+    c.fillStyle = 'rgba(30,45,15,.45)';
+    c.fillRect(0, 0, xs, H2);
+    c.fillRect(xe, 0, W - xe, H2);
+    c.fillStyle = '#c0281c';
+    c.fillRect(xs, 0, 2, H2);
+    c.fillRect(xe - 2, 0, 2, H2);
+    c.fillStyle = '#fff6b0';
+    for (const [pd, ps] of playPos) if (pd === cur) c.fillRect(ps * W, 0, 2, H2);
+  }
   const params = Float32Array.from(SAMPLER_PARAMS.map((p) => p.default));
   let bank = 0;
   let cur = 0;
@@ -99,6 +155,7 @@ export function mountSamplerToy(api: HostApi): ToyUI {
     $('melo').textContent = padText(melo);
     $('bass').textContent = padText(bass);
     $('led').classList.toggle('on', powered);
+    drawWave();
     root.classList.toggle('off', !powered);
   }
   const setBank = (b: number) => { bank = (b + 10) % 10; cur = bank * PADS + (cur % PADS); render(); };
@@ -126,19 +183,30 @@ export function mountSamplerToy(api: HostApi): ToyUI {
     const [stored, meta] = await Promise.all([loadAll(), loadMeta<{ bpm?: number; fx?: FxSlot[]; bend?: BendState }>()]);
     names.fill('');
     has.fill(false);
+    bufs.clear();
+    pparams.clear();
+    peaks.clear();
     sent = [];
     if (stored && stored.length) {
       for (const s of stored) {
         names[s.pad] = s.name;
         has[s.pad] = !!s.sample;
+        if (s.sample) bufs.set(s.pad, s.sample);
+        pparams.set(s.pad, { ...defaultPad(), ...s.params });
         const data: SamplerCustom = { kind: 'pad', pad: s.pad, data: s.sample, p: { ...defaultPad(), ...s.params } };
         sent.push({ key: `pad${s.pad}`, data });
         api.post({ type: 'custom', key: `pad${s.pad}`, data });
       }
     } else {
       // まだサンプラーを開いていない：工場出荷の音（エンジンにはもう入っている）
-      const { factoryBank } = await import('../dsp/factory');
-      for (const b of [0, 1] as const) factoryBank(b).forEach((s, i) => { names[b * PADS + i] = s.name; has[b * PADS + i] = true; });
+      const { factoryBank, factoryParams } = await import('../dsp/factory');
+      for (const b of [0, 1] as const) factoryBank(b).forEach((s, i) => {
+        const pad = b * PADS + i;
+        names[pad] = s.name;
+        has[pad] = true;
+        bufs.set(pad, s.buf);
+        pparams.set(pad, factoryParams(s));
+      });
     }
     if (meta) {
       const m: SamplerCustom = { kind: 'meta', bpm: meta.bpm ?? 120, fx: Array.isArray(meta.fx) && meta.fx.length === 3 ? meta.fx : (await import('../dsp/fx')).defaultSlots(), bend: meta.bend };
@@ -196,6 +264,7 @@ export function mountSamplerToy(api: HostApi): ToyUI {
         const d = m.display as SamplerDisplay;
         shown.clear();
         for (const p of d.playing) shown.add(p);
+        playPos = d.pos ?? [];
         render();
       } else if (m.type === 'status' && m.status.powered !== powered) {
         powered = m.status.powered;

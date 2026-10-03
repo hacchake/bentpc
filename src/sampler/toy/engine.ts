@@ -38,6 +38,8 @@ export type SamplerCustom =
 export interface SamplerDisplay {
   /** 鳴っているパッド */
   playing: number[];
+  /** 鳴っている音の再生位置（パッド、音全体の 0〜1）。液晶の波形に線を引く */
+  pos: [number, number][];
 }
 
 // 工場出荷の音は重いので、1 回だけ作る（作り直すたびに使い回す）
@@ -62,7 +64,7 @@ export class SamplerToy implements ToyEngine<SamplerDisplay> {
   readonly params: Float32Array;
   readonly paramDefs = SAMPLER_PARAMS;
   readonly eng: SamplerEngine;
-  display: SamplerDisplay = { playing: [] };
+  display: SamplerDisplay = { playing: [], pos: [] };
   displayVersion = 0;
   powered = false;
   private l = new Float32Array(128);
@@ -140,9 +142,10 @@ export class SamplerToy implements ToyEngine<SamplerDisplay> {
     // 鳴っているパッドを画面へ（変わったときだけ、ときどき）
     if (++this.count >= 8) {
       this.count = 0;
-      const p = [...new Set(this.eng.playing().map((x) => x[0]))].sort((a, b) => a - b);
-      const k = p.join(',');
-      if (k !== this.lastKey) { this.lastKey = k; this.display = { playing: p }; this.displayVersion++; }
+      const pos = this.eng.playing();
+      const p = [...new Set(pos.map((x) => x[0]))].sort((a, b) => a - b);
+      const k = pos.map((x) => `${x[0]}:${x[1].toFixed(3)}`).join(',');
+      if (k !== this.lastKey) { this.lastKey = k; this.display = { playing: p, pos }; this.displayVersion++; }
     }
   }
 
