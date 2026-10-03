@@ -85,22 +85,27 @@ export function setDictionary(d: Record<string, string>): void {
 
 /** 言語を決める：URL の ?lang= → このブラウザに覚えたもの → ブラウザの言語 */
 export function detectLang(): Lang {
+  // URL の ?lang= がいちばん強い（保存できないブラウザでも効くように、保存の失敗とは切り離す）
+  let q: string | null = null;
+  try { q = new URLSearchParams(location.search).get('lang'); } catch { /* そのまま */ }
+  if (q === 'en' || q === 'ja') {
+    try { localStorage.setItem(KEY, q); } catch { /* 保存できなくても、この URL では効く */ }
+    return q;
+  }
   try {
-    const q = new URLSearchParams(location.search).get('lang');
-    if (q === 'en' || q === 'ja') { localStorage.setItem(KEY, q); return q; }
     const s = localStorage.getItem(KEY);
     if (s === 'en' || s === 'ja') return s;
   } catch {
     // 読めなくても動く
   }
-  return typeof navigator !== 'undefined' && !/^ja\b/i.test(navigator.language || 'ja') ? 'en' : 'ja';
+  return typeof navigator !== 'undefined' && !/^ja/i.test(navigator.language || 'ja') ? 'en' : 'ja';
 }
 
 export function setLang(l: Lang): void {
   try { localStorage.setItem(KEY, l); } catch { /* そのまま */ }
-  // URL に ?lang= があれば外してから読み直す
+  // URL にも ?lang= を付けて読み直す（保存できないブラウザでも切り替わるように）
   const u = new URL(location.href);
-  u.searchParams.delete('lang');
+  u.searchParams.set('lang', l);
   location.replace(u.toString());
 }
 

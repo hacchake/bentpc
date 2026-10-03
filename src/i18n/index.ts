@@ -12,6 +12,13 @@ export function setupLang(bar: HTMLElement | null, cls = ''): void {
   // 攻略本のリンクの左に（無ければ右端）
   if (bar) bar.insertBefore(langButton(cls), bar.querySelector('a[href^="manual/"]'));
   // 攻略本のリンクは言語ごとのページへ
-  if (lang() === 'en') document.querySelectorAll<HTMLAnchorElement>('a[href^="manual/"]').forEach((a) => { a.href = a.getAttribute('href')!.replace(/^manual\//, 'manual/en/'); });
+  if (lang() === 'en') {
+    document.querySelectorAll<HTMLAnchorElement>('a[href^="manual/"]').forEach((a) => { a.href = a.getAttribute('href')!.replace(/^manual\//, 'manual/en/'); });
+    // ほかのページへのリンクにも ?lang=en（保存できないブラウザでも英語のまま移れるように）
+    document.querySelectorAll<HTMLAnchorElement>('a[href^="index.html"], a[href^="studio.html"], a[href^="sampler.html"]').forEach((a) => {
+      const h = a.getAttribute('href')!;
+      if (!/[?&]lang=/.test(h)) a.setAttribute('href', `${h}${h.includes('?') ? '&' : '?'}lang=en`);
+    });
+  }
   installDomTranslation();
 }

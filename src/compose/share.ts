@@ -1,6 +1,7 @@
 // URL で曲を共有する：自動作曲の設定（シード・スタイル・壊れ度・長さ・BPM）と、おもちゃの並びを URL に入れる。
 // 同じ URL を開けば、同じ曲がもう一度作られる（曲データそのものは送らない）。
 import { LENGTHS, STYLE_IDS, styleOf } from './styles';
+import { lang } from '../i18n/core';
 import type { ComposeSettings, StyleId } from './types';
 
 export function settingsToQuery(st: ComposeSettings, extra: Record<string, string> = {}): string {
@@ -24,7 +25,8 @@ export function settingsFromQuery(q: URLSearchParams): ComposeSettings | null {
 
 /** 今のページの URL を、設定入りに書き換える（ページは読み直さない） */
 export function setPageQuery(query: string): string {
-  const url = `${location.origin}${location.pathname}?${query}`;
+  // 英語で見ているときは、送った相手も英語で開くように lang=en も付ける
+  const url = `${location.origin}${location.pathname}?${query}${lang() === 'en' ? '&lang=en' : ''}`;
   try {
     history.replaceState(null, '', url);
   } catch {
