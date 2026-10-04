@@ -69,8 +69,20 @@ html, body {
 .midi-name:empty { display: none; }
 #helpBtn { width: 36px; padding: 0; justify-content: center; font: 700 18px 'Fredoka', sans-serif; }
 
+/* タブが多くて画面より広いときは、上の帯の中だけ横にスクロール（ページ全体が縮まないように） */
+#topbar { overflow-x: auto; overflow-y: hidden; scrollbar-width: none; }
+#topbar::-webkit-scrollbar { display: none; }
+#topbar > * { flex-shrink: 0; }
+/* 縦向きのスマホ（縦に並べるとき）はページを縦にスクロール */
+html.scroll, html.scroll body { overflow-x: hidden; overflow-y: auto; height: auto; }
+html.scroll #stage { position: absolute; }
+#stage-spacer { width: 1px; }
+#rotBtn { width: 36px; padding: 0; justify-content: center; font: 700 18px 'Fredoka', sans-serif; }
+#rotBtn.on { background: #ffd23d; color: #222; }
+#rotBtn[hidden] { display: none; }
+
 #stage {
-  position: absolute;
+  position: fixed;
   left: 50%;
   top: calc(50% + 26px);
   transform-origin: 50% 50%;

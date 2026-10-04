@@ -362,6 +362,8 @@ export const EN_APP: Record<string, string> = {
   'バンク A をドラム（1 KICK・2 SNARE・3 CL HAT・4 OP HAT・5 CLAP・11 BOOM・12 LOFI SN・13 CRASH）、メロディ・ベースのパッドで曲を作る': 'Builds songs from bank A drums (1 KICK, 2 SNARE, 3 CL HAT, 4 OP HAT, 5 CLAP, 11 BOOM, 12 LOFI SN, 13 CRASH) and the melody/bass pads',
   'バンクの切り替え（PC は [ ]）': 'Switch banks (PC: [ ])',
   'バンクの切り替え（16 バンク。PC は [ ]）': 'Switch banks (16 banks. PC: [ ])',
+  'スマホを横にして持ってね（画面の回転はロックのままで OK）。上の ⟳ で元の向きに戻せます': 'Hold your phone sideways (screen rotation can stay locked). Tap ⟳ at the top to go back',
+  '縦向きのスマホで、おもちゃを横向きに大きく出す／やめる': 'On a phone held upright, show the toy sideways and bigger / stop',
   '左上の赤いボタン（パクッ、パクッと鳴って起動）。電源 OFF のときは Enter キーでも入る': 'Red button at the top left (it chomps twice as it starts). When off, Enter works too',
   '押すと鳴る。シーケンサーではキー A-01〜P-16 の行になる': 'Press to play. In the sequencer they are rows A-01 to P-16',
   '改 MOD!!': 'MOD!!',

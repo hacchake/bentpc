@@ -1,4 +1,5 @@
 // 汎用の操作部品：ノブ・段階スライダー・押しボタン。マウスとタッチの両方で動く。
+import { rectOf, pt } from './view';
 
 export class Knob {
   value: number;
@@ -18,7 +19,7 @@ export class Knob {
     let startY = 0, startV = 0;
     el.addEventListener('pointerdown', (e) => {
       el.setPointerCapture(e.pointerId);
-      startY = e.clientY;
+      startY = pt(e).y;
       startV = this.value;
       el.classList.add('grab');
       e.preventDefault();
@@ -26,7 +27,7 @@ export class Knob {
     el.addEventListener('pointermove', (e) => {
       if (!el.hasPointerCapture(e.pointerId)) return;
       const fine = e.shiftKey ? 0.25 : 1;
-      this.set(startV + ((startY - e.clientY) / 180) * fine);
+      this.set(startV + ((startY - pt(e).y) / 180) * fine);
     });
     const end = (e: PointerEvent) => { el.releasePointerCapture?.(e.pointerId); el.classList.remove('grab'); };
     el.addEventListener('pointerup', end);
@@ -63,8 +64,8 @@ export class SteppedSlider {
     this.value = initial;
     el.style.touchAction = 'none';
     const pick = (e: PointerEvent) => {
-      const r = el.getBoundingClientRect();
-      const k = vertical ? (e.clientY - r.top) / r.height : (e.clientX - r.left) / r.width;
+      const r = rectOf(el);
+      const k = vertical ? (pt(e).y - r.top) / r.height : (pt(e).x - r.left) / r.width;
       this.set(Math.round(Math.max(0, Math.min(1, k)) * (steps - 1)));
     };
     el.addEventListener('pointerdown', (e) => { el.setPointerCapture(e.pointerId); pick(e); e.preventDefault(); });
@@ -116,12 +117,12 @@ export class SteppedKnob {
     let startY = 0, startV = 0, moved = false;
     el.addEventListener('pointerdown', (e) => {
       el.setPointerCapture(e.pointerId);
-      startY = e.clientY; startV = this.value; moved = false;
+      startY = pt(e).y; startV = this.value; moved = false;
       e.preventDefault();
     });
     el.addEventListener('pointermove', (e) => {
       if (!el.hasPointerCapture(e.pointerId)) return;
-      const d = Math.round((startY - e.clientY) / 24);
+      const d = Math.round((startY - pt(e).y) / 24);
       if (d !== 0) moved = true;
       this.set(Math.max(0, Math.min(this.steps - 1, startV + d)));
     });
@@ -151,8 +152,8 @@ export class Toggle {
     el.addEventListener('pointerdown', (e) => {
       e.preventDefault();
       if (this.steps === 2) return this.cycle(); // 2 段はクリックで切り替え
-      const r = el.getBoundingClientRect();
-      const k = (e.clientY - r.top) / r.height; // 0 = 上
+      const r = rectOf(el);
+      const k = (pt(e).y - r.top) / r.height; // 0 = 上
       this.set(Math.round(Math.max(0, Math.min(1, k)) * (this.steps - 1)));
     });
     this.render();

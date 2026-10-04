@@ -1,4 +1,5 @@
 // 4台目：VROOMBOX VR-5（魔改造 子供用ドライブ・ダッシュボード）の画面
+import { rectOf, pt } from '../../core/view';
 import './vroom.css';
 import { Knob, SteppedKnob, SteppedSlider, Toggle, momentary } from '../../core/controls';
 import { PowerHints } from '../../core/power';
@@ -154,8 +155,8 @@ export function mountVroom(api: HostApi): ToyUI {
   const wheelEl = $('wheel');
   let wheelAngle = 0, grabbing = false, grabOffset = 0, sentWheel = 0, wheelKey = 0;
   const angleAt = (e: PointerEvent) => {
-    const r = wheelEl.getBoundingClientRect();
-    return (Math.atan2(e.clientY - (r.top + r.height / 2), e.clientX - (r.left + r.width / 2)) * 180) / Math.PI;
+    const r = rectOf(wheelEl);
+    return (Math.atan2(pt(e).y - (r.top + r.height / 2), pt(e).x - (r.left + r.width / 2)) * 180) / Math.PI;
   };
   wheelEl.addEventListener('pointerdown', (e) => {
     wheelEl.setPointerCapture(e.pointerId);
@@ -187,7 +188,7 @@ export function mountVroom(api: HostApi): ToyUI {
   const pedal = b.place('vr-pedal', OX + 1340, 560, '<div class="vr-pedal-top"></div>');
   let throttle = 0, pedalHeld = false, keyGas = false, sentThrottle = 0;
   const setPedal = (v: number) => { throttle = v; pedal.style.setProperty('--v', String(v)); };
-  const pickPedal = (e: PointerEvent) => { const r = pedal.getBoundingClientRect(); setPedal(Math.max(0, Math.min(1, (e.clientY - r.top) / r.height))); };
+  const pickPedal = (e: PointerEvent) => { const r = rectOf(pedal); setPedal(Math.max(0, Math.min(1, (pt(e).y - r.top) / r.height))); };
   pedal.addEventListener('pointerdown', (e) => { pedal.setPointerCapture(e.pointerId); pedalHeld = true; pickPedal(e); e.preventDefault(); });
   pedal.addEventListener('pointermove', (e) => { if (pedalHeld) pickPedal(e); });
   const pedalUp = () => { pedalHeld = false; };
@@ -235,8 +236,8 @@ export function mountVroom(api: HostApi): ToyUI {
     const el = b.place('stud', x, 760);
     let y0 = 0;
     const set = (v: number) => { setParam(id, v); el.style.setProperty('--glow', String(v)); el.classList.toggle('down', v > 0); };
-    el.addEventListener('pointerdown', (e) => { el.setPointerCapture(e.pointerId); y0 = e.clientY; set(0.7); e.preventDefault(); });
-    el.addEventListener('pointermove', (e) => { if (el.hasPointerCapture(e.pointerId)) set(Math.max(0.15, Math.min(1, 0.7 + (y0 - e.clientY) / 150))); });
+    el.addEventListener('pointerdown', (e) => { el.setPointerCapture(e.pointerId); y0 = pt(e).y; set(0.7); e.preventDefault(); });
+    el.addEventListener('pointermove', (e) => { if (el.hasPointerCapture(e.pointerId)) set(Math.max(0.15, Math.min(1, 0.7 + (y0 - pt(e).y) / 150))); });
     el.addEventListener('pointerup', () => set(0));
     el.addEventListener('pointercancel', () => set(0));
     lbl(name, x, 794);

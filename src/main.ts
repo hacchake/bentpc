@@ -17,6 +17,7 @@ import { startMidi } from './host/midi';
 import { download, encodeWav } from './host/wav';
 import { TOY_UIS } from './toys/uis';
 import { samplerNote } from './sampler/toy/engine';
+import { setViewRot } from './core/view';
 
 const $ = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
 const audio = new AudioHost();
@@ -107,19 +108,62 @@ function show(i: number): void {
 }
 
 // ---- 画面サイズに合わせて拡大縮小（シーケンサーを開いているときはその分を空ける） ----
+// 縦向きのスマホ：横長のおもちゃは 90 度回して大きく出す（スマホを横にして持つ。回転ロックのままで OK）。
+// 縦長のおもちゃ（サンプラー）は横幅いっぱいに出して、自動作曲ユニットはその下（縦にスクロール）。
+let rotPref = (() => { try { return localStorage.getItem('bentpc.rotate') ?? 'auto'; } catch { return 'auto'; } })();
+let rotHinted = false;
 function fit(): void {
   const t = toys[active];
+  const p = panels[active];
   const wrap = $('arr-wrap');
   const dh = wrap.hidden ? 0 : wrap.offsetHeight;
+  const portrait = window.innerHeight > window.innerWidth && window.innerWidth < 900;
+  const wide = t.width > t.height * 1.15;
+  const rotate = portrait && wide && rotPref !== 'off';
+  const stack = portrait && !rotate;
+  setViewRot(rotate ? 90 : 0);
+  document.documentElement.classList.toggle('scroll', stack);
+  $('rotBtn').classList.toggle('on', rotate);
+  $('rotBtn').hidden = !(portrait && wide);
+  const spacer = $('stage-spacer');
+  if (stack) {
+    // 縦に並べる：おもちゃ → 自動作曲ユニット（横幅をそろえる）
+    const pk = Math.min(2.2, t.width / PANEL_W);
+    const h = t.height + (p ? PANEL_GAP + PANEL_H * pk : 0);
+    if (p) { p.root.style.left = `${(t.width - PANEL_W * pk) / 2}px`; p.root.style.top = `${t.height + PANEL_GAP}px`; p.root.style.transform = `scale(${pk})`; }
+    const s = (window.innerWidth - 8) / t.width;
+    stage.style.top = '56px';
+    stage.style.width = `${t.width}px`;
+    stage.style.height = `${h}px`;
+    stage.style.transformOrigin = '50% 0';
+    stage.style.transform = `translateX(-50%) scale(${s})`;
+    spacer.style.height = `${56 + h * s + dh + 24}px`;
+    return;
+  }
+  spacer.style.height = '0px';
   const k = panelScale(t.height);
-  const w = t.width + (panels[active] ? PANEL_GAP + PANEL_W * k : 0);
-  const h = Math.max(t.height, panels[active] ? PANEL_H * k : 0);
-  const s = Math.min((window.innerWidth - 16) / w, (window.innerHeight - 60 - dh) / h);
-  stage.style.top = `calc(50% + ${26 - dh / 2}px)`;
+  if (p) { p.root.style.left = `${t.width + PANEL_GAP}px`; p.root.style.top = '0px'; p.root.style.transform = `scale(${k})`; }
+  const w = t.width + (p ? PANEL_GAP + PANEL_W * k : 0);
+  const h = Math.max(t.height, p ? PANEL_H * k : 0);
   stage.style.width = `${w}px`;
   stage.style.height = `${h}px`;
+  stage.style.transformOrigin = '50% 50%';
+  stage.style.top = `calc(50% + ${26 - dh / 2}px)`;
+  if (rotate) {
+    // 横にしたスマホで見たときに、ふつうの向きになるように回す
+    const s = Math.min((window.innerHeight - 60 - dh) / w, (window.innerWidth - 12) / h);
+    stage.style.transform = `translate(-50%, -50%) rotate(90deg) scale(${s})`;
+    if (!rotHinted) { rotHinted = true; toast('スマホを横にして持ってね（画面の回転はロックのままで OK）。上の ⟳ で元の向きに戻せます', 6000); }
+    return;
+  }
+  const s = Math.min((window.innerWidth - 16) / w, (window.innerHeight - 60 - dh) / h);
   stage.style.transform = `translate(-50%, -50%) scale(${s})`;
 }
+$('rotBtn').addEventListener('click', () => {
+  rotPref = rotPref === 'off' ? 'auto' : 'off';
+  try { localStorage.setItem('bentpc.rotate', rotPref); } catch { /* 保存できなくても動く */ }
+  fit();
+});
 window.addEventListener('resize', fit);
 
 // ---- エンジンからのメッセージを各おもちゃへ ----

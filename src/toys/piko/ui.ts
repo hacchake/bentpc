@@ -1,4 +1,5 @@
 // 2台目：PIKOTONE PT-32（魔改造ミニキーボード＋エフェクト別ユニット）の画面
+import { rectOf, pt } from '../../core/view';
 import './piko.css';
 import { Knob, Toggle, momentary } from '../../core/controls';
 import { PowerHints } from '../../core/power';
@@ -99,13 +100,13 @@ export function mountPiko(api: HostApi): ToyUI {
     const set = (v: number) => { setParam(id, v); el.style.setProperty('--glow', String(v)); };
     el.addEventListener('pointerdown', (e) => {
       el.setPointerCapture(e.pointerId);
-      startY = e.clientY;
+      startY = pt(e).y;
       el.classList.add('down');
       set(0.7);
       e.preventDefault();
     });
     el.addEventListener('pointermove', (e) => {
-      if (el.hasPointerCapture(e.pointerId)) set(Math.max(0.15, Math.min(1, 0.7 + (startY - e.clientY) / 150)));
+      if (el.hasPointerCapture(e.pointerId)) set(Math.max(0.15, Math.min(1, 0.7 + (startY - pt(e).y) / 150)));
     });
     const up = () => { el.classList.remove('down'); set(0); };
     el.addEventListener('pointerup', up);

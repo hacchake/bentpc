@@ -1,4 +1,5 @@
 // 3台目：SPIN-TOT DJ-28（魔改造 子供用 DJ セット）の画面
+import { rectOf, pt } from '../../core/view';
 import './dj.css';
 import { Knob, SteppedKnob, Toggle, momentary } from '../../core/controls';
 import { PowerHints } from '../../core/power';
@@ -109,9 +110,9 @@ export function mountDj(api: HostApi): ToyUI {
     let d = Infinity;
     let scale = 1;
     for (const s of sensors) {
-      const r = s.getBoundingClientRect();
+      const r = rectOf(s);
       scale = r.width / 44;
-      d = Math.min(d, Math.hypot(e.clientX - (r.left + r.width / 2), e.clientY - (r.top + r.height / 2)) / scale);
+      d = Math.min(d, Math.hypot(pt(e).x - (r.left + r.width / 2), pt(e).y - (r.top + r.height / 2)) / scale);
     }
     setLight(Math.max(0, Math.min(1, (d - 20) / 200)));
   });
@@ -128,8 +129,8 @@ export function mountDj(api: HostApi): ToyUI {
   const discEl = $('disc');
   let angle = 0, lastAngle = 0, lastT = 0, spin = 0, touching = false, lastMove = 0, sentZero = true;
   const angleOf = (e: PointerEvent) => {
-    const r = discEl.getBoundingClientRect();
-    return Math.atan2(e.clientY - (r.top + r.height / 2), e.clientX - (r.left + r.width / 2));
+    const r = rectOf(discEl);
+    return Math.atan2(pt(e).y - (r.top + r.height / 2), pt(e).x - (r.left + r.width / 2));
   };
   const sendSpeed = (v: number) => { setParam('discSpeed', Math.max(-4, Math.min(4, v))); sentZero = v === 0; };
   discEl.addEventListener('pointerdown', (e) => {
@@ -244,7 +245,7 @@ export function mountDj(api: HostApi): ToyUI {
     lblD(name, x, 668);
     const el = b.place('dj-slider', x, 790, '<div class="dj-thumb"></div>');
     const set = (v: number, notify = true) => { el.style.setProperty('--v', String(v)); if (notify) setParam(id, v); };
-    const pick = (e: PointerEvent) => { const r = el.getBoundingClientRect(); set(Math.max(0, Math.min(1, 1 - (e.clientY - r.top) / r.height))); };
+    const pick = (e: PointerEvent) => { const r = rectOf(el); set(Math.max(0, Math.min(1, 1 - (pt(e).y - r.top) / r.height))); };
     el.addEventListener('pointerdown', (e) => { el.setPointerCapture(e.pointerId); pick(e); e.preventDefault(); });
     el.addEventListener('pointermove', (e) => { if (el.hasPointerCapture(e.pointerId)) pick(e); });
     set(def(id).default, false);
