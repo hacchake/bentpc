@@ -20,6 +20,8 @@ export interface GenOpts {
   reverb?: number;
   /** 頭の無音（秒） */
   lead?: number;
+  /** 人が弾いたような揺れ：テンポがゆっくり ±drift 揺れ、音ごとに少しずれる（0〜0.05） */
+  drift?: number;
 }
 
 export interface GenTruth {
@@ -58,7 +60,15 @@ export function genSong(o: GenOpts): { L: Float32Array; R: Float32Array; vocal: 
   const n = Math.round((lead + o.bars * 4 * beat + 2) * SR);
   const L = new Float32Array(n), R = new Float32Array(n), V = new Float32Array(n);
   /** 拍 → 秒（ハネ：8 分の裏を遅らせる） */
-  const tOf = (b: number) => { const q = Math.floor(b), f = b - q; const sw = Math.abs(f - 0.5) < 1e-6 ? swing * 0.5 : 0; return lead + (q + f + sw) * beat; };
+  const drift = o.drift ?? 0;
+  const tOf = (b: number) => {
+    const q = Math.floor(b), f = b - q; const sw = Math.abs(f - 0.5) < 1e-6 ? swing * 0.5 : 0;
+    const x = q + f + sw;
+    // テンポの揺れ（32 拍で一回り）と、音ごとの小さなずれ（±8ms くらい）
+    const wob = drift ? ((drift * 32) / (2 * Math.PI)) * Math.sin((2 * Math.PI * x) / 32) : 0;
+    const jit = drift ? Math.sin(x * 12.9898 + 78.233) * 0.008 : 0;
+    return lead + (x + wob) * beat + jit;
+  };
   const put = (buf: Float32Array, at: number, x: Float32Array, g: number) => { const o2 = Math.round(at * SR); for (let i = 0; i < x.length && o2 + i < n; i++) buf[o2 + i] += x[i] * g; };
   const pan = (at: number, x: Float32Array, g: number, p: number) => { put(L, at, x, g * Math.cos(((p + 1) * Math.PI) / 4) * Math.SQRT2); put(R, at, x, g * Math.sin(((p + 1) * Math.PI) / 4) * Math.SQRT2); };
   // ---- コード（ハ長調の度数で作って、主音へ移す） ----

@@ -391,17 +391,10 @@ export function analyze(ch: Float32Array[], sr: number, progress?: Progress): Co
   let bpm = estimateTempo(nov);
   let beatsF = trackBeats(nov, bpm);
   const at = (arr: Float32Array, t: number) => { let m = 0; for (let k = -2; k <= 2; k++) m = Math.max(m, arr[Math.round(t) + k] ?? 0); return m; };
-  // 半分の速さで数えていないか：スネア（2・4 拍目）が拍と拍のちょうど間ばかりで鳴っていれば、本当は倍の速さ
-  if (bpm * 2 <= 185 && beatsF.length >= 8) {
-    const half = (60 * FPS) / bpm / 2;
-    let on = 0, off = 0;
-    for (const b of beatsF) { on += at(F.snare, b); off += at(F.snare, b + half); }
-    if (off > on * 1.5) { bpm *= 2; beatsF = trackBeats(nov, bpm); }
-  }
   if (beatsF.length < 8) beatsF = Array.from({ length: Math.floor((F.count * bpm) / (60 * FPS)) }, (_, i) => (i * 60 * FPS) / bpm);
   // 拍が裏拍などにずれていないか：キック（低い音の出だし）が拍の中のどこに集まるかを見て、いちばん集まる所を拍にする
   // （レゲエのスカンク、ハネた曲の裏拍に引っぱられたときなど）
-  {
+  const alignPhase = () => {
     const BINS = 20, hist = new Float64Array(BINS);
     for (let i = 0; i + 1 < beatsF.length; i++) for (let j = 0; j < BINS; j++) hist[j] += at(F.kick, beatsF[i] + ((beatsF[i + 1] - beatsF[i]) * j) / BINS);
     let bj = 0;
@@ -412,6 +405,14 @@ export function analyze(ch: Float32Array[], sr: number, progress?: Progress): Co
       const fr = bj / BINS;
       beatsF = beatsF.slice(0, -1).map((b, i) => b + (beatsF[i + 1] - b) * fr);
     }
+  };
+  alignPhase();
+  // 半分の速さで数えていないか：拍をそろえた後で、スネア（2・4 拍目）が拍と拍のちょうど間ばかりで鳴っていれば、本当は倍の速さ
+  if (bpm * 2 <= 180 && beatsF.length >= 8) {
+    const half = (60 * FPS) / bpm / 2;
+    let on = 0, off = 0;
+    for (const b of beatsF) { on += at(F.snare, b); off += at(F.snare, b + half); }
+    if (off > on * 1.5) { bpm *= 2; beatsF = trackBeats(nov, bpm); if (beatsF.length >= 8) alignPhase(); }
   }
   // 小節の頭：拍の 4 つおきで、和音の変わり目（主）とキック・ベースの変わり目が一番そろう位置
   const beatChroma = beatsF.map((b, i) => {
@@ -553,6 +554,7 @@ export function vocalPitch(vocal: Float32Array, ratio = 2): { pitch: Float32Arra
   const count = Math.max(1, Math.floor((vocal.length - N) / HOP) + 1);
   const fft = new FFT(N), mag = new Float32Array(N / 2 + 1), binHz = SR / N;
   const pitch = new Float32Array(count), sal = new Float32Array(count), rms = new Float32Array(count), hr = new Float32Array(count);
+  const NM = 39, obs = new Float32Array(count * NM); // 高さの候補（MIDI 48〜86）ごとの目立ち度（フレームの一番を 1 に）
   for (let f = 0; f < count; f++) {
     const off = f * HOP;
     let e = 0;
@@ -560,7 +562,8 @@ export function vocalPitch(vocal: Float32Array, ratio = 2): { pitch: Float32Arra
     rms[f] = Math.sqrt(e / N);
     if (rms[f] < 1e-5) continue;
     fft.magnitudes(vocal, off, mag);
-    let best = 0, bm = 0;
+    let best = 0, bm = 0, top = 0;
+    const row = new Float32Array(NM);
     for (let m = 48; m <= 86; m++) {
       let s = 0;
       for (let h = 1; h <= 6; h++) {
@@ -568,9 +571,11 @@ export function vocalPitch(vocal: Float32Array, ratio = 2): { pitch: Float32Arra
         if (k >= N / 2 - 1) break;
         s += lin(mag, k) * Math.pow(0.85, h - 1);
       }
+      row[m - 48] = s; top = Math.max(top, s);
       // 低い方を少しひいきする（倍音を基音と取りちがえない）
       if (s > best * 1.08) { best = s; bm = m; }
     }
+    for (let j = 0; j < NM; j++) obs[f * NM + j] = row[j] / (top + 1e-12);
     pitch[f] = bm; sal[f] = best;
     // 倍音らしさ：その高さの倍音の所に、全体の何割が集まっているか（歌なら高い。伴奏の残りは低い）
     let he = 0, te = 0;
@@ -581,6 +586,26 @@ export function vocalPitch(vocal: Float32Array, ratio = 2): { pitch: Float32Arra
       for (let j = k - 1; j <= k + 1; j++) he += mag[j] * mag[j];
     }
     hr[f] = he / (te + 1e-12);
+  }
+  // 高さのつながり（ビタビ）：歌の高さはなめらかにつながる。伴奏の残りが一瞬目立っても飛び移らない
+  {
+    const LAM = 0.3;
+    const pen = new Float32Array(NM);
+    for (let d = 0; d < NM; d++) pen[d] = d === 0 ? 0 : LAM * (0.3 + Math.min(d, 12) / 12);
+    let dp = new Float32Array(NM), nd = new Float32Array(NM);
+    const bk = new Uint8Array(count * NM);
+    for (let f = 0; f < count; f++) {
+      for (let j = 0; j < NM; j++) {
+        let bv = -1e9, bi = j;
+        for (let i = 0; i < NM; i++) { const v = dp[i] - pen[Math.abs(i - j)]; if (v > bv) { bv = v; bi = i; } }
+        nd[j] = bv + obs[f * NM + j]; bk[f * NM + j] = bi;
+      }
+      let mx = -1e9; for (let j = 0; j < NM; j++) mx = Math.max(mx, nd[j]);
+      for (let j = 0; j < NM; j++) nd[j] -= mx;
+      [dp, nd] = [nd, dp];
+    }
+    let j = 0; for (let i = 1; i < NM; i++) if (dp[i] > dp[j]) j = i;
+    for (let f = count - 1; f >= 0; f--) { if (pitch[f]) pitch[f] = 48 + j; j = bk[f * NM + j]; }
   }
   // 歌っているか：歌の大きさが、大きい所の 15% 以上
   const sorted = [...rms].sort((x, y) => x - y);

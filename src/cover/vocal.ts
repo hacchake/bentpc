@@ -105,7 +105,7 @@ export function extractVocal(ch: Float32Array[], sr: number, pitch?: ArrayLike<n
         for (let k = 0; k < B; k++) {
           const f = k * binHz, h = Math.max(1, Math.round(f / f0));
           const near = Math.abs(f - h * f0) < 0.035 * h * f0 + 12 ? 1 : 0;
-          mask[k] *= 0.3 + 0.7 * near;
+          mask[k] *= 0.15 + 0.85 * near;
         }
       } else for (let k = 0; k < B; k++) mask[k] *= 0.15;
     }

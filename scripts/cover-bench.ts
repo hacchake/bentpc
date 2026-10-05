@@ -13,6 +13,8 @@ export const SONGS: (GenOpts & { label: string })[] = [
   { label: 'Bb 76', seed: 6, bpm: 76, tonic: 10, bars: 16, lead: 0.8 },
   { label: 'G 120 歌が右', seed: 7, bpm: 120, tonic: 7, bars: 24, vocalPan: 0.35 },
   { label: 'Db 100 ハネ半小節', seed: 8, bpm: 100, tonic: 1, bars: 24, swing: 0.33, halfChords: true },
+  { label: 'E 104 揺れる', seed: 9, bpm: 104, tonic: 4, bars: 24, drift: 0.04 },
+  { label: 'Cm 92 揺れハネ', seed: 10, bpm: 92, tonic: 0, minor: true, bars: 24, drift: 0.03, swing: 0.2, reverb: 0.5 },
 ];
 
 export interface Score { tempo: number; bar: number; key: number; chord: number; half: number; mel: number; voiced: number; extra: number; sdr: number; swing: number }
