@@ -41,6 +41,8 @@ const HOP = 512;
 const FPS = SR / HOP; // 1 秒あたりのフレーム数
 const NOTE_NAMES = ['C', 'C#', 'D', 'Eb', 'E', 'F', 'F#', 'G', 'Ab', 'A', 'Bb', 'B'];
 const midiHz = (m: number) => 440 * Math.pow(2, (m - 69) / 12);
+/** 周波数の目と目の間（小数の位置 k）の大きさ：となりの目と直線でつなぐ（低い音で、半音となりと取りちがえないように） */
+const lin = (a: Float32Array, k: number) => { const i = Math.floor(k), f = k - i; return a[i] * (1 - f) + (a[i + 1] ?? 0) * f; };
 
 /** 進み具合（0〜1）と、いま何をしているか */
 export type Progress = (f: number, what: string) => void;
@@ -87,9 +89,13 @@ function frames(x: Float32Array, progress?: Progress): Frames {
   };
   const binHz = SR / N;
   const bin = (hz: number) => Math.round(hz / binHz);
-  // 12 音への割り当て（130Hz〜4kHz。低い所は下のベース用の細かい分析で）
-  const pc = new Int8Array(N / 2 + 1).fill(-1);
-  for (let k = bin(130); k <= bin(4000); k++) pc[k] = ((Math.round(12 * Math.log2((k * binHz) / 440)) + 69) % 12 + 12) % 12;
+  // 12 音への割り当て（130Hz〜2kHz。低い所は下のベース用の細かい分析で）。
+  // 高い所ほど軽く数える（高い所は倍音ばかりで、調に無い音（7・11 倍音など）が混ざるため）
+  const pc = new Int8Array(N / 2 + 1).fill(-1), pw = new Float32Array(N / 2 + 1);
+  for (let k = bin(130); k <= bin(2000); k++) {
+    pc[k] = ((Math.round(12 * Math.log2((k * binHz) / 440)) + 69) % 12 + 12) % 12;
+    pw[k] = Math.min(1, 500 / (k * binHz));
+  }
   // ベース：8 分の 1 に間引いた信号を細かく（2.7Hz ごと）見る
   const DEC = 8, NB = 1024, bassFft = new FFT(NB);
   const xb = new Float32Array(Math.floor(x.length / DEC));
@@ -111,7 +117,7 @@ function frames(x: Float32Array, progress?: Progress): Frames {
     rawK[f] = bandE(40, 130); rawS[f] = bandE(180, 900) + bandE(1500, 5000); rawH[f] = bandE(7000, 10500);
     // 12 音
     const ch = new Float32Array(12);
-    for (let k = 0; k <= N / 2; k++) if (pc[k] >= 0) ch[pc[k]] += mag[k];
+    for (let k = 0; k <= N / 2; k++) if (pc[k] >= 0) ch[pc[k]] += mag[k] * pw[k];
     // メロディ：白くした大きさで、倍音を足した「目立ち度」が一番の高さ（MIDI 55〜86）
     const smooth = (k: number) => { let s = 0; for (let j = -8; j <= 8; j++) s += mag[Math.max(1, Math.min(N / 2, k + j))]; return s / 17 + 1e-9; };
     let best = 0, bestM = 0;
@@ -121,8 +127,7 @@ function frames(x: Float32Array, progress?: Progress): Frames {
         const k = (midiHz(m) * h) / binHz;
         if (k >= N / 2 - 1) break;
         const k0 = Math.round(k);
-        const v = Math.max(mag[k0 - 1], mag[k0], mag[k0 + 1]);
-        s += (v / smooth(k0)) * Math.pow(0.8, h - 1);
+        s += (lin(mag, k) / smooth(k0)) * Math.pow(0.8, h - 1);
       }
       if (s > best) { best = s; bestM = m; }
     }
@@ -134,15 +139,13 @@ function frames(x: Float32Array, progress?: Progress): Frames {
     for (let m = 28; m <= 52; m++) {
       let s = 0;
       for (let h = 1; h <= 3; h++) {
-        const k = Math.round((midiHz(m) * h) / bHz);
+        const k = (midiHz(m) * h) / bHz;
         if (k >= NB / 2 - 1) break;
-        s += Math.max(bmag[k - 1], bmag[k], bmag[k + 1]) * (h === 1 ? 1 : 0.5);
+        s += lin(bmag, k) * (h === 1 ? 1 : 0.5);
       }
       if (s > bb) { bb = s; bm = m; }
     }
     F.bass[f] = bm; F.bassSal[f] = bb;
-    // ベースの音も 12 音に少し足す（コードの根音がわかりやすくなる）
-    if (bm) ch[bm % 12] += bb * 0.15;
     F.chroma.push(ch);
     if (progress && f % 400 === 0) progress(0.05 + 0.6 * (f / count), '音を分けています');
   }
@@ -154,6 +157,13 @@ function frames(x: Float32Array, progress?: Progress): Frames {
     for (let f = 1; f < raw.length; f++) out[f] = Math.max(0, Math.log(raw[f] + floor) - Math.log(raw[f - 1] + floor));
   };
   onset(rawK, F.kick); onset(rawS, F.snare); onset(rawH, F.hat);
+  // ベースは「同じ高さが続く音」だけ（キックは一瞬で高さが下がるので、ベースの音とまちがえないように）。3 フレーム（約 70ms）同じ高さ
+  const bassRaw = F.bass.slice();
+  for (let f = 0; f < count; f++) {
+    const st = f >= 2 && bassRaw[f] === bassRaw[f - 1] && bassRaw[f] === bassRaw[f - 2] && bassRaw[f] > 0;
+    const ahead = f + 2 < count && bassRaw[f] === bassRaw[f + 1] && bassRaw[f] === bassRaw[f + 2];
+    if (!st && !ahead) F.bassSal[f] = 0;
+  }
   return F;
 }
 
@@ -175,7 +185,8 @@ function novelty(flux: Float32Array): Float32Array {
 
 export function estimateTempo(nov: Float32Array): number {
   const n = nov.length;
-  const minLag = Math.floor((FPS * 60) / 200), maxLag = Math.ceil((FPS * 60) / 55);
+  // 70〜180 BPM の中で探す（それより遅い曲は倍、速い曲は半分の速さで数える。カバーには困らない）
+  const minLag = Math.floor((FPS * 60) / 180), maxLag = Math.ceil((FPS * 60) / 70);
   const ac = new Float64Array(maxLag * 2 + 2);
   for (let lag = 1; lag < ac.length; lag++) { let s = 0; for (let i = lag; i < n; i++) s += nov[i] * nov[i - lag]; ac[lag] = s / (n - lag); }
   let best = 0, bestLag = minLag;
@@ -247,6 +258,20 @@ const DIATONIC = [[0, 4, 7], [2, 5, 9], [4, 7, 11], [5, 9, 0], [7, 11, 2], [9, 0
 const DEG_NAMES = ['', 'm', 'm', '', '', 'm', 'dim'];
 const MAJOR_SCALE = [0, 2, 4, 5, 7, 9, 11];
 
+/** 小節ごとの 12 音（移調済み）が、ハ長調の 7 つの和音のどれかにどれだけなじむか（合計） */
+function chordFit(barChroma: Float32Array[]): number {
+  let sum = 0;
+  for (const c of barChroma) {
+    let best = 0;
+    for (const tones of DIATONIC) {
+      let s = 0, n = 0;
+      for (let i = 0; i < 12; i++) { const t = tones.includes(i) ? (i === tones[0] ? 1.4 : 1) : 0; s += c[i] * t; n += c[i] * c[i]; }
+      best = Math.max(best, s / Math.sqrt(n * (1.4 * 1.4 + 2) + 1e-12));
+    }
+    sum += best;
+  }
+  return sum;
+}
 /** 小節ごとの 12 音（移調済み）→ 度数（少し粘る：同じコードが続きやすい） */
 function chordsOf(barChroma: Float32Array[]): number[] {
   const templ = DIATONIC.map((tones) => { const t = new Float32Array(12); for (const p of tones) t[p] = 1; t[tones[0]] = 1.4; return t; });
@@ -358,6 +383,27 @@ export function analyze(ch: Float32Array[], sr: number, progress?: Progress): Co
     for (let i = p; i < beatsF.length; i += 4) { h += change(i); k += at(F.kick, beatsF[i]); c++; }
     scores[p] = (c ? h / c : 0) * 3 + (c ? k / c : 0) * 0.15;
   }
+  // 区切り方ごとに「1 小節 = 1 つの和音」でどれだけうまく説明できるか（区切りがずれると、2 つの和音が混ざって合わなくなる）
+  for (let p = 0; p < 4; p++) {
+    const barC: Float32Array[] = [];
+    for (let i = p; i + 4 <= beatChroma.length; i += 4) {
+      const c = new Float32Array(12);
+      for (let k = 0; k < 4; k++) for (let j = 0; j < 12; j++) c[j] += beatChroma[i + k][j];
+      barC.push(c);
+    }
+    let fit = 0;
+    for (let t = 0; t < 12; t++) fit = Math.max(fit, chordFit(barC.map((c) => Float32Array.from({ length: 12 }, (_, j) => c[(j + t) % 12]))));
+    scores[p] += barC.length ? (fit / barC.length) * 4 : 0;
+    // ベースの根音が、小節の中でどれだけ同じか（区切りがずれると 2 つの根音が混ざる）
+    let same = 0, nb = 0;
+    for (let i = p; i + 4 <= beatsF.length; i += 4) {
+      const h = new Float32Array(12);
+      let tot = 0;
+      for (let f = Math.round(beatsF[i]); f < Math.min(F.count, Math.round(beatsF[i + 3] + (60 * FPS) / bpm)); f++) if (F.bass[f]) { h[F.bass[f] % 12] += F.bassSal[f]; tot += F.bassSal[f]; }
+      if (tot > 0) { same += Math.max(...h) / tot; nb++; }
+    }
+    scores[p] += nb ? (same / nb) * 3 : 0;
+  }
   let phase = 0;
   for (let p = 1; p < 4; p++) if (scores[p] > scores[phase]) phase = p;
   beatsF = beatsF.slice(phase);
@@ -373,40 +419,10 @@ export function analyze(ch: Float32Array[], sr: number, progress?: Progress): Co
   };
 
   progress?.(0.75, '調とコードを調べています');
-  // 調（曲全体の 12 音）
-  const total = new Float32Array(12);
-  for (let f = 0; f < F.count; f++) for (let i = 0; i < 12; i++) total[i] += F.chroma[f][i];
-  const key = detectKey(total);
-  const toC = (((key.minor ? 9 : 0) - key.tonic) % 12 + 12) % 12;
-  const shift = toC > 6 ? toC - 12 : toC;
-  // 小節ごとの 12 音（移調済み）と大きさ
-  const barChroma: Float32Array[] = [], chordIn: Float32Array[] = [], barRms: number[] = [], feat: Float32Array[] = [];
-  for (let b = 0; b < bars; b++) {
-    const f0 = Math.round(beatFrame(b * 4)), f1 = Math.round(beatFrame(b * 4 + 4));
-    const c = new Float32Array(12);
-    let r = 0, kk = 0, sn = 0, hh = 0;
-    for (let f = Math.max(0, f0); f < Math.min(F.count, f1); f++) {
-      for (let i = 0; i < 12; i++) c[(i + toC) % 12] += F.chroma[f][i];
-      r += F.rms[f]; kk += F.kick[f]; sn += F.snare[f]; hh += F.hat[f];
-    }
-    const len = Math.max(1, f1 - f0);
-    // コードを決めるときは、ベースの音（根音のことが多い）をもう少し重く
-    const bc = new Float32Array(12);
-    for (let f = Math.max(0, f0); f < Math.min(F.count, f1); f++) if (F.bass[f]) bc[(F.bass[f] + toC) % 12] += F.bassSal[f];
-    let cs0 = 0, bs0 = 0;
-    for (let i = 0; i < 12; i++) { cs0 += c[i]; bs0 += bc[i]; }
-    const forChord = new Float32Array(12);
-    for (let i = 0; i < 12; i++) forChord[i] = c[i] / (cs0 + 1e-9) + (bc[i] / (bs0 + 1e-9)) * 0.35;
-    chordIn.push(forChord);
-    barChroma.push(c);
-    barRms.push(r / len);
-    let cs = 0; for (const v of c) cs += v;
-    feat.push(Float32Array.from([...c].map((v) => v / (cs + 1e-9)).concat([kk / len, sn / len, hh / len, (r / len) * 10])));
-  }
+  const { barRms, feat } = barFeatures(F, beatFrame, bars);
+  const { key, toC, shift, chords, chordNames } = harmonyOf(F, beatFrame, bars);
   const rMax = Math.max(...barRms, 1e-9), rMin = Math.min(...barRms);
   const energy = barRms.map((r) => (r - rMin) / (rMax - rMin + 1e-9));
-  const chords = chordsOf(chordIn);
-  const chordNames = chords.map((d) => `${NOTE_NAMES[((MAJOR_SCALE[d] - toC) % 12 + 12) % 12]}${DEG_NAMES[d]}`);
 
   progress?.(0.85, 'メロディとベースを聞き取っています');
   // ---- メロディ：16 分ごとに、目立つ高さの多数決 ----
@@ -475,4 +491,172 @@ function notesFrom(slots: number[], step: number, onset: (s: number) => boolean,
     out.push(cur);
   });
   return out;
+}
+
+// ================= 2 回目：取り出したボーカルから、メロディを聞き取り直す =================
+/**
+ * 伴奏が混ざらないので、高さを正しく取りやすい。vocal = extractVocal の歌（22.05kHz）。
+ * 拍・移調は 1 回目の解析（a）を使う。歌っている所がほとんど無ければ null（1 回目のままにする）
+ */
+export function melodyFromVocal(vocal: Float32Array, a: CoverAnalysis): CoverNote[] | null {
+  const count = Math.max(1, Math.floor((vocal.length - N) / HOP) + 1);
+  const fft = new FFT(N), mag = new Float32Array(N / 2 + 1), binHz = SR / N;
+  const pitch = new Float32Array(count), sal = new Float32Array(count), rms = new Float32Array(count);
+  for (let f = 0; f < count; f++) {
+    const off = f * HOP;
+    let e = 0;
+    for (let i = 0; i < N; i++) e += vocal[off + i] * vocal[off + i];
+    rms[f] = Math.sqrt(e / N);
+    if (rms[f] < 1e-5) continue;
+    fft.magnitudes(vocal, off, mag);
+    let best = 0, bm = 0;
+    for (let m = 48; m <= 86; m++) {
+      let s = 0;
+      for (let h = 1; h <= 6; h++) {
+        const k = (midiHz(m) * h) / binHz;
+        if (k >= N / 2 - 1) break;
+        s += lin(mag, k) * Math.pow(0.85, h - 1);
+      }
+      // 低い方を少しひいきする（倍音を基音と取りちがえない）
+      if (s > best * 1.08) { best = s; bm = m; }
+    }
+    pitch[f] = bm; sal[f] = best;
+  }
+  // 歌っているか：歌の大きさが、大きい所の 15% 以上
+  const sorted = [...rms].sort((x, y) => x - y);
+  const loud = sorted[Math.floor(sorted.length * 0.95)] ?? 0;
+  if (loud <= 0) return null;
+  const voiced = (f: number) => rms[f] > loud * 0.15 && pitch[f] > 0;
+  // 高さのぶれをならす（前後 2 フレームの中央値）
+  const smooth = new Float32Array(count);
+  for (let f = 0; f < count; f++) {
+    const w: number[] = [];
+    for (let k = -2; k <= 2; k++) if (f + k >= 0 && f + k < count && voiced(f + k)) w.push(pitch[f + k]);
+    w.sort((x, y) => x - y);
+    smooth[f] = voiced(f) && w.length ? w[w.length >> 1] : 0;
+  }
+  // 拍の格子：1 回目の拍（秒）→ フレーム（窓の真ん中の時刻にそろえる）
+  const bf = a.beats.map((t) => (t * SR - N / 2) / HOP);
+  const P = bf.length > 1 ? bf[1] - bf[0] : FPS / 2;
+  const beatFrame = (beat: number) => {
+    const i = Math.floor(beat), fr = beat - i;
+    const x = bf[i] ?? bf[bf.length - 1] + (i - bf.length + 1) * P;
+    const y = bf[i + 1] ?? x + P;
+    return x + (y - x) * fr;
+  };
+  const slots: number[] = [];
+  let voicedSlots = 0;
+  for (let s = 0; s < a.bars * 16; s++) {
+    const f0 = Math.round(beatFrame(s / 4)), f1 = Math.max(f0 + 1, Math.round(beatFrame((s + 1) / 4)));
+    const votes = new Map<number, number>();
+    let v = 0;
+    for (let f = Math.max(0, f0); f < f1 && f < count; f++) if (smooth[f]) { v++; votes.set(smooth[f], (votes.get(smooth[f]) ?? 0) + sal[f]); }
+    let m = 0, mv = 0;
+    votes.forEach((x, k) => { if (x > mv) { mv = x; m = k; } });
+    const on = v * 2 >= f1 - f0 ? m : 0;
+    if (on) voicedSlots++;
+    slots.push(on);
+  }
+  if (voicedSlots < a.bars) return null; // 歌がほとんど無い（インストの曲など）
+  // 音の頭：歌の大きさがぐっと上がった所
+  const onset = (s: number) => {
+    const f = Math.round(beatFrame(s / 4));
+    return (rms[f] ?? 0) > (rms[f - 2] ?? 0) * 1.6 && (rms[f] ?? 0) > loud * 0.2;
+  };
+  return notesFrom(slots, 0.25, onset, a.shift);
+}
+
+// ================= 小節ごとの特徴・調とコード（1 回目は曲から、2 回目は伴奏から） =================
+type BeatFrame = (beat: number) => number;
+function barFeatures(F: Frames, beatFrame: BeatFrame, bars: number): { barRms: number[]; feat: Float32Array[] } {
+  const barRms: number[] = [], feat: Float32Array[] = [];
+  for (let b = 0; b < bars; b++) {
+    const f0 = Math.round(beatFrame(b * 4)), f1 = Math.round(beatFrame(b * 4 + 4));
+    const c = new Float32Array(12);
+    let r = 0, kk = 0, sn = 0, hh = 0;
+    for (let f = Math.max(0, f0); f < Math.min(F.count, f1); f++) {
+      for (let i = 0; i < 12; i++) c[i] += F.chroma[f][i];
+      r += F.rms[f]; kk += F.kick[f]; sn += F.snare[f]; hh += F.hat[f];
+    }
+    const len = Math.max(1, f1 - f0);
+    barRms.push(r / len);
+    let cs = 0; for (const v of c) cs += v;
+    feat.push(Float32Array.from([...c].map((v) => v / (cs + 1e-9)).concat([kk / len, sn / len, hh / len, (r / len) * 10])));
+  }
+  return { barRms, feat };
+}
+
+function harmonyOf(F: Frames, beatFrame: BeatFrame, bars: number) {
+  // 小節ごとの 12 音・ベースの音（まだ移調しない）
+  const rawC: Float32Array[] = [], rawB: Float32Array[] = [];
+  for (let b = 0; b < bars; b++) {
+    const f0 = Math.round(beatFrame(b * 4)), f1 = Math.round(beatFrame(b * 4 + 4));
+    const c = new Float32Array(12), bc = new Float32Array(12);
+    for (let f = Math.max(0, f0); f < Math.min(F.count, f1); f++) {
+      for (let i = 0; i < 12; i++) c[i] += F.chroma[f][i];
+      if (F.bass[f]) bc[F.bass[f] % 12] += F.bassSal[f];
+    }
+    rawC.push(c); rawB.push(bc);
+  }
+  /** 移調（toC 半音）した、コードを決めるための 12 音（ベースの音＝根音のことが多い、を少し重く） */
+  const chordInput = (toC: number) => rawC.map((c, b) => {
+    const bc = rawB[b];
+    let cs = 0, bs = 0;
+    for (let i = 0; i < 12; i++) { cs += c[i]; bs += bc[i]; }
+    const out = new Float32Array(12);
+    for (let i = 0; i < 12; i++) out[(i + toC) % 12] = c[i] / (cs + 1e-9) + (bc[i] / (bs + 1e-9)) * 0.35;
+    return out;
+  });
+  // 調：どの調の 7 つの和音で小節ごとの響きをいちばんうまく説明できるか（12 通り）。
+  // 長調と、同じ和音を使う短調（ハ長調とイ短調など）のどちらかは、曲全体の 12 音のプロファイルで決める
+  const total = new Float32Array(12);
+  for (let f = 0; f < F.count; f++) for (let i = 0; i < 12; i++) total[i] += F.chroma[f][i];
+  let bestT = 0, bestFit = -1;
+  for (let t = 0; t < 12; t++) {
+    // 和音へのなじみ ＋ 調の 7 音に入っている割合（ハ長調とト長調のように、1 音だけちがう調を見分ける）
+    const inp = chordInput((12 - t) % 12);
+    let pure = 0;
+    for (const c of inp) { let inK = 0, all = 0; for (let i = 0; i < 12; i++) { all += c[i]; if (MAJOR_SCALE.includes(i)) inK += c[i]; } pure += all > 0 ? inK / all : 0; }
+    const fit = chordFit(inp) + pure;
+    if (fit > bestFit) { bestFit = fit; bestT = t; }
+  }
+  const prof = detectKey(total);
+  const majC = corr(total, Array.from({ length: 12 }, (_, i) => MAJ[(i - bestT + 12) % 12]));
+  const minT = (bestT + 9) % 12;
+  const minC = corr(total, Array.from({ length: 12 }, (_, i) => MIN[(i - minT + 12) % 12]));
+  const minor = minC > majC;
+  const tonic = minor ? minT : bestT;
+  const key = { tonic, minor, name: `${NOTE_NAMES[tonic]}${minor ? 'm' : ''}`, confidence: prof.confidence };
+  const toC = (12 - bestT) % 12;
+  const shift = toC > 6 ? toC - 12 : toC;
+  const chords = chordsOf(chordInput(toC));
+  const chordNames = chords.map((d) => `${NOTE_NAMES[((MAJOR_SCALE[d] - toC) % 12 + 12) % 12]}${DEG_NAMES[d]}`);
+  return { key, toC, shift, chords, chordNames };
+}
+
+/** 拍（秒）→ フレーム（窓の真ん中の時刻にそろえる）の格子 */
+function gridOf(a: CoverAnalysis): BeatFrame {
+  const bf = a.beats.map((t) => (t * SR - N / 2) / HOP);
+  const P = bf.length > 1 ? bf[1] - bf[0] : FPS / 2;
+  return (beat: number) => {
+    const i = Math.floor(beat), fr = beat - i;
+    const x = bf[i] ?? bf[bf.length - 1] + (i - bf.length + 1) * P;
+    const y = bf[i + 1] ?? x + P;
+    return x + (y - x) * fr;
+  };
+}
+
+/**
+ * 2 回目：取り出した伴奏（歌を抜いたもの）から、調とコードを決め直す。
+ * 歌の倍音（とくに 5 度上）に引っぱられないので、コードが正しく取りやすい。調が変われば、メロディ・ベースの移調も直す
+ */
+export function refineHarmony(inst: Float32Array, a: CoverAnalysis): void {
+  let e = 0;
+  for (let i = 0; i < inst.length; i += 7) e += inst[i] * inst[i];
+  if (e / (inst.length / 7) < 1e-7) return; // 伴奏がほとんど無い（アカペラなど）
+  const F = frames(inst);
+  const h = harmonyOf(F, gridOf(a), a.bars);
+  const d = h.shift - a.shift;
+  a.key = h.key; a.shift = h.shift; a.chords = h.chords; a.chordNames = h.chordNames;
+  if (d) { for (const n of a.melody) n.midi += d; for (const n of a.bass) n.midi = 36 + (((n.midi + d - 36) % 12) + 12) % 12; }
 }

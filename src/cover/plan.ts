@@ -5,10 +5,13 @@ import type { Plan, PlannedSection } from '../compose/plan';
 import { styleOf } from '../compose/styles';
 import type { ComposeSettings } from '../compose/types';
 import type { CoverAnalysis, CoverDrumBar, CoverNote } from './analyze';
+import type { CoverKit } from './sampling';
 
 /** 曲データに残すカバーの元（音そのものは残さない。作り直し・セクションの作り直しに使う） */
 export interface CoverSource extends Omit<CoverAnalysis, 'beats' | 'pitch'> {
   title: string;
+  /** サンプラーで使う、元の曲から切り出した音（MANEKKO が作ったバンク） */
+  samplerKit?: { bank: number; kit: CoverKit };
   /** 使う範囲（小節）。to は含まない */
   from: number;
   to: number;
@@ -19,6 +22,7 @@ export interface CoverPart {
   melody: CoverNote[];
   bass: CoverNote[];
   drums: CoverDrumBar[];
+  samplerKit?: { bank: number; kit: CoverKit };
 }
 
 /** 解析結果から、曲データに残す元を作る（拍の時刻・フレームごとの高さは大きいので捨てる） */
@@ -40,6 +44,7 @@ export function coverPlan(settings: ComposeSettings, src: CoverSource): Plan {
     melody: src.melody.filter(inRange).map(move),
     bass: src.bass.filter(inRange).map(move),
     drums: src.drums.slice(from, to),
+    samplerKit: src.samplerKit,
   };
   // 構成：範囲で切る。メロディのあるセクションは「イントロ（メロディを休む）」にしない
   const sections: PlannedSection[] = [];

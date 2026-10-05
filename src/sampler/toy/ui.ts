@@ -264,6 +264,8 @@ export function mountSamplerToy(api: HostApi): ToyUI {
   }
   q('[data-a="reload"]').addEventListener('click', () => void load());
   void load();
+  // MANEKKO（カバー）が元の曲の音をバンクに入れたとき：読み直して、終わったら知らせる
+  window.addEventListener('bentpc:sampler-store', () => { void load().then(() => window.dispatchEvent(new Event('bentpc:sampler-loaded'))); });
 
   // ---- 叩く ----
   const down = (i: number) => {

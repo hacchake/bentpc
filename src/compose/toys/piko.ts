@@ -64,10 +64,10 @@ export function composePiko(ctx: PartContext): Part[] {
     // ---- lead：セクションの種類ごとのモチーフ ----
     if (sec.kind !== 'intro' || style === 'plain') {
       if (!motifs.has(sec.kind)) motifs.set(sec.kind, makeMotif(ctx.rng(`motif-${sec.kind}`), plan.style.notesPerBar * (0.5 + 0.6 * sec.energy)));
-      for (const n of realize(plan, sec, motifs.get(sec.kind)!, [4, 14], { stretch: style === 'ambient' ? 2 : 1 })) lead.note(key(degToMidi(n.deg, 60)), n.t, n.len);
+      for (const n of realize(plan, sec, motifs.get(sec.kind)!, [4, 14], { stretch: style === 'ambient' ? 2 : 1 })) lead.note(key(degToMidi(n.deg, 60) + (n.acc ?? 0)), n.t, n.len);
     } else {
       // イントロはベースの音だけ
-      for (const n of bassLine(plan, sec, rl)) lead.note(key(degToMidi(n.deg, 48)), n.t, n.len);
+      for (const n of bassLine(plan, sec, rl)) lead.note(key(degToMidi(n.deg, 48) + (n.acc ?? 0)), n.t, n.len);
     }
 
     // ---- rhythm：盛り上がるセクションでは内蔵リズムを回す ----

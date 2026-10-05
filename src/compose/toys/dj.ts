@@ -67,10 +67,10 @@ export function composeDj(ctx: PartContext): Part[] {
 
     // ---- keys：静かなセクションはベース、にぎやかなセクションはメロディ ----
     if (sec.energy < 0.45 || sec.kind === 'break') {
-      for (const n of bassLine(plan, sec, rk)) keys.note(key(degToMidi(n.deg, 48)), n.t, n.len);
+      for (const n of bassLine(plan, sec, rk)) keys.note(key(degToMidi(n.deg, 48) + (n.acc ?? 0)), n.t, n.len);
     } else {
       const motif = makeMotif(ctx.rng(`motif-${sec.kind}`), plan.style.notesPerBar * (0.5 + 0.5 * sec.energy));
-      for (const n of realize(plan, sec, motif, [0, 7], { stretch: style === 'ambient' ? 2 : 1 })) keys.note(key(degToMidi(n.deg, 60)), n.t, n.len);
+      for (const n of realize(plan, sec, motif, [0, 7], { stretch: style === 'ambient' ? 2 : 1 })) keys.note(key(degToMidi(n.deg, 60) + (n.acc ?? 0)), n.t, n.len);
     }
 
     // ---- rhythm：盛り上がるセクションで回す。4 小節ごとに頭から ----

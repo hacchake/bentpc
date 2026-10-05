@@ -11,7 +11,10 @@ import { defaultComposer } from '../../compose/rules';
 import { STYLE_IDS, styleOf } from '../../compose/styles';
 import type { CoverAnalysis } from '../../cover/analyze';
 import { coverSource } from '../../cover/plan';
-import { alignToGrid } from '../../cover/vocal';
+import { alignToGrid, pitchShift } from '../../cover/vocal';
+import { sampleBank, type CoverKit } from '../../cover/sampling';
+import { loadAll, savePads } from '../../sampler/store';
+import { BANKS, defaultPad } from '../../sampler/dsp/types';
 import { MANEKKO_PARAMS, MK, MK_MAX_BARS, type ManekkoDisplay, type ManekkoTape } from './engine';
 import AnalyzeWorker from './worker.ts?worker&inline';
 
@@ -34,7 +37,7 @@ const HELP = `
   <tr><td>FROM・TO</td><td>使う範囲（小節）</td></tr>
   <tr><td>VOCAL ON</td><td>カバーに元の歌（取り出したボーカル）を重ねる</td></tr>
   <tr><td>COVER!</td><td>カバーを作ってシーケンサーに入れ、頭から鳴らす。押すたびに少し違うカバー</td></tr>
-  <tr><td>▶ 原曲</td><td>押している間、元の曲を鳴らす（聞きくらべ）</td></tr>
+  <tr><td>▶ 原曲</td><td>押している間、元の曲を鳴らす（聞きくらべ。カバーと同じ調に合わせてある）</td></tr>
   <tr><td>ツマミ</td><td>VOL・VOCAL（歌）・KARAOKE（伴奏）・ORIGINAL（元の曲）の大きさ、WOW（テープのよれ）・LO-FI（こもり）・ECHO・CHAOS（カバーの壊れ度）</td></tr>
   <tr><td>STUTTER</td><td>押している間、テープが同じ所をくり返す</td></tr>
 </table>
@@ -59,7 +62,7 @@ async function loadFile(): Promise<{ blob: Blob; name: string } | null> {
   } catch { return null; }
 }
 
-interface Settings { kinds: ToyKind[]; style: string; chaos: number; vocalOn: boolean; from: number; to: number }
+interface Settings { kinds: ToyKind[]; style: string; chaos: number; vocalOn: boolean; from: number; to: number; sampled?: { key: string; bank: number; kit: CoverKit } }
 
 export function mountManekko(api: HostApi): ToyUI {
   const root = document.createElement('div');
@@ -103,7 +106,7 @@ export function mountManekko(api: HostApi): ToyUI {
   // ---- 解析の状態 ----
   let title = '';
   let analysis: CoverAnalysis | null = null;
-  let sep: { sr: number; vocal: Float32Array; inst: Float32Array; orig: Float32Array } | null = null;
+  let sep: { sr: number; vocal: Float32Array; inst: Float32Array; orig: Float32Array; hi: Float32Array; hiSr: number } | null = null;
   let busy: { f: number; what: string } | null = null;
   let errMsg = '';
   let coverFrom = 0; // いまのテープの範囲の頭（小節）
@@ -187,7 +190,7 @@ export function mountManekko(api: HostApi): ToyUI {
         if (m.type === 'progress') { busy = { f: m.f, what: m.what }; draw(); }
         else if (m.type === 'done') {
           w.terminate();
-          analysis = m.analysis; sep = { sr: m.sr, vocal: m.vocal, inst: m.inst, orig: m.orig }; busy = null;
+          analysis = m.analysis; sep = { sr: m.sr, vocal: m.vocal, inst: m.inst, orig: m.orig, hi: m.hi, hiSr: m.hiSr }; busy = null;
           syncRange(); render();
         } else if (m.type === 'error') { w.terminate(); busy = null; errMsg = m.message; render(); }
       };
@@ -203,11 +206,41 @@ export function mountManekko(api: HostApi): ToyUI {
   const makeTape = (from: number, to: number): ManekkoTape | null => {
     if (!analysis || !sep) return null;
     const bpm = Math.round(analysis.bpm);
-    const al = (x: Float32Array) => alignToGrid(x, sep!.sr, analysis!.beats, bpm, from, to);
+    // 拍をカバーにそろえて、調もカバー（ハ長調・イ短調）に合わせる
+    const al = (x: Float32Array) => pitchShift(alignToGrid(x, sep!.sr, analysis!.beats, bpm, from, to), sep!.sr, analysis!.shift);
     return { kind: 'tape', sr: sep.sr, bpm, vocal: al(sep.vocal), inst: al(sep.inst), orig: al(sep.orig) };
   };
   const sendTape = () => { if (tape) api.post({ type: 'custom', key: 'tape', data: tape }); };
-  q('[data-a="cover"]').addEventListener('click', () => {
+  // ---- PAKU-PAKU 16 に、元の曲から切り出した 16 音を入れる（空いているバンクか、前に MANEKKO が使ったバンク） ----
+  const songKey = () => `${title}|${analysis?.duration.toFixed(1)}`;
+  async function ensureSampled(): Promise<{ bank: number; kit: CoverKit } | null> {
+    if (!analysis || !sep) return null;
+    const stored = (await loadAll()) ?? [];
+    const ours = (b: number) => stored.filter((p) => p.pad >= b * 16 && p.pad < b * 16 + 16 && p.sample).every((p) => p.name.startsWith('♪'));
+    // 同じ曲で、そのバンクがまだ MANEKKO のものなら、作り直さない
+    if (st.sampled && st.sampled.key === songKey() && stored.some((p) => p.pad >= st.sampled!.bank * 16 && p.pad < st.sampled!.bank * 16 + 16 && p.name.startsWith('♪')) && ours(st.sampled.bank)) return st.sampled;
+    let bank = -1;
+    for (let b = BANKS - 1; b >= 7; b--) if (ours(b)) { bank = b; break; }
+    if (bank < 0) { errMsg = 'サンプラーに空きバンクが無いので、工場出荷の音で弾きます'; return null; }
+    busy = { f: 0.5, what: 'PAKU-PAKU に音を切り出しています' };
+    draw();
+    await new Promise((r) => setTimeout(r, 30));
+    const { pads, kit } = sampleBank(analysis, { hi: sep.hi, hiSr: sep.hiSr, vocal: sep.vocal, inst: sep.inst, sr: sep.sr });
+    await savePads(pads.map((pd, i) => ({ pad: bank * 16 + i, name: pd?.name ?? '', params: { ...defaultPad(), ...pd?.params }, sample: pd?.buf ?? null })));
+    // ページにいる PAKU-PAKU 16 に読み直してもらう（読み終わるまで待つ）
+    await new Promise<void>((res) => {
+      const done = () => { window.removeEventListener('bentpc:sampler-loaded', done); res(); };
+      window.addEventListener('bentpc:sampler-loaded', done);
+      window.dispatchEvent(new Event('bentpc:sampler-store'));
+      setTimeout(done, 2500);
+    });
+    busy = null;
+    st.sampled = { key: songKey(), bank, kit };
+    saveSt();
+    return st.sampled;
+  }
+  q('[data-a="cover"]').addEventListener('click', () => void doCover());
+  async function doCover(): Promise<void> {
     void api.start();
     const host = api.songHost;
     if (!analysis || !host) { errMsg = analysis ? 'ここではカバーを作れません' : '先に ⏏ LOAD で曲を入れてね'; draw(); return; }
@@ -216,14 +249,16 @@ export function mountManekko(api: HostApi): ToyUI {
     if (!toys.some((t) => t.kind !== 'manekko')) { errMsg = 'カバーを弾くおもちゃを 1 つ以上選んでね'; draw(); return; }
     const from = Math.min(st.from, bars() - 1), to = Math.max(from + 1, Math.min(st.to || bars(), bars()));
     const seed = (Date.now() % 900000) + 1;
-    const song = defaultComposer().compose({ settings: { seed, style: st.style, chaos: st.chaos, lengthSec: 60, bpm: Math.round(analysis.bpm) }, toys, cover: coverSource(analysis, title, from, to) });
+    errMsg = '';
+    // サンプラーが弾くなら、元の曲の音を切り出して使う（再現度を上げる）
+    const sampled = toys.some((t) => t.kind === 'sampler') ? await ensureSampled() : null;
+    const song = defaultComposer().compose({ settings: { seed, style: st.style, chaos: st.chaos, lengthSec: 60, bpm: Math.round(analysis.bpm) }, toys, cover: { ...coverSource(analysis, title, from, to), ...(sampled ? { samplerKit: sampled } : {}) } });
     coverFrom = from;
     tape = makeTape(from, to);
     sendTape();
-    errMsg = '';
     host.load(song, true);
     render();
-  });
+  }
   // ▶ 原曲：押している間、いまの範囲の頭から元の曲だけ
   let origHeld = false;
   momentary(q('[data-a="orig"]'), () => {

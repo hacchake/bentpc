@@ -655,4 +655,8 @@ export const EN_APP: Record<string, string> = {
   '音を分けています': 'Splitting the sound',
   'このファイルは読めませんでした（{0}）': 'Could not read this file ({0})',
   '長い曲なので、最初の 8 分だけ使います': 'This song is long, so only the first 8 minutes are used',
+  '押している間、元の曲を鳴らす（聞きくらべ。カバーと同じ調に合わせてある）': 'Plays the original song while held (to compare; moved to the same key as the cover)',
+  'メロディを聞き取り直しています': 'Listening to the melody again',
+  'サンプラーに空きバンクが無いので、工場出荷の音で弾きます': 'The sampler has no free bank, so the factory sounds are used',
+  'PAKU-PAKU に音を切り出しています': 'Cutting sounds for PAKU-PAKU',
 };

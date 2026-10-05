@@ -6,6 +6,7 @@
 //   4. 解析したメロディの高さの倍音の近く（歌っていない所は小さく）
 // 残りは「伴奏（カラオケ）」。どちらも 22.05kHz のモノラル。専用の AI ほどきれいには分かれない（残響・ほかの楽器が少し混ざる）。
 import { FFT } from './fft';
+import { stretch } from '../sampler/dsp/edit';
 
 const SR = 22050;
 const N = 2048;
@@ -142,6 +143,22 @@ export function alignToGrid(x: Float32Array, sr: number, beats: number[], bpm: n
     const beat = from * 4 + i / sr / spb;
     const p = srcTime(beat) * sr, i0 = Math.floor(p), f = p - i0;
     out[i] = i0 >= 0 && i0 + 1 < x.length ? x[i0] * (1 - f) + x[i0 + 1] * f : 0;
+  }
+  return out;
+}
+
+/**
+ * 音程だけを半音 semis ずらす（長さはそのまま）。カバーはハ長調で弾くので、元の歌のテープもハ長調に移して重ねる。
+ * サンプラーのタイムストレッチ（WSOLA、音程そのままで伸ばす）で 2^(semis/12) 倍に伸ばしてから、元の長さに縮めて読む
+ */
+export function pitchShift(x: Float32Array, sr: number, semis: number): Float32Array {
+  if (!semis) return x;
+  const r = Math.pow(2, semis / 12);
+  const long = stretch({ sr, ch: [x] }, r).ch[0];
+  const out = new Float32Array(x.length);
+  for (let i = 0; i < out.length; i++) {
+    const p = i * r, i0 = Math.floor(p), f = p - i0;
+    out[i] = i0 + 1 < long.length ? long[i0] * (1 - f) + long[i0 + 1] * f : 0;
   }
   return out;
 }

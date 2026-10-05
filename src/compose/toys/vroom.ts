@@ -43,7 +43,7 @@ export function composeVroom(ctx: PartContext): Part[] {
 
     // ---- engine：点火の音程でベース。静かなセクションはアイドリングのまま ----
     if (sec.energy >= 0.3) {
-      for (const n of bassLine(plan, sec, re)) engine.note(engineKey(degToMidi(n.deg, 36)), n.t, n.len * (style === 'ambient' ? 1 : 0.9));
+      for (const n of bassLine(plan, sec, re)) engine.note(engineKey(degToMidi(n.deg, 36) + (n.acc ?? 0)), n.t, n.len * (style === 'ambient' ? 1 : 0.9));
     }
 
     // ---- dash ----

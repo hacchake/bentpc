@@ -1295,6 +1295,11 @@ $('pk-cover').addEventListener('pointerdown', () => {
       host.post({ type: 'params', pad: s.pad, p: params[s.pad] });
     }
   } else loadFactory();
+  // このページを開く前に、ほかのページ（MANEKKO など）がパッドだけ保存していたとき：工場出荷の音（A〜G）の空いている所を埋める
+  if (!savedMeta && stored && stored.length) {
+    const has = new Set(stored.filter((x) => x.sample).map((x) => x.pad));
+    for (let b = 0; b < FACTORY_BANKS; b++) factoryBank(b).forEach((f, i) => { if (!has.has(b * PADS + i)) setPad(b * PADS + i, f.name, f.buf, factoryParams(f)); });
+  }
   let added = 0;
   if ((meta.factoryVer ?? 1) < 2) {
     meta.factoryVer = 2;

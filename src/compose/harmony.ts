@@ -41,7 +41,8 @@ export function makeMotif(r: Rng, notesPerBar: number): Motif {
   return { rhythm, steps: rhythm.map(() => r.pick([-2, -1, -1, 1, 1, 2, 0, 3, -3])), rests: rhythm.map(() => r.chance(0.08)) };
 }
 
-export interface MelNote { t: number; len: number; deg: number }
+/** acc：半音のずれ（カバーで、白鍵に無い音を弾くため。degToMidi に足す） */
+export interface MelNote { t: number; len: number; deg: number; acc?: number }
 /**
  * モチーフでセクションを埋める。range = 使える音階の段の範囲（0 = ド）。
  * 2 回目は終わりを変え、4 回目は少し高く始める。拍の頭はコードの音にそろえ、スタイルの音階に入れる。
@@ -145,10 +146,11 @@ export function midiToDeg(midi: number): number {
 function coverNotes(plan: Plan, notes: { t: number; len: number; midi: number }[], sec: PlannedSection, range: [number, number], gate: number): MelNote[] {
   const a = sec.start, b = sec.start + sec.bars * 4;
   return notes.filter((n) => n.t >= a && n.t < b).map((n) => {
-    let deg = snapToScale(plan, midiToDeg(n.midi));
-    while (deg > range[1]) deg -= 7;
-    while (deg < range[0]) deg += 7;
-    return { t: n.t, len: Math.max(0.1, Math.min(n.len, b - n.t) * gate), deg };
+    // カバーはスタイルの音階に寄せない（元の曲の音のまま）。白鍵に無い音は acc（半音）で持つ
+    let deg = midiToDeg(n.midi), midi = n.midi;
+    while (deg > range[1]) { deg -= 7; midi -= 12; }
+    while (deg < range[0]) { deg += 7; midi += 12; }
+    return { t: n.t, len: Math.max(0.1, Math.min(n.len, b - n.t) * gate), deg, acc: midi - degToMidi(deg, 60) };
   });
 }
 

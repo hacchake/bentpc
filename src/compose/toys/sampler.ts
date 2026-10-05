@@ -10,6 +10,7 @@ import { bassLine, chordDegs, compHits, degToMidi, drumBar, makeMotif, realize, 
 import { powerAndCrash, type Part, type PartContext } from '../context';
 import type { PlannedSection } from '../plan';
 import { PartWriter } from '../writer';
+import type { CoverKit } from '../../cover/sampling';
 import { BASS_KEY, BASS_ROOT_KEY, CHORD_KEY, CHORD_ROOT_KEY, EXTRA_KEY, MELO_KEY, MELO_ROOT_KEY, SP } from '../../sampler/toy/engine';
 
 /** 音程のある楽器：[パッド, 元の高さ（MIDI）] */
@@ -80,6 +81,20 @@ const KITS: Record<string, Partial<Kit>> = {
 /** スタイルの楽器セット（表に無いスタイルは、おもちゃの音 = バンク A・B） */
 export const samplerKit = (style: string): Kit => ({ ...TOY, ...KITS[style] });
 
+/** カバー：元の曲から切り出した音（バンク bank の 0〜15）で、楽器セットを置き換える（無い音はスタイルの楽器のまま） */
+function withSampled(base: Kit, bank: number, k: CoverKit): Kit {
+  const at = (slot: number, fallback: number) => (slot >= 0 ? bank * 16 + slot : fallback);
+  const inst = (v: [number, number] | undefined, fallback: Inst): Inst => (v ? [bank * 16 + v[0], v[1]] : fallback);
+  return {
+    ...base,
+    kick: at(k.kick, base.kick), snare: at(k.snare, base.snare), hat: at(k.hat, base.hat), ohat: at(k.ohat, base.ohat),
+    clap: at(k.clap, base.clap), crash: at(k.crash, base.crash), riser: at(k.riser, base.riser), vox: at(k.vox, base.vox),
+    melo: inst(k.melo, base.melo), bass: inst(k.bass, base.bass), chord: inst(k.chordMaj ?? k.chordMin, base.chord),
+    // 持ち替え・イントロの楽器は使わない（切り出した音でそろえる）
+    hook: undefined, intro: undefined, chordHook: k.chordMaj || k.chordMin ? undefined : base.chordHook,
+  };
+}
+
 const BOOT_BEATS = 1;
 const clamp = (k: number, lo: number, hi: number) => Math.max(lo, Math.min(hi - 1, k));
 /** 弾きたい高さ → キー（元の高さとの差。[down, up] 半音に収まらなければオクターブで折り返す。録った音は元の高さの近くがいちばん自然） */
@@ -104,7 +119,10 @@ export function composeSampler(ctx: PartContext): Part[] {
   const chords = new PartWriter(ctx.toy, 'sampler:chords', 'PAKU-PAKU 和音');
   const mods = new PartWriter(ctx.toy, 'sampler:mods', 'PAKU-PAKU 改造パーツ');
   const st = plan.style;
-  const kit = samplerKit(st.id);
+  // カバーで、元の曲から切り出した音（MANEKKO が作ったバンク）があれば、それを使う
+  const sk = plan.cover?.samplerKit;
+  const kit = sk ? withSampled(samplerKit(st.id), sk.bank, sk.kit) : samplerKit(st.id);
+  const sampledChords = sk && (sk.kit.chordMaj || sk.kit.chordMin) ? { maj: sk.kit.chordMaj ?? sk.kit.chordMin!, min: sk.kit.chordMin ?? sk.kit.chordMaj!, base: sk.bank * 16 } : null;
   const motifs = new Map<string, ReturnType<typeof makeMotif>>();
   const hit = (w: PartWriter, pad: number, t: number, len = 0.2) => { if (pad >= 0) w.note(pad, t, len); };
 
@@ -151,7 +169,7 @@ export function composeSampler(ctx: PartContext): Part[] {
     if (sec.energy >= 0.3 || sec.kind === 'break') {
       for (const n of bassLine(plan, sec, rb)) {
         if (st.id === 'dub' && rb.chance(0.08)) continue;
-        bass.note(bassKey(degToMidi(n.deg, 36), kit.bass), n.t, Math.max(0.1, n.len * 0.9));
+        bass.note(bassKey(degToMidi(n.deg, 36) + (n.acc ?? 0), kit.bass), n.t, Math.max(0.1, n.len * 0.9));
       }
     }
 
@@ -170,7 +188,7 @@ export function composeSampler(ctx: PartContext): Part[] {
       useMelo(hook ? kit.hook! : kit.melo, s0);
       const sh = meloShift(melo);
       for (const n of realize(plan, sec, motifs.get(sec.kind)!, [4, 13], { stretch: st.id === 'ambient' ? 2 : 1 })) {
-        melody.note(meloKey(degToMidi(n.deg, 60) + sh, melo), n.t, n.len);
+        melody.note(meloKey(degToMidi(n.deg, 60) + (n.acc ?? 0) + sh, melo), n.t, n.len);
       }
     }
 
@@ -192,6 +210,17 @@ export function composeSampler(ctx: PartContext): Part[] {
       } else hits = compHits(plan, sec).filter(() => !rm.chance(sec.energy > 0.7 ? 0.15 : 0.35)); // 少し間引いて、メロディを邪魔しない
       for (const h of hits) {
         if (st.id === 'dub' && rm.chance(0.15)) continue;
+        // 切り出した和音：長調の和音・短調の和音のパッドを持ち替えて、根音だけ鳴らす（音そのものが和音）
+        if (sampledChords) {
+          const minor = [1, 2, 5, 6].includes(((h.degs[0] % 7) + 7) % 7);
+          const [slot, root] = minor ? sampledChords.min : sampledChords.maj;
+          useChord([sampledChords.base + slot, root], h.t);
+          let m = degToMidi(h.degs[0], 48);
+          while (m < root - 6) m += 12;
+          while (m > root + 6) m -= 12;
+          chords.note(chordKey(m, chord), h.t, h.len);
+          continue;
+        }
         if (kit.power) { chords.note(chordKey(lift(degToMidi(h.degs[0], 48)), chord), h.t, h.len); continue; }
         // 和音の音を低い方から積む（まとまった響きに）
         let prev = -1;
