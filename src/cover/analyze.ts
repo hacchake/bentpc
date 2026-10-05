@@ -9,6 +9,9 @@ export interface CoverNote { t: number; len: number; midi: number }
 export interface CoverDrumBar { kick: string; snare: string; hat: string }
 export interface CoverSection { start: number; bars: number; energy: number; kind: SectionKind; name: string }
 
+/** コード 1 つ：根音（ハ長調に移した音名 0〜11）と種類 */
+export interface ChordQ { root: number; q: 'maj' | 'min' | 'dim' }
+
 export interface CoverAnalysis {
   /** 曲の長さ（秒） */
   duration: number;
@@ -25,6 +28,8 @@ export interface CoverAnalysis {
   chords: number[];
   /** 半小節（2 拍）ごとのコード（度数）。小節の途中でコードが変わる曲用。chords は各小節の頭のもの */
   chordsHalf?: number[];
+  /** 半小節ごとのコードの中身（ハ長調に移した根音 0〜11 と、長・短・減）。調の外のコード（III の長三和音・♭VII など）も表せる */
+  chordQ?: ChordQ[];
   /** 小節ごとのコードの名前（元の調で） */
   chordNames: string[];
   melody: CoverNote[];
@@ -324,6 +329,60 @@ function chordFit(barChroma: Float32Array[]): number {
   }
   return sum;
 }
+// ---------------- 調の外のコードも読む（12 の根音 × 長・短、と減三和音） ----------------
+const QUALS = [['maj', [0, 4, 7]], ['min', [0, 3, 7]], ['dim', [0, 3, 6]]] as const;
+/** 状態 = 根音 × 3 + 種類（0 = 長、1 = 短、2 = 減） */
+const CHORD_STATES = Array.from({ length: 36 }, (_, i) => ({ root: Math.floor(i / 3), q: QUALS[i % 3][0] as ChordQ['q'], tones: QUALS[i % 3][1].map((x) => (x + Math.floor(i / 3)) % 12) }));
+/** 調（ハ長調に移した後）の 7 つの和音か */
+const diatonicDeg = (c: ChordQ): number => {
+  for (let d = 0; d < 7; d++) if (MAJOR_SCALE[d] === c.root && ['maj', 'min', 'min', 'maj', 'maj', 'min', 'dim'][d] === c.q) return d;
+  return -1;
+};
+/**
+ * 12 音（移調済み）の並び → コードの並び（ビタビ）。inKey = 調の 7 つの和音を少しひいきする量（0 なら調を気にしない）。
+ * 減三和音は調の中（B°）だけ使う（調の外の減三和音は、たいてい別のコードの聞きまちがい）
+ */
+function chords24(chroma: Float32Array[], changeCost: (i: number) => number, inKey: number): ChordQ[] {
+  const n = chroma.length;
+  if (!n) return [];
+  const S = CHORD_STATES.length;
+  const score = chroma.map((c) => {
+    let nn = 0;
+    for (let i = 0; i < 12; i++) nn += c[i] * c[i];
+    return CHORD_STATES.map((st) => {
+      const dia = diatonicDeg(st) >= 0;
+      if (st.q === 'dim' && (!dia || inKey === 0)) return -9;
+      let sc = 0;
+      for (let k = 0; k < 3; k++) sc += c[st.tones[k]] * (k === 0 ? 1.4 : 1);
+      return sc / Math.sqrt(nn * (1.4 * 1.4 + 2) + 1e-12) + (dia ? inKey : 0);
+    });
+  });
+  const dp = score.map(() => new Float64Array(S)), bk = score.map(() => new Int16Array(S));
+  for (let j = 0; j < S; j++) dp[0][j] = score[0][j];
+  for (let i = 1; i < n; i++) {
+    const cost = changeCost(i);
+    let bestPrev = 0;
+    for (let j = 1; j < S; j++) if (dp[i - 1][j] > dp[i - 1][bestPrev]) bestPrev = j;
+    for (let j = 0; j < S; j++) {
+      const stay = dp[i - 1][j], move = dp[i - 1][bestPrev] - cost;
+      if (stay >= move) { dp[i][j] = stay + score[i][j]; bk[i][j] = j; } else { dp[i][j] = move + score[i][j]; bk[i][j] = bestPrev; }
+    }
+  }
+  let j = 0;
+  for (let k = 1; k < S; k++) if (dp[n - 1][k] > dp[n - 1][j]) j = k;
+  const out: ChordQ[] = new Array(n);
+  for (let i = n - 1; i >= 0; i--) { out[i] = { root: CHORD_STATES[j].root, q: CHORD_STATES[j].q }; j = bk[i][j]; }
+  return out;
+}
+/** コード → いちばん近い度数（調の外のものは、根音が同じか半音上の白鍵の度数） */
+export function degreeOf(c: ChordQ): number {
+  const d = diatonicDeg(c);
+  if (d >= 0) return d;
+  const at = MAJOR_SCALE.indexOf(c.root);
+  return at >= 0 ? at : MAJOR_SCALE.indexOf((c.root + 1) % 12);
+}
+const chordName = (c: ChordQ, toC: number) => `${NOTE_NAMES[((c.root - toC) % 12 + 12) % 12]}${c.q === 'min' ? 'm' : c.q === 'dim' ? 'dim' : ''}`;
+
 /** 半小節ごとのコード → 小節ごとのコード（小節の頭のもの） */
 const chords4 = (half: number[]) => half.filter((_, i) => i % 2 === 0);
 /** 小節ごとの 12 音（移調済み）→ 度数（少し粘る：同じコードが続きやすい） */
@@ -490,7 +549,7 @@ export function analyze(ch: Float32Array[], sr: number, progress?: Progress): Co
 
   progress?.(0.75, '調とコードを調べています');
   const { barRms, feat } = barFeatures(F, beatFrame, bars);
-  const { key, toC, shift, chords, chordNames, chordsHalf } = harmonyOf(F, beatFrame, bars);
+  const { key, toC, shift, chords, chordNames, chordsHalf, chordQ } = harmonyOf(F, beatFrame, bars);
   const rMax = Math.max(...barRms, 1e-9), rMin = Math.min(...barRms);
   const energy = barRms.map((r) => (r - rMin) / (rMax - rMin + 1e-9));
 
@@ -546,7 +605,7 @@ export function analyze(ch: Float32Array[], sr: number, progress?: Progress): Co
   const beats = beatsF.slice(0, bars * 4 + 1).map((f) => (f * HOP + N / 2) / SR); // フレームの真ん中の時刻
   progress?.(1, 'できました');
   const pitch = Array.from(F.melody, (m, f) => (F.melSal[f] > voiceTh ? m : 0));
-  return { duration, bpm: Math.round(bpm * 10) / 10, beats, offset: beats[0] ?? 0, bars, key, shift, chords, chordNames, melody, bass, drums, sections, energy, pitch, swing, chordsHalf };
+  return { duration, bpm: Math.round(bpm * 10) / 10, beats, offset: beats[0] ?? 0, bars, key, shift, chords, chordNames, melody, bass, drums, sections, energy, pitch, swing, chordsHalf, chordQ };
 }
 
 /** 枠ごとの高さ（0 = 無し）→ 音符。同じ高さが続けばのばす（出だしがあれば切る）。step = 1 枠の拍 */
@@ -730,6 +789,27 @@ function harmonyOf(F: Frames, beatFrame: BeatFrame, bars: number) {
     const fit = chordFit(inp) + pure;
     if (fit > bestFit) { bestFit = fit; bestT = t; }
   }
+  // 調の外のコードがある曲：まず調を決めずにコードを読み、その並びがいちばん多く「調の 7 つの和音」に入る調にする。
+  // （上の 12 音のなじみ方は、♭VII・III などで別の調に引っぱられることがある。それも少し足して、引き分けを決める）
+  {
+    const raw = chords24(chordInput(0, halfC, halfB), (i) => (i % 2 ? 0.16 : 0.06), 0);
+    let best = -1;
+    for (let t = 0; t < 12; t++) {
+      // 調の 7 つの和音に入る割合 ＋ 主和音（I か vi）がどれだけ長く鳴っているか（曲はたいてい主和音のまわりを回る）
+      let inK = 0, home = 0;
+      for (const c of raw) {
+        const d = diatonicDeg({ root: (c.root - t + 12) % 12, q: c.q });
+        if (d >= 0) inK++;
+        if (d === 0 || d === 5) home++;
+      }
+      inK += 0.6 * home;
+      const inp = chordInput((12 - t) % 12);
+      let pure = 0;
+      for (const c of inp) { let a2 = 0, all = 0; for (let i = 0; i < 12; i++) { all += c[i]; if (MAJOR_SCALE.includes(i)) a2 += c[i]; } pure += all > 0 ? a2 / all : 0; }
+      const sc = inK / Math.max(1, raw.length) + 0.6 * (chordFit(inp) + pure) / Math.max(1, inp.length);
+      if (sc > best) { best = sc; bestT = t; }
+    }
+  }
   const prof = detectKey(total);
   const majC = corr(total, Array.from({ length: 12 }, (_, i) => MAJ[(i - bestT + 12) % 12]));
   const minT = (bestT + 9) % 12;
@@ -740,10 +820,12 @@ function harmonyOf(F: Frames, beatFrame: BeatFrame, bars: number) {
   const toC = (12 - bestT) % 12;
   const shift = toC > 6 ? toC - 12 : toC;
   // 半小節ごとに決める。小節の途中で変えるのは、小節の頭で変えるより粘る（はっきり別の和音に聞こえるときだけ）
-  const chordsHalf = chordsOf(chordInput(toC, halfC, halfB), (i) => (i % 2 ? 0.16 : 0.06));
+  // 調の 7 つの和音を少しひいきして読み直す（調の外のコードは、はっきりそう聞こえるときだけ）
+  const chordQ = chords24(chordInput(toC, halfC, halfB), (i) => (i % 2 ? 0.16 : 0.06), 0.03);
+  const chordsHalf = chordQ.map(degreeOf);
   const chords = chords4(chordsHalf);
-  const chordNames = chords.map((d) => `${NOTE_NAMES[((MAJOR_SCALE[d] - toC) % 12 + 12) % 12]}${DEG_NAMES[d]}`);
-  return { key, toC, shift, chords, chordNames, chordsHalf };
+  const chordNames = chordQ.filter((_, i) => i % 2 === 0).map((c) => chordName(c, toC));
+  return { key, toC, shift, chords, chordNames, chordsHalf, chordQ };
 }
 
 /** 拍（秒）→ フレーム（窓の真ん中の時刻にそろえる）の格子 */
@@ -769,6 +851,6 @@ export function refineHarmony(inst: Float32Array, a: CoverAnalysis): void {
   const F = frames(inst);
   const h = harmonyOf(F, gridOf(a), a.bars);
   const d = h.shift - a.shift;
-  a.key = h.key; a.shift = h.shift; a.chords = h.chords; a.chordNames = h.chordNames; a.chordsHalf = h.chordsHalf;
+  a.key = h.key; a.shift = h.shift; a.chords = h.chords; a.chordNames = h.chordNames; a.chordsHalf = h.chordsHalf; a.chordQ = h.chordQ;
   if (d) { for (const n of a.melody) n.midi += d; for (const n of a.bass) n.midi = 36 + (((n.midi + d - 36) % 12) + 12) % 12; }
 }

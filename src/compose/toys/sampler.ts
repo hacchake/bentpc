@@ -6,7 +6,7 @@
 //   mods   … 電源・クラッシュ・音量・使うパッドの切り替え・BEND（壊れ度）・後付けのツマミ・ワンショット
 // パッドの中身はサンプラーのページで変えられる。工場出荷の並び（factory.ts / factory2.ts）を前提に作る。
 import type { Rng } from '../../core/rng';
-import { bassLine, chordDegs, compHits, degToMidi, drumBar, hitsIn, makeMotif, realize, steps } from '../harmony';
+import { bassLine, chordDegs, compHits, degToMidi, drumBar, hitMidi, hitMinor, hitsIn, makeMotif, realize, steps } from '../harmony';
 import { powerAndCrash, type Part, type PartContext } from '../context';
 import type { PlannedSection } from '../plan';
 import { PartWriter } from '../writer';
@@ -200,7 +200,7 @@ export function composeSampler(ctx: PartContext): Part[] {
       // 和音は楽器の元の高さの 5 度下から上に積む（音程を大きく変えない）
       const low = chord[1] - 7;
       const lift = (m: number) => { while (m < low) m += 12; while (m >= low + 12) m -= 12; return m; };
-      let hits: { t: number; len: number; degs: number[] }[];
+      let hits: { t: number; len: number; degs: number[]; acc?: number[] }[];
       if (pat && sec.energy >= 0.3) {
         hits = [];
         for (let b = 0; b < sec.bars; b++) {
@@ -211,20 +211,20 @@ export function composeSampler(ctx: PartContext): Part[] {
         if (st.id === 'dub' && rm.chance(0.15)) continue;
         // 切り出した和音：長調の和音・短調の和音のパッドを持ち替えて、根音だけ鳴らす（音そのものが和音）
         if (sampledChords) {
-          const minor = [1, 2, 5, 6].includes(((h.degs[0] % 7) + 7) % 7);
+          const minor = hitMinor(h);
           const [slot, root] = minor ? sampledChords.min : sampledChords.maj;
           useChord([sampledChords.base + slot, root], h.t);
-          let m = degToMidi(h.degs[0], 48);
+          let m = hitMidi(h, 0, 48);
           while (m < root - 6) m += 12;
           while (m > root + 6) m -= 12;
           chords.note(chordKey(m, chord), h.t, h.len);
           continue;
         }
-        if (kit.power) { chords.note(chordKey(lift(degToMidi(h.degs[0], 48)), chord), h.t, h.len); continue; }
+        if (kit.power) { chords.note(chordKey(lift(hitMidi(h, 0, 48)), chord), h.t, h.len); continue; }
         // 和音の音を低い方から積む（まとまった響きに）
         let prev = -1;
-        for (const dg of h.degs) {
-          let m = lift(degToMidi(dg, 48));
+        for (let i = 0; i < h.degs.length; i++) {
+          let m = lift(hitMidi(h, i, 48));
           while (m <= prev) m += 12;
           prev = m;
           chords.note(chordKey(m, chord), h.t, h.len);

@@ -15,6 +15,20 @@ export const chordAt = (plan: Plan, bar: number) => {
   if (h?.length) return h[Math.max(0, Math.min(h.length - 1, Math.floor(bar * 2 + 1e-6)))];
   return plan.chords[Math.max(0, Math.min(plan.chords.length - 1, Math.floor(bar + 1e-6)))];
 };
+/** その位置のコードの音のずらし（半音。chordDegs と同じ並び。7 の音はずらさない）。調の中のコードなら undefined */
+export const chordAccAt = (plan: Plan, bar: number, seventh = false): number[] | undefined => {
+  const a = plan.chordAcc;
+  if (!a?.length) return undefined;
+  const v = a[Math.max(0, Math.min(a.length - 1, Math.floor(bar * 2 + 1e-6)))];
+  return v ? (seventh ? [...v, 0] : v) : undefined;
+};
+/** 和音の i 番目の音の高さ（MIDI）。調の外のコードは acc の分ずらす */
+export const hitMidi = (h: { degs: number[]; acc?: number[] }, i: number, base: number) => degToMidi(h.degs[i], base) + (h.acc?.[i] ?? 0);
+/** その和音が短三和音（か減三和音）か：根音から 3 度の音までの半音で */
+export const hitMinor = (h: { degs: number[]; acc?: number[] }) => {
+  if (h.degs.length < 2) return [1, 2, 5, 6].includes(((h.degs[0] % 7) + 7) % 7);
+  return (((hitMidi(h, 1, 60) - hitMidi(h, 0, 60)) % 12) + 12) % 12 === 3;
+};
 /** その小節（小数なら、その位置）のコードの音（音階の段 0〜6）。seventh = 7 の音も */
 export const chordDegs = (plan: Plan, bar: number, seventh = false) => {
   const d = chordAt(plan, bar);
@@ -161,7 +175,7 @@ function coverNotes(plan: Plan, notes: { t: number; len: number; midi: number }[
 }
 
 // ================= 伴奏（コード）：スタイルの弾き方で =================
-export interface CompHit { t: number; len: number; degs: number[] }
+export interface CompHit { t: number; len: number; degs: number[]; acc?: number[] }
 const COMP: Record<string, [number, number][]> = {
   pad: [[0, 3.9]],
   offbeat: [[0.5, 0.25], [1.5, 0.25], [2.5, 0.25], [3.5, 0.25]],
@@ -174,10 +188,11 @@ const COMP: Record<string, [number, number][]> = {
  * 3 拍目をまたぐ長い音を 2 つに分ける
  */
 export function hitsIn(plan: Plan, bar: number, t0: number, o: number, len: number, seventh: boolean): CompHit[] {
-  if (plan.chordsHalf && o < 2 && o + len > 2.05 && chordAt(plan, bar) !== chordAt(plan, bar + 0.5)) {
-    return [{ t: t0 + o, len: 2 - o, degs: chordDegs(plan, bar, seventh) }, { t: t0 + 2, len: o + len - 2, degs: chordDegs(plan, bar + 0.5, seventh) }];
+  const differ = chordAt(plan, bar) !== chordAt(plan, bar + 0.5) || String(chordAccAt(plan, bar)) !== String(chordAccAt(plan, bar + 0.5));
+  if ((plan.chordsHalf || plan.chordAcc) && o < 2 && o + len > 2.05 && differ) {
+    return [{ t: t0 + o, len: 2 - o, degs: chordDegs(plan, bar, seventh), acc: chordAccAt(plan, bar, seventh) }, { t: t0 + 2, len: o + len - 2, degs: chordDegs(plan, bar + 0.5, seventh), acc: chordAccAt(plan, bar + 0.5, seventh) }];
   }
-  return [{ t: t0 + o, len, degs: chordDegs(plan, bar + o / 4, seventh) }];
+  return [{ t: t0 + o, len, degs: chordDegs(plan, bar + o / 4, seventh), acc: chordAccAt(plan, bar + o / 4, seventh) }];
 }
 /** セクションの伴奏：小節ごとのコードを、スタイルの弾き方で（arp は 16 分で 1 音ずつ） */
 export function compHits(plan: Plan, sec: PlannedSection): CompHit[] {
@@ -189,9 +204,10 @@ export function compHits(plan: Plan, sec: PlannedSection): CompHit[] {
     const t0 = sec.start + b * 4;
     if (type === 'arp') {
       for (let i = 0; i < 16; i++) {
-        const degs = chordDegs(plan, bar + i / 16, !!plan.style.sevenths);
+        const degs = chordDegs(plan, bar + i / 16, !!plan.style.sevenths), acc = chordAccAt(plan, bar + i / 16, !!plan.style.sevenths);
         const seq = [...degs, degs[0] + 7, ...degs.slice(1).reverse()];
-        out.push({ t: t0 + i * 0.25, len: 0.22, degs: [seq[i % seq.length]] });
+        const aseq = acc ? [...acc, acc[0], ...acc.slice(1).reverse()] : undefined;
+        out.push({ t: t0 + i * 0.25, len: 0.22, degs: [seq[i % seq.length]], acc: aseq ? [aseq[i % aseq.length]] : undefined });
       }
       continue;
     }

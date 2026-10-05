@@ -3,7 +3,7 @@
 //   lead   … 鍵盤でメロディ（モチーフの繰り返し）
 //   rhythm … 内蔵リズム（TEMPO を曲に合わせて START / STOP）＋ドラムパッド（4 小節目のフィル）
 //   mods   … 電源・クラッシュ・電圧 Starve（AMP / CPU POWER）・FIZZ・DIST・HIPASS・FEEDBACK・ピッチ曲げ・GLITCH・VIBRATO
-import { bassLine, compHits, degToMidi, drumBar, lerp, makeMotif, realize, steps } from '../harmony';
+import { bassLine, compHits, degToMidi, drumBar, lerp, makeMotif, realize, steps, hitMidi } from '../harmony';
 import { powerAndCrash, type Part, type PartContext } from '../context';
 import { PartWriter } from '../writer';
 import { PIKO_INDEX } from '../../toys/piko/params';
@@ -57,8 +57,8 @@ export function composePiko(ctx: PartContext): Part[] {
 
     // ---- chords ----
     // スタイルの弾き方（伸ばす・裏打ち・アルペジオ・ブロック・ボサノバの刻みなど）
-    for (const h of compHits(plan, sec)) for (const d of h.degs) {
-      const m = degToMidi(d, 60);
+    for (const h of compHits(plan, sec)) for (let i = 0; i < h.degs.length; i++) {
+      const m = hitMidi(h, i, 60);
       chords.note(key(m > 71 ? m - 12 : m), h.t, h.len);
     }
     // ---- lead：セクションの種類ごとのモチーフ ----

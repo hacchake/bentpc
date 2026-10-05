@@ -20,6 +20,8 @@ export interface GenOpts {
   reverb?: number;
   /** 頭の無音（秒） */
   lead?: number;
+  /** 調の外のコードを混ぜる（III・II の長三和音、iv の短三和音、♭VII・♭VI） */
+  chromatic?: boolean;
   /** 人が弾いたような揺れ：テンポがゆっくり ±drift 揺れ、音ごとに少しずれる（0〜0.05） */
   drift?: number;
 }
@@ -29,8 +31,10 @@ export interface GenTruth {
   offset: number;
   /** ハ長調（短調はイ短調）に移すときの半音 */
   shift: number;
-  /** 半小節ごとの度数（ハ長調に移した値。0 = C … 5 = Am） */
+  /** 半小節ごとの度数（ハ長調に移した値。0 = C … 5 = Am）。調の外のコードは、根音の近い度数 */
   chordsHalf: number[];
+  /** 半小節ごとのコード（ハ長調に移した根音 0〜11 と、長・短・減） */
+  chordQ: { root: number; q: 'maj' | 'min' | 'dim' }[];
   /** メロディ（拍は最初の小節の頭が 0。midi は元の調） */
   melody: { t: number; len: number; midi: number }[];
   swing: number;
@@ -87,32 +91,50 @@ export function genSong(o: GenOpts): { L: Float32Array; R: Float32Array; vocal: 
     const split = o.halfChords && b % 2 === 1;
     chordsHalf.push(d, split ? prog[(b + 1) % 4] === d ? (d + 3) % 7 : prog[(b + 1) % 4] : d);
   }
-  const tri = (deg: number, base: number) => [0, 2, 4].map((k) => { const d = deg + k; return base + MAJOR[d % 7] + 12 * Math.floor(d / 7) + toTonic; });
+  // コードの音（ハ長調に移した音名 0〜11）。ふつうは度数の三和音、chromatic なら調の外の和音に替える（別の乱数で。ほかの音は変わらない）
+  const degPcs = (d: number) => [0, 2, 4].map((k) => MAJOR[(d + k) % 7]);
+  const pcsHalf = chordsHalf.map(degPcs);
+  if (o.chromatic) {
+    const rc = new Rng(o.seed * 7919 + 13);
+    const SUBS: Record<number, number[][]> = o.minor
+      ? { 4: [[4, 8, 11]], 3: [[5, 8, 0]], 1: [[2, 6, 9]] } // 短調：V（E）・iv（Dm→F の代わりに Fm…）
+      : { 2: [[4, 8, 11]], 1: [[2, 6, 9]], 3: [[5, 8, 0]], 4: [[10, 2, 5]], 5: [[8, 0, 3], [9, 1, 4]] };
+    for (let i = 0; i < pcsHalf.length; i += 2) {
+      const d = chordsHalf[i], sub = SUBS[d];
+      if (!sub || !rc.chance(0.45)) continue;
+      const pick = sub[rc.int(sub.length)];
+      pcsHalf[i] = pick;
+      if (chordsHalf[i + 1] === d) pcsHalf[i + 1] = pick;
+    }
+  }
+  const qOf = (p: number[]) => { const a = (p[1] - p[0] + 12) % 12, b = (p[2] - p[0] + 12) % 12; return a === 4 ? 'maj' : b === 6 ? 'dim' : 'min'; };
+  const chordQ = pcsHalf.map((p) => ({ root: p[0], q: qOf(p) as 'maj' | 'min' | 'dim' }));
+  const triP = (p: number[], base: number) => { const m0 = base + p[0] + toTonic; return [m0, m0 + ((p[1] - p[0] + 12) % 12), m0 + ((p[2] - p[0] + 12) % 12)]; };
   // ---- 伴奏 ----
   for (let b = 0; b < o.bars; b++) {
     for (const half of [0, 1]) {
-      const deg = chordsHalf[b * 2 + half];
+      const pcs = pcsHalf[b * 2 + half];
       const t0 = b * 4 + half * 2;
       // ピアノ（右）：倍音つき、2 拍
       cur = 'piano';
-      for (const m of tri(deg, 48)) {
+      for (const m of triP(pcs, 48)) {
         const x = new Float32Array(Math.round(2 * beat * SR)), f = midiHz(m);
         for (let i = 0; i < x.length; i++) { let v = 0; for (let h = 1; h <= 6; h++) v += Math.sin((2 * Math.PI * f * h * i) / SR) * Math.pow(h, -1.4) * Math.exp((-i / SR) * (1.2 + h * 0.6)); x[i] = v * Math.min(1, i / 60); }
         pan(tOf(t0), x, 0.07, 0.45);
       }
       // ギター（左）：8 分で刻む
       cur = 'guitar';
-      for (let e = 0; e < 4; e++) for (const m of tri(deg, 52)) pan(tOf(t0 + e * 0.5) + 0.004 * m % 0.01, pluck(r, midiHz(m), Math.round(beat * 0.5 * SR), 0.35), 0.06, -0.5);
+      for (let e = 0; e < 4; e++) for (const m of triP(pcs, 52)) pan(tOf(t0 + e * 0.5) + 0.004 * m % 0.01, pluck(r, midiHz(m), Math.round(beat * 0.5 * SR), 0.35), 0.06, -0.5);
       // パッド（真ん中・小さく）
       cur = 'pad';
-      for (const m of tri(deg, 60)) {
+      for (const m of triP(pcs, 60)) {
         const x = new Float32Array(Math.round(2 * beat * SR)), f = midiHz(m);
         for (let i = 0; i < x.length; i++) x[i] = (Math.sin((2 * Math.PI * f * i) / SR) + 0.3 * Math.sin((4 * Math.PI * f * i) / SR)) * Math.min(1, i / (SR * 0.1), (x.length - i) / (SR * 0.1));
         pan(tOf(t0), x, 0.02, 0);
       }
       // ベース：根音を 8 分
       cur = 'bass';
-      const root = 36 + MAJOR[deg % 7] + toTonic - (MAJOR[deg % 7] + toTonic >= 8 ? 12 : 0);
+      const root = 36 + pcs[0] + toTonic - (pcs[0] + toTonic >= 8 ? 12 : 0);
       for (let e = 0; e < 4; e++) { const x = pluck(r, midiHz(root), Math.round(beat * 0.48 * SR), 0.6); pan(tOf(t0 + e * 0.5), x, 0.25, 0); }
     }
     // ドラム
@@ -131,8 +153,7 @@ export function genSong(o: GenOpts): { L: Float32Array; R: Float32Array; vocal: 
     let q = 0;
     while (q < 4) {
       const len = r.pick([0.5, 1, 1, 1.5, 2]);
-      const deg = chordsHalf[b * 2 + (q >= 2 ? 1 : 0)];
-      const tones = tri(deg, 60).flatMap((m) => [m, m + 12]);
+      const tones = triP(pcsHalf[b * 2 + (q >= 2 ? 1 : 0)], 60).flatMap((m) => [m, m + 12]);
       let m = tones.reduce((x, y) => (Math.abs(y - pitch) < Math.abs(x - pitch) ? y : x));
       if (r.chance(0.25)) m += r.pick([1, 2, -1, -2]); // 経過音（ときどき半音）
       m = Math.max(57 + toTonic % 12, Math.min(79, m));
@@ -173,5 +194,5 @@ export function genSong(o: GenOpts): { L: Float32Array; R: Float32Array; vocal: 
   for (let i = 0; i < n; i++) { L[i] *= g; R[i] *= g; V[i] *= g; }
   for (const k in stems) for (let i = 0; i < n; i++) stems[k][i] *= g;
   const shiftRaw = ((o.minor ? 9 : 0) - o.tonic + 12) % 12;
-  return { L, R, vocal: V, sr: SR, truth: { bpm: o.bpm, offset: lead, shift: shiftRaw > 6 ? shiftRaw - 12 : shiftRaw, chordsHalf, melody, swing }, stems };
+  return { L, R, vocal: V, sr: SR, truth: { bpm: o.bpm, offset: lead, shift: shiftRaw > 6 ? shiftRaw - 12 : shiftRaw, chordsHalf, chordQ, melody, swing }, stems };
 }

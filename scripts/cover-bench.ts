@@ -14,10 +14,13 @@ export const SONGS: (GenOpts & { label: string })[] = [
   { label: 'G 120 歌が右', seed: 7, bpm: 120, tonic: 7, bars: 24, vocalPan: 0.35 },
   { label: 'Db 100 ハネ半小節', seed: 8, bpm: 100, tonic: 1, bars: 24, swing: 0.33, halfChords: true },
   { label: 'E 104 揺れる', seed: 9, bpm: 104, tonic: 4, bars: 24, drift: 0.04 },
+  { label: 'C 116 調外コード', seed: 11, bpm: 116, tonic: 0, bars: 24, chromatic: true },
+  { label: 'A 100 調外半小節', seed: 12, bpm: 100, tonic: 9, bars: 24, chromatic: true, halfChords: true },
+  { label: 'Fm 88 調外', seed: 13, bpm: 88, tonic: 5, minor: true, bars: 24, chromatic: true },
   { label: 'Cm 92 揺れハネ', seed: 10, bpm: 92, tonic: 0, minor: true, bars: 24, drift: 0.03, swing: 0.2, reverb: 0.5 },
 ];
 
-export interface Score { tempo: number; bar: number; key: number; chord: number; half: number; mel: number; voiced: number; extra: number; sdr: number; swing: number }
+export interface Score { tempo: number; bar: number; key: number; chord: number; half: number; chro: number; mel: number; voiced: number; extra: number; sdr: number; swing: number }
 
 export function score(o: GenOpts): Score {
   const g = genSong(o);
@@ -36,13 +39,22 @@ export function score(o: GenOpts): Score {
   // コード（半小節ごと。解析が小節ごとなら同じものを 2 回）
   let ch = 0, chN = 0, hf = 0, hfN = 0;
   const halves = (a as { chordsHalf?: number[] }).chordsHalf;
+  // コードは「根音（ハ長調に移した音名）＋長・短・減」で比べる。解析が度数しか返さなければ、度数のふつうの三和音として
+  const MAJ = [0, 2, 4, 5, 7, 9, 11], QD = ['maj', 'min', 'min', 'maj', 'maj', 'min', 'dim'];
+  const aq = (a as { chordQ?: { root: number; q: string }[] }).chordQ;
+  const gotQ = (i: number, h: number) => aq?.[i * 2 + h] ?? (() => { const d = halves ? halves[i * 2 + h] : a.chords[i]; return { root: MAJ[d], q: QD[d] }; })();
+  const same = (x: { root: number; q: string }, y: { root: number; q: string }) => x.root === y.root && x.q === y.q;
+  let chroN = 0, chro = 0;
   for (let i = 0; i < a.bars; i++) {
     for (const h of [0, 1]) {
       const tj = (i + k) * 2 + h;
       if (tj < 0 || tj >= t.chordsHalf.length) continue;
-      const got = halves ? halves[i * 2 + h] : a.chords[i];
-      chN++; if (got === t.chordsHalf[tj]) ch++;
-      if (t.chordsHalf[tj - h] !== t.chordsHalf[tj - h + 1]) { hfN++; if (got === t.chordsHalf[tj]) hf++; }
+      const got = gotQ(i, h), want = t.chordQ[tj];
+      chN++; if (same(got, want)) ch++;
+      if (!same(t.chordQ[tj - h], t.chordQ[tj - h + 1])) { hfN++; if (same(got, want)) hf++; }
+      // 調の外のコード（ふつうの三和音と違うもの）だけの正解率
+      const d = t.chordsHalf[tj];
+      if (want.root !== MAJ[d] || want.q !== QD[d]) { chroN++; if (same(got, want)) chro++; }
     }
   }
   // メロディ：答えの音が鳴っている 16 分ごとに、聞き取った音の名前が合うか
@@ -73,18 +85,18 @@ export function score(o: GenOpts): Score {
     return 10 * Math.log10(s2 / e2);
   };
   const sw = (a as { swing?: number }).swing ?? 0;
-  return { tempo, bar, key, chord: chN ? ch / chN : 0, half: hfN ? hf / hfN : 1, mel: melN ? mel / melN : 0, voiced: melN ? voiced / melN : 0, extra: restN ? extra / restN : 0, sdr: sdr(sep.vocal) - sdr(mix), swing: Math.abs(sw - (o.swing ?? 0)) < 0.08 ? 1 : 0 };
+  return { tempo, bar, key, chord: chN ? ch / chN : 0, half: hfN ? hf / hfN : 1, chro: chroN ? chro / chroN : 1, mel: melN ? mel / melN : 0, voiced: melN ? voiced / melN : 0, extra: restN ? extra / restN : 0, sdr: sdr(sep.vocal) - sdr(mix), swing: Math.abs(sw - (o.swing ?? 0)) < 0.08 ? 1 : 0 };
 }
 
 if (process.argv[1]?.includes('cover-bench')) {
   const rows: Score[] = [];
   const pct = (v: number) => `${Math.round(v * 100)}%`.padStart(4);
-  console.log('曲'.padEnd(16), 'テンポ 小節 調  コード 途中 メロ 歌った 余計 分離dB ハネ');
+  console.log('曲'.padEnd(16), 'テンポ 小節 調  コード 途中 調外 メロ 歌った 余計 分離dB ハネ');
   for (const s of SONGS) {
     const sc = score(s);
     rows.push(sc);
-    console.log(s.label.padEnd(16), ` ${sc.tempo ? 'o' : 'x'}    ${sc.bar ? 'o' : 'x'}   ${sc.key ? 'o' : 'x'}  ${pct(sc.chord)}  ${pct(sc.half)} ${pct(sc.mel)}  ${pct(sc.voiced)} ${pct(sc.extra)}  ${sc.sdr.toFixed(1).padStart(5)}   ${sc.swing ? 'o' : 'x'}`);
+    console.log(s.label.padEnd(16), ` ${sc.tempo ? 'o' : 'x'}    ${sc.bar ? 'o' : 'x'}   ${sc.key ? 'o' : 'x'}  ${pct(sc.chord)}  ${pct(sc.half)} ${pct(sc.chro)} ${pct(sc.mel)}  ${pct(sc.voiced)} ${pct(sc.extra)}  ${sc.sdr.toFixed(1).padStart(5)}   ${sc.swing ? 'o' : 'x'}`);
   }
   const avg = (f: (s: Score) => number) => rows.reduce((x, s) => x + f(s), 0) / rows.length;
-  console.log('平均'.padEnd(16), ` ${pct(avg((s) => s.tempo))} ${pct(avg((s) => s.bar))} ${pct(avg((s) => s.key))} ${pct(avg((s) => s.chord))} ${pct(avg((s) => s.half))} ${pct(avg((s) => s.mel))} ${pct(avg((s) => s.voiced))} ${pct(avg((s) => s.extra))} ${avg((s) => s.sdr).toFixed(1).padStart(5)} ${pct(avg((s) => s.swing))}`);
+  console.log('平均'.padEnd(16), ` ${pct(avg((s) => s.tempo))} ${pct(avg((s) => s.bar))} ${pct(avg((s) => s.key))} ${pct(avg((s) => s.chord))} ${pct(avg((s) => s.half))} ${pct(avg((s) => s.chro))} ${pct(avg((s) => s.mel))} ${pct(avg((s) => s.voiced))} ${pct(avg((s) => s.extra))} ${avg((s) => s.sdr).toFixed(1).padStart(5)} ${pct(avg((s) => s.swing))}`);
 }

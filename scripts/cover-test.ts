@@ -1,7 +1,9 @@
 // 曲の解析（カバー用）の検査：答えのわかっている曲を作って解析し、テンポ・調・コード・ドラム・メロディが合っているか
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { analyze } from '../src/cover/analyze';
-import { coverSource } from '../src/cover/plan';
+import { coverPlan, coverSource } from '../src/cover/plan';
+import { degreeOf } from '../src/cover/analyze';
+import { compHits, hitMidi } from '../src/compose/harmony';
 import { defaultComposer } from '../src/compose/rules';
 import { planSong } from '../src/compose/plan';
 import { styleOf } from '../src/compose/styles';
@@ -143,6 +145,18 @@ for (const [style, kinds, ids] of [['beat', ['sampler', 'piko'], [6, 1]], ['hous
     writeFileSync(`out/cover-${name}.wav`, wav(audio, SR));
     const line = `カバー（${name}）：「${song.title}」${song.bars} 小節・テンポ ${b.bpm}・メロディ ${Math.round(covered * 100)}% 再現${chordToy ? `・コード ${Math.round(best * 100)}% 元と同じ` : ''}・トラック ${song.tracks.length} 本`;
     Math.abs(b.bpm - 120) < 3 && covered >= 0.7 && (!chordToy || best >= 0.5) /* おもちゃの音を解析し直すので目安 */ && song.bars === a.bars && song.compose?.cover ? ok(line) : ng(line);
+  }
+  // 調の外のコード：E（III の長三和音）・B♭（♭VII）・Fm（iv）を、伴奏がその音で弾く
+  {
+    const src2 = JSON.parse(JSON.stringify(src));
+    const half = src2.bars * 2;
+    src2.chordQ = Array.from({ length: half }, (_, i) => [{ root: 4, q: 'maj' }, { root: 10, q: 'maj' }, { root: 5, q: 'min' }, { root: 0, q: 'maj' }][Math.floor(i / 2) % 4]);
+    src2.chordsHalf = src2.chordQ.map(degreeOf);
+    src2.chords = src2.chordsHalf.filter((_: number, i: number) => i % 2 === 0);
+    const plan = coverPlan({ seed: 3, style: 'beat', chaos: 0.2, lengthSec: 60, bpm: 120 }, src2);
+    const pcs = (bar: number) => { const h = compHits(plan, { ...plan.sections[0], start: bar * 4, bars: 1 })[0]; return h.degs.map((_, i) => (((hitMidi(h, i, 60)) % 12) + 12) % 12).sort((x, y) => x - y).join(','); };
+    const got = [0, 1, 2, 3].map(pcs), want = ['4,8,11', '2,5,10', '0,5,8', '0,4,7'];
+    got.join('|') === want.join('|') ? ok(`調の外のコードを弾く：E・B♭・Fm・C → ${got.join(' / ')}`) : ng(`調の外のコード：${got.join(' / ')}（答え ${want.join(' / ')}）`);
   }
   // セクションだけ作り直しても、カバーのまま
   const song = C.compose({ settings: { seed: 3, style: 'beat', chaos: 0.2, lengthSec: 60, bpm: 120 }, toys: [{ toy: 0, kind: 'sampler' }], cover: src });

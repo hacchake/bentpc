@@ -4,7 +4,7 @@
 import type { Plan, PlannedSection } from '../compose/plan';
 import { styleOf } from '../compose/styles';
 import type { ComposeSettings } from '../compose/types';
-import type { CoverAnalysis, CoverDrumBar, CoverNote } from './analyze';
+import { degreeOf, type CoverAnalysis, type CoverDrumBar, type CoverNote } from './analyze';
 import type { CoverKit } from './sampling';
 
 /** 曲データに残すカバーの元（音そのものは残さない。作り直し・セクションの作り直しに使う） */
@@ -67,6 +67,13 @@ export function coverPlan(settings: ComposeSettings, src: CoverSource): Plan {
   }
   if (!sections.length) sections.push({ index: 0, name: 'Aメロ', kind: 'verse', start: 0, bars, energy: 0.7, chaos: settings.chaos });
   const half = src.chordsHalf?.slice(from * 2, to * 2);
+  // 調の外のコード：度数の三和音から、根音・3 度・5 度を何半音ずらすか
+  const MAJ = [0, 2, 4, 5, 7, 9, 11], QT = { maj: [0, 4, 7], min: [0, 3, 7], dim: [0, 3, 6] } as const;
+  const acc = src.chordQ?.slice(from * 2, to * 2).map((c) => {
+    const d = degreeOf(c), dia = [0, 2, 4].map((k) => MAJ[(d + k) % 7]);
+    const v = QT[c.q].map((x, k) => { const w = (((c.root + x - dia[k]) % 12) + 12) % 12; return w > 6 ? w - 12 : w; });
+    return v.some((x) => x) ? v : null;
+  });
   // クラッシュは、壊れ度をかなり上げたときだけ（ブレイクで）
   const crashSection = settings.chaos >= Math.max(0.85, style.crashAt) ? sections.findIndex((s) => s.kind === 'break') : -1;
   return {
@@ -78,6 +85,7 @@ export function coverPlan(settings: ComposeSettings, src: CoverSource): Plan {
     chords: src.chords.slice(from, to),
     // 小節の途中でコードが変わる所があるときだけ、半小節ごとのコードも渡す
     chordsHalf: half && half.some((d, i) => i % 2 === 1 && d !== half[i - 1]) ? half : undefined,
+    chordAcc: acc?.some((x) => x) ? acc : undefined,
     crashSection,
     cover,
   };
