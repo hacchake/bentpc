@@ -1,6 +1,7 @@
 // サンプラーの Web Audio 側：AudioContext・AudioWorklet・マイク・ファイルの読み込み。
 import workletUrl from './worklet.ts?worklet';
 import { REC_MAX_SEC, type FromSampler, type SampleBuf, type ToSampler } from './dsp/types';
+import { keepAlive } from '../core/keepalive';
 
 export class SamplerHost {
   ctx: AudioContext | null = null;
@@ -17,6 +18,7 @@ export class SamplerHost {
     if (this.starting) return this.starting;
     this.starting = (async () => {
       const ctx = new AudioContext({ latencyHint: 'interactive' });
+      keepAlive(ctx);
       await ctx.audioWorklet.addModule(workletUrl);
       const node = new AudioWorkletNode(ctx, 'paku-sampler', { numberOfInputs: 1, numberOfOutputs: 1, outputChannelCount: [2] });
       node.port.onmessage = (e: MessageEvent<FromSampler>) => this.onMessage(e.data);

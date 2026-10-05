@@ -39,6 +39,13 @@ export async function listSongs(page: string): Promise<SongEntry[]> {
   return all.filter((e) => e.page === page && !e.id.startsWith('auto:')).sort((a, b) => b.updated - a.updated);
 }
 export const getSong = (id: string) => tx<SongEntry | undefined>('readonly', (s) => s.get(id));
-export const putSong = (e: SongEntry) => tx('readwrite', (s) => s.put(JSON.parse(JSON.stringify(e)) as SongEntry));
+/** 保存した曲が、ブラウザの空きが少ないときに勝手に消されないよう頼む（一度だけ） */
+let asked = false;
+function askPersist(): void {
+  if (asked) return;
+  asked = true;
+  void navigator.storage?.persisted?.().then((p) => { if (!p) void navigator.storage.persist?.(); }).catch(() => {});
+}
+export const putSong = (e: SongEntry) => { askPersist(); return tx('readwrite', (s) => s.put(JSON.parse(JSON.stringify(e)) as SongEntry)); };
 export const deleteSong = (id: string) => tx('readwrite', (s) => s.delete(id));
 export const newSongId = () => `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;

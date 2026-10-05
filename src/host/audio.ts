@@ -1,6 +1,7 @@
 // Web Audio 側のつなぎ込み。AudioContext と AudioWorkletNode を作り、メッセージを中継する。
 import workletUrl from './worklet.ts?worklet';
 import type { FromEngine, ToEngine } from './protocol';
+import { keepAlive } from '../core/keepalive';
 
 export class AudioHost {
   ctx: AudioContext | null = null;
@@ -21,6 +22,7 @@ export class AudioHost {
     if (this.starting) return this.starting.then(() => this.ctx?.resume());
     this.starting = (async () => {
       const ctx = new AudioContext({ latencyHint: 'interactive' });
+      keepAlive(ctx);
       await ctx.audioWorklet.addModule(workletUrl);
       // 入力 0 = マイク（1台目の自分の声）、入力 1 = 取り込んだ動画の音（6台目）
       const node = new AudioWorkletNode(ctx, 'toy-rack', { numberOfInputs: 2, numberOfOutputs: 1, outputChannelCount: [2], processorOptions: this.options });
