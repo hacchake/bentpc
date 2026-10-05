@@ -30,6 +30,8 @@ export class Rhythm {
   step = 0;
   private phase = 0; // ステップ内の位置 0..1
   private drums: Record<Kind, Drum> = { K: new Drum(), S: new Drum(), H: new Drum(), O: new Drum(), C: new Drum(), T: new Drum() };
+  /** 同じ太鼓の並び（毎サンプルの時間を進めるのを、名前で引かずに済ませる） */
+  private drumList = KINDS.map((k) => this.drums[k]);
   private lfsr = 0x7fff;
   private noiseV = 0;
   // GLITCH 用のスネア発振器（短いディレイ＋フィードバック）
@@ -94,6 +96,9 @@ export class Rhythm {
     for (const [k, line] of Object.entries(p.lines)) if (line[this.step] === 'x') this.hit(k as Kind, glitch);
   }
 
+  /** 鳴り始めから ms ミリ秒で 1/e になる減衰 */
+  private env(dr: Drum, ms: number): number { return Math.exp(-dr.t / ((ms / 1000) * this.sr)); }
+
   private render(clk: number, glitch: boolean): number {
     const sr = this.sr;
     // ノイズはクロックに合わせて更新（CPU 電圧が下がるとノイズも粗くなる）
@@ -101,15 +106,15 @@ export class Rhythm {
     const n = this.noiseV;
     let out = 0;
     const d = this.drums;
-    const env = (dr: Drum, ms: number) => Math.exp(-dr.t / ((ms / 1000) * sr));
-    if (d.K.t < sr) { const t = d.K.t / sr; const f = (45 + 110 * Math.exp(-t * 30)) * d.K.pitch; out += Math.sin(2 * Math.PI * f * t * (1 + t)) * env(d.K, 140) * 0.9; }
+    if (d.K.t < sr) { const t = d.K.t / sr; const f = (45 + 110 * Math.exp(-t * 30)) * d.K.pitch; out += Math.sin(2 * Math.PI * f * t * (1 + t)) * this.env(d.K, 140) * 0.9; }
     let snare = 0;
-    if (d.S.t < sr) snare = (n * 0.7 + Math.sin((2 * Math.PI * 185 * d.S.t) / sr) * 0.4) * env(d.S, 90) * 0.6;
-    if (d.H.t < sr) out += n * env(d.H, 25) * 0.25;
-    if (d.O.t < sr) out += n * env(d.O, 180) * 0.2;
-    if (d.C.t < sr) out += Math.sin((2 * Math.PI * 2500 * d.C.t) / sr) * env(d.C, 18) * 0.4;
-    if (d.T.t < sr) { const t = d.T.t / sr; out += Math.sin(2 * Math.PI * (90 + 60 * Math.exp(-t * 20)) * t) * env(d.T, 160) * 0.7; }
-    for (const k of KINDS) d[k].t += clk;
+    if (d.S.t < sr) snare = (n * 0.7 + Math.sin((2 * Math.PI * 185 * d.S.t) / sr) * 0.4) * this.env(d.S, 90) * 0.6;
+    if (d.H.t < sr) out += n * this.env(d.H, 25) * 0.25;
+    if (d.O.t < sr) out += n * this.env(d.O, 180) * 0.2;
+    if (d.C.t < sr) out += Math.sin((2 * Math.PI * 2500 * d.C.t) / sr) * this.env(d.C, 18) * 0.4;
+    if (d.T.t < sr) { const t = d.T.t / sr; out += Math.sin(2 * Math.PI * (90 + 60 * Math.exp(-t * 20)) * t) * this.env(d.T, 160) * 0.7; }
+    const dl = this.drumList;
+    for (let j = 0; j < dl.length; j++) dl[j].t += clk;
 
     if (glitch && this.fbAmt > 0.001) {
       // スネアが短いディレイの中で発振する

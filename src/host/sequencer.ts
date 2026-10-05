@@ -6,7 +6,7 @@
 //   ノブの点の間をなめらかにつなぐ、シードで「頭から再生するたびにおもちゃを新品にする」（毎回同じ音）
 
 import {
-  BTN, SYS_CRASH, mixGain, SYS_POWER_OFF, SYS_POWER_ON, emptySong, mergeTake, songBeats, takeFromRaw, trackToy, type RawEvent, type SeqAuto, type Song,
+  BTN, SYS_CRASH, mixGain, SYS_POWER_OFF, SYS_POWER_ON, emptySong, mergeTake, songBeats, takeFromRaw, trackToy, type RawEvent, type SeqAuto, type SeqNote, type SeqTrack, type Song,
 } from '../core/song';
 import type { ToyEngine } from '../core/toy';
 
@@ -27,6 +27,17 @@ interface Crash {
 
 const HIST = 2048;
 const STUCK_SEC = 0.45;
+
+interface TrackIndex {
+  notes: SeqNote[]; nLen: number; autos: SeqAuto[]; aLen: number;
+  sKey: Float64Array; sIdx: Int32Array; eKey: Float64Array; eIdx: Int32Array; aKey: Float64Array; aIdx: Int32Array;
+}
+/** keys（小さい順）の中で、x 以上が始まる位置 */
+function lowerBound(keys: Float64Array, x: number): number {
+  let lo = 0, hi = keys.length;
+  while (lo < hi) { const mid = (lo + hi) >> 1; if (keys[mid] < x) lo = mid + 1; else hi = mid; }
+  return lo;
+}
 
 export class Sequencer {
   song: Song;
@@ -68,6 +79,18 @@ export class Sequencer {
     for (const t of this.seen) if (!this.center[t]) out[t] = SPREAD[k++ % SPREAD.length];
     return out;
   }
+  /** トラックごとの索引（音符の頭・終わり・ノブの点を時刻の順に。曲が変わったら作り直す） */
+  private index: TrackIndex[] = [];
+  private hitBuf: number[] = [];
+  private indexOf(i: number, tr: SeqTrack): TrackIndex {
+    const old = this.index[i];
+    if (old && old.notes === tr.notes && old.nLen === tr.notes.length && old.autos === tr.autos && old.aLen === tr.autos.length) return old;
+    const byKey = (keys: number[]) => { const idx = Int32Array.from(keys.keys()).sort((a, b) => keys[a] - keys[b] || a - b); return { idx, key: Float64Array.from(idx, (j) => keys[j]) }; };
+    const st = byKey(tr.notes.map((n) => n.start)), en = byKey(tr.notes.map((n) => n.start + n.len)), au = byKey(tr.autos.map((a) => a.t));
+    const ix: TrackIndex = { notes: tr.notes, nLen: tr.notes.length, autos: tr.autos, aLen: tr.autos.length, sKey: st.key, sIdx: st.idx, eKey: en.key, eIdx: en.idx, aKey: au.key, aIdx: au.idx };
+    this.index[i] = ix;
+    return ix;
+  }
   /** 鳴った順のおもちゃ（左右の場所決め） */
   private seen: number[] = [];
   private tmpR = new Float32Array(128);
@@ -89,6 +112,7 @@ export class Sequencer {
   setSong(song: Song): void {
     this.releaseAll();
     this.song = song;
+    this.index = [];
     if (!song.tracks.some((t) => t.toy !== undefined)) {
       while (this.song.tracks.length < this.toys.length) this.song.tracks.push({ mute: false, notes: [], autos: [] });
     }
@@ -358,7 +382,16 @@ export class Sequencer {
       this.song.tracks.forEach((tr, i) => {
         const toy = trackToy(this.song, i);
         if (tr.mute || toy >= this.toys.length) return;
-        for (const note of tr.notes) {
+        // 索引で、この範囲に頭か終わりが来る音符だけを拾う（並びは曲の中の順のまま＝同じ時刻の押す・離すの順も変わらない）
+        const ix = this.indexOf(i, tr);
+        const hit = this.hitBuf;
+        hit.length = 0;
+        for (let j = lowerBound(ix.sKey, b0); j < ix.sKey.length && ix.sKey[j] < b1; j++) hit.push(ix.sIdx[j]);
+        for (let j = lowerBound(ix.eKey, b0); j < ix.eKey.length && ix.eKey[j] < b1; j++) hit.push(ix.eIdx[j]);
+        if (hit.length > 1) hit.sort((x, y) => x - y);
+        for (let h = 0; h < hit.length; h++) {
+          if (h > 0 && hit[h] === hit[h - 1]) continue;
+          const note = tr.notes[hit[h]];
           if (note.start >= b0 && note.start < b1) {
             evs[toy].push({ off: off + Math.floor((note.start - b0) * fpb), apply: () => { this.press(toy, note.key, true); this.held[toy].add(note.key); } });
           }
@@ -367,8 +400,12 @@ export class Sequencer {
             evs[toy].push({ off: off + Math.floor((e - b0) * fpb), apply: () => { this.press(toy, note.key, false); this.held[toy].delete(note.key); } });
           }
         }
-        for (const a of tr.autos) {
-          if (a.t >= b0 && a.t < b1) evs[toy].push({ off: off + Math.floor((a.t - b0) * fpb), apply: () => this.toys[toy].setParam(a.index, a.v) });
+        hit.length = 0;
+        for (let j = lowerBound(ix.aKey, b0); j < ix.aKey.length && ix.aKey[j] < b1; j++) hit.push(ix.aIdx[j]);
+        if (hit.length > 1) hit.sort((x, y) => x - y);
+        for (const k of hit) {
+          const a = tr.autos[k];
+          evs[toy].push({ off: off + Math.floor((a.t - b0) * fpb), apply: () => this.toys[toy].setParam(a.index, a.v) });
         }
       });
       // ノブの点と点の間：このブロックの頭の位置の値にする（約 2.7ms ごとになめらかに動く）

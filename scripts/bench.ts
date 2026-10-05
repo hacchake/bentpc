@@ -1,18 +1,28 @@
-// 処理速度の目安：3 台を同時に 10 秒ぶん動かすのに何秒かかるか
-import { Engine } from '../src/toys/blippy/dsp/engine';
-import { PikoEngine } from '../src/toys/piko/dsp/engine';
-import { DjEngine } from '../src/toys/dj/dsp/engine';
-const SR = 48000;
-const a = new Engine(SR), b = new PikoEngine(SR), c = new DjEngine(SR);
-c.powerOn(); c.setParamById('rhythm', 24); c.keyDown(19); c.setParamById('feedback', 0.7); c.setParamById('dist2On', 1); c.keyDown(23); c.setParamById('discSpeed', 1.3); c.keyDown(0); c.keyDown(4);
-a.powerOn(); b.powerOn();
-b.setParamById('feedback', 0.6); b.setParamById('dist', 0.5); b.setParamById('fizz', 0.4); b.setParamById('hipass', 0.3); b.setParamById('cpuPower', 0.5);
-b.setParamById('envHold', 1);
-for (let k = 0; k < 8; k++) b.keyDown(k * 3);
-b.keyDown(37);
-a.setParamById('mode', 7); a.setParamById('glitch1', 1); a.setParamById('glitch2', 1);
-const buf = new Float32Array(128);
+// 処理速度の目安：7 台の合奏（自動作曲）を鳴らして、全体と、おもちゃ・仕上げごとの負荷（実時間に対する割合）を出す。
+// 実行：npx tsx scripts/bench.ts（スマホはこの数倍重い。全体が 100% を超えると音が途切れる）
+import { defaultComposer } from '../src/compose/rules';
+import { TOY_ENGINES } from '../src/toys/engines';
+import { MasterBus } from '../src/host/master';
+import { renderSongStereo, songSeconds } from '../src/studio/render';
+const KINDS = ['blippy', 'piko', 'dj', 'vroom', 'typo', 'tele', 'sampler'] as const;
+const names = ['blippy', 'piko', 'dj', 'vroom', 'typo', 'tele', 'sampler', 'manekko'];
+const times = new Map<string, number>();
+const add = (k: string, t: number) => times.set(k, (times.get(k) ?? 0) + t);
+// エンジンを包んで時間を測る
+TOY_ENGINES.forEach((mk, id) => {
+  (TOY_ENGINES as any)[id] = (sr: number, seed?: number) => {
+    const e = mk(sr, seed) as any;
+    for (const m of ['process', 'processStereo']) if (e[m]) { const f = e[m].bind(e); e[m] = (...a: any[]) => { const t = performance.now(); const r = f(...a); add(names[id], performance.now() - t); return r; }; }
+    return e;
+  };
+});
+const mp = MasterBus.prototype.process;
+MasterBus.prototype.process = function (...a: any[]) { const t = performance.now(); const r = (mp as any).apply(this, a); add('master', performance.now() - t); return r; };
+const C = defaultComposer();
+const ids = [0, 1, 2, 3, 4, 5, 6];
+const s = C.compose({ settings: { seed: 99, style: 'beat', chaos: 0.8, lengthSec: 30, bpm: 124 }, toys: ids.map((id, i) => ({ toy: i, kind: KINDS[id] })) });
 const t0 = performance.now();
-for (let i = 0; i < (SR * 10) / 128; i++) { if (i % 300 === 0) a.keyDown(10); a.process(buf); b.process(buf); c.process(buf); }
-const sec = (performance.now() - t0) / 1000;
-console.log(`10 秒ぶんの処理に ${sec.toFixed(2)} 秒（負荷 ${((sec / 10) * 100).toFixed(1)}%）`);
+renderSongStereo(s, 48000, { toys: ids });
+const total = performance.now() - t0, dur = songSeconds(s) * 1000;
+console.log('全体', (total / dur * 100).toFixed(1) + '%');
+[...times].sort((a, b) => b[1] - a[1]).forEach(([k, v]) => console.log(k.padEnd(8), (v / dur * 100).toFixed(1) + '%'));

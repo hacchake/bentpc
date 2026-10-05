@@ -23,6 +23,8 @@ interface Inst {
   ph2: number;
   env: number;
   sh: number;
+  /** note の周波数（Hz） */
+  f: number;
 }
 
 export class TeleEngine implements ToyEngine<{ text: string }> {
@@ -216,7 +218,7 @@ export class TeleEngine implements ToyEngine<{ text: string }> {
 
   private hit(kind: number, note: number): void {
     this.inst = this.inst.filter((v) => v.kind !== kind || v.note !== note);
-    this.inst.push({ kind, note, t: 0, held: false, ph: 0, ph2: 0, env: 1, sh: 0 });
+    this.inst.push({ kind, note, t: 0, held: false, ph: 0, ph2: 0, env: 1, sh: 0, f: mtof(note) });
     if (this.inst.length > 16) this.inst.shift();
     this.hits++;
     this.lastHit = kind;
@@ -396,7 +398,8 @@ export class TeleEngine implements ToyEngine<{ text: string }> {
       this.buf[this.w] = x0;
       this.w = (this.w + 1) % L;
       this.lfoPh = (this.lfoPh + lfoRate / sr) % 1;
-      const lfo = Math.sin(2 * Math.PI * this.lfoPh);
+      // LFO は音の高さを揺らすときだけ使う（使わないときは計算しない）
+      const lfo = lfoAudio ? Math.sin(2 * Math.PI * this.lfoPh) : 0;
 
       // ---- 一発グリッチの進行 ----
       let extraPitch = 0;
@@ -422,7 +425,7 @@ export class TeleEngine implements ToyEngine<{ text: string }> {
         }
         if (burst.left <= 0) { this.burst = null; this.updateMask(); top = this.lastTop; }
       }
-      const on = (n: number) => (this.mask & (1 << n)) !== 0;
+      const mk = this.mask; // グリッチの番号 n が入っているか = (mk >> n & 1)
 
       // ---- どこを読むか ----
       const pitchAll = this.pitchSemis + speedSemis + extraPitch + lfo * lfoAudio * 2;
@@ -465,23 +468,23 @@ export class TeleEngine implements ToyEngine<{ text: string }> {
       // ---- 読んだ音を壊す ----
       this.pbuf[this.pw] = x;
       this.pw = (this.pw + 1) % this.pbuf.length;
-      if (this.mask) {
-        if (on(1)) { const q = Math.pow(2, 8 - 6 * amt); x = Math.round(x * q) / q; } // BITCRUSH
-        if (on(3)) { this.ringPh = (this.ringPh + (80 + 900 * amt * (burst?.extra === 'sweep' ? 3 * (burst.t / (burst.dur * sr)) : 1)) / sr) % 1; x *= Math.sin(2 * Math.PI * this.ringPh); } // RING MOD
-        if (on(4)) { if (++this.holdCnt >= 2 + Math.floor(amt * 20)) { this.holdCnt = 0; this.held = x; } x = this.held; } // DOWNSAMPLE
-        if (on(5)) x = Math.sign(x) * Math.round(Math.abs(x) * 4) / 4; // QUANTIZE
-        if (on(10)) { const e = this.echo[(this.echoPos - Math.floor(sr * 0.11) + this.echo.length) % this.echo.length]; x += e * 1.1 * amt; } // DELAY RUN
-        if (on(11)) x += this.rng.bi() * 0.4 * amt * (0.3 + Math.abs(x)); // NOISE
-        if (on(13)) { this.wobPh = (this.wobPh + 6 / sr) % 1; x = this.pread(sr * 0.004 * (1 + Math.sin(2 * Math.PI * this.wobPh)) * amt * 3); } // WOBBLE
-        if (on(14)) { this.lp += (x - this.lp) * (0.01 + 0.05 * (1 - amt)); x = this.lp * 1.5; } // FILTER LOW
-        if (on(15)) { this.gateEnv += (Math.abs(x) - this.gateEnv) * 0.004; if (this.gateEnv < 0.1 + 0.25 * amt) x = 0; } // GATE
-        if (on(16)) { this.hpLp += (x - this.hpLp) * (0.02 + 0.2 * amt); x = (x - this.hpLp) * 1.8; } // FILTER HIGH
-        if (on(17)) x = (x + this.pread(Math.floor(sr / (200 + 600 * amt))) * 0.9) * 0.6; // COMB
-        if (on(18)) { this.flangePh = (this.flangePh + 0.3 / sr) % 1; x = (x + this.pread(sr * (0.001 + 0.004 * (1 + Math.sin(2 * Math.PI * this.flangePh))))) * 0.6; } // FLANGE
-        if (on(19)) x = Math.tanh(x * (1 + 20 * amt)); // DRIVE
-        if (on(20)) { const e = this.echo[(this.echoPos - Math.floor(sr * 0.25) + this.echo.length) % this.echo.length]; x += e * 0.6; } // ECHO
-        if (on(21)) { this.panPh = (this.panPh + (3 + 9 * amt) / sr) % 1; x *= this.panPh < 0.5 ? 1 : 0.15; } // PAN FLIP
-        if (on(22)) { this.chopPh = (this.chopPh + (8 + 24 * amt) / sr) % 1; if (this.chopPh > 0.5) x = 0; } // CHOP
+      if (mk) {
+        if (mk >> 1 & 1) { const q = Math.pow(2, 8 - 6 * amt); x = Math.round(x * q) / q; } // BITCRUSH
+        if (mk >> 3 & 1) { this.ringPh = (this.ringPh + (80 + 900 * amt * (burst?.extra === 'sweep' ? 3 * (burst.t / (burst.dur * sr)) : 1)) / sr) % 1; x *= Math.sin(2 * Math.PI * this.ringPh); } // RING MOD
+        if (mk >> 4 & 1) { if (++this.holdCnt >= 2 + Math.floor(amt * 20)) { this.holdCnt = 0; this.held = x; } x = this.held; } // DOWNSAMPLE
+        if (mk >> 5 & 1) x = Math.sign(x) * Math.round(Math.abs(x) * 4) / 4; // QUANTIZE
+        if (mk >> 10 & 1) { const e = this.echo[(this.echoPos - Math.floor(sr * 0.11) + this.echo.length) % this.echo.length]; x += e * 1.1 * amt; } // DELAY RUN
+        if (mk >> 11 & 1) x += this.rng.bi() * 0.4 * amt * (0.3 + Math.abs(x)); // NOISE
+        if (mk >> 13 & 1) { this.wobPh = (this.wobPh + 6 / sr) % 1; x = this.pread(sr * 0.004 * (1 + Math.sin(2 * Math.PI * this.wobPh)) * amt * 3); } // WOBBLE
+        if (mk >> 14 & 1) { this.lp += (x - this.lp) * (0.01 + 0.05 * (1 - amt)); x = this.lp * 1.5; } // FILTER LOW
+        if (mk >> 15 & 1) { this.gateEnv += (Math.abs(x) - this.gateEnv) * 0.004; if (this.gateEnv < 0.1 + 0.25 * amt) x = 0; } // GATE
+        if (mk >> 16 & 1) { this.hpLp += (x - this.hpLp) * (0.02 + 0.2 * amt); x = (x - this.hpLp) * 1.8; } // FILTER HIGH
+        if (mk >> 17 & 1) x = (x + this.pread(Math.floor(sr / (200 + 600 * amt))) * 0.9) * 0.6; // COMB
+        if (mk >> 18 & 1) { this.flangePh = (this.flangePh + 0.3 / sr) % 1; x = (x + this.pread(sr * (0.001 + 0.004 * (1 + Math.sin(2 * Math.PI * this.flangePh))))) * 0.6; } // FLANGE
+        if (mk >> 19 & 1) x = Math.tanh(x * (1 + 20 * amt)); // DRIVE
+        if (mk >> 20 & 1) { const e = this.echo[(this.echoPos - Math.floor(sr * 0.25) + this.echo.length) % this.echo.length]; x += e * 0.6; } // ECHO
+        if (mk >> 21 & 1) { this.panPh = (this.panPh + (3 + 9 * amt) / sr) % 1; x *= this.panPh < 0.5 ? 1 : 0.15; } // PAN FLIP
+        if (mk >> 22 & 1) { this.chopPh = (this.chopPh + (8 + 24 * amt) / sr) % 1; if (this.chopPh > 0.5) x = 0; } // CHOP
       }
       // 一発グリッチの音だけの味付け
       if (burst) {
@@ -528,53 +531,63 @@ export class TeleEngine implements ToyEngine<{ text: string }> {
     this.level += (peak - this.level) * 0.2;
   }
 
+  /** 減衰の 1 サンプルぶんの倍率（ms で消える速さ）。毎サンプル exp を計算しないよう覚えておく */
+  private decCache = new Map<number, number>();
+  private decK(ms: number): number {
+    let k = this.decCache.get(ms);
+    if (k === undefined) { k = Math.exp(-1 / ((this.sampleRate * ms) / 1000)); this.decCache.set(ms, k); }
+    return k;
+  }
+
+  /** 声 v の音量を 1 サンプル分減らして返す */
+  private dec(v: Inst, ms: number): number { v.env *= this.decK(ms); return v.env; }
+
   /** 楽器キー 1 声を 1 サンプル */
   private voice(v: Inst): number {
     const sr = this.sampleRate;
     const t = v.t++ / sr;
-    const f = mtof(v.note);
-    const dec = (ms: number) => { v.env *= Math.exp(-1 / ((sr * ms) / 1000)); return v.env; };
+    const f = v.f;
     switch (v.kind) {
       case 0: case 1:
         v.ph = (v.ph + f / sr) % 1;
-        return (v.ph < 0.5 ? 0.3 : -0.3) * (v.held ? Math.max(0.4, dec(300)) : dec(60));
+        return (v.ph < 0.5 ? 0.3 : -0.3) * (v.held ? Math.max(0.4, this.dec(v, 300)) : this.dec(v, 60));
       case 2:
         v.ph += f / sr;
         if (v.ph >= 1) { v.ph -= 1; v.sh = this.rng.bi(); }
-        return v.sh * 0.3 * (v.held ? Math.max(0.3, dec(400)) : dec(80));
+        return v.sh * 0.3 * (v.held ? Math.max(0.3, this.dec(v, 400)) : this.dec(v, 80));
       case 3: {
         const fk = 45 + 120 * Math.exp(-t * 25);
         v.ph = (v.ph + fk / sr) % 1;
-        return Math.sin(2 * Math.PI * v.ph) * dec(180) * 0.9;
+        return Math.sin(2 * Math.PI * v.ph) * this.dec(v, 180) * 0.9;
       }
       case 4:
         v.ph = (v.ph + 190 / sr) % 1;
-        return (this.rng.bi() * 0.7 + Math.sin(2 * Math.PI * v.ph) * 0.3) * dec(110) * 0.6;
+        return (this.rng.bi() * 0.7 + Math.sin(2 * Math.PI * v.ph) * 0.3) * this.dec(v, 110) * 0.6;
       case 5:
-        return this.rng.bi() * dec(35) * 0.3;
+        return this.rng.bi() * this.dec(v, 35) * 0.3;
       case 6: {
         v.ph = (v.ph + f / 2 / sr) % 1;
         v.ph2 = (v.ph2 + (f / 2) * 1.006 / sr) % 1;
-        if (!v.held) dec(this.burst?.extra === 'swell' ? 1500 : 400);
+        if (!v.held) this.dec(v, this.burst?.extra === 'swell' ? 1500 : 400);
         return (sawBL(v.ph, f / 2 / sr) + sawBL(v.ph2, (f / 2) * 1.006 / sr)) * 0.15 * v.env;
       }
       case 7: {
         const fz = f * 8 * Math.exp(-t * 18) + 60;
         v.ph = (v.ph + fz / sr) % 1;
-        return pulseBL(v.ph, fz / sr) * 0.35 * dec(150);
+        return pulseBL(v.ph, fz / sr) * 0.35 * this.dec(v, 150);
       }
       case 8:
         v.ph = (v.ph + (f * 4) / sr) % 1;
-        return Math.sin(2 * Math.PI * v.ph) * dec(40) * 0.4;
+        return Math.sin(2 * Math.PI * v.ph) * this.dec(v, 40) * 0.4;
       case 9: {
         v.ph = (v.ph + f / sr) % 1;
         const w = 0.5 + 0.4 * Math.sin(2 * Math.PI * 5 * t);
-        return (v.ph < w ? 0.25 : -0.25) * (v.held ? Math.max(0.5, dec(500)) : dec(80));
+        return (v.ph < w ? 0.25 : -0.25) * (v.held ? Math.max(0.5, this.dec(v, 500)) : this.dec(v, 80));
       }
       default: {
         const fc = f * (1 + t * 6);
         v.ph = (v.ph + fc / sr) % 1;
-        return Math.sin(2 * Math.PI * v.ph) * dec(160) * 0.35;
+        return Math.sin(2 * Math.PI * v.ph) * this.dec(v, 160) * 0.35;
       }
     }
   }

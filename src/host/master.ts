@@ -117,7 +117,12 @@ export class MasterBus {
   private dl: Float32Array;
   private dr: Float32Array;
   private di = 0;
-  private peakBuf: Float32Array;
+  /** 先読みの間の山の最大を、毎サンプル全部見直さずに求める（単調な待ち行列：値と時刻） */
+  private dqV: Float32Array;
+  private dqT: Float64Array;
+  private dqHead = 0;
+  private dqLen = 0;
+  private tc = 0;
   private lGain = 1;
   private lRel: number;
   private lAtk: number;
@@ -152,7 +157,8 @@ export class MasterBus {
     this.la = Math.max(8, Math.round(sr * 0.0025));
     this.dl = new Float32Array(this.la);
     this.dr = new Float32Array(this.la);
-    this.peakBuf = new Float32Array(this.la);
+    this.dqV = new Float32Array(this.la + 1);
+    this.dqT = new Float64Array(this.la + 1);
     this.lRel = Math.exp(-1 / (0.09 * sr));
     this.lAtk = Math.exp(-4 / this.la);
   }
@@ -191,9 +197,13 @@ export class MasterBus {
         const c1 = 0.5 * (x1 - xm1), c2 = xm1 - 2.5 * x0 + 2 * x1 - 0.5 * x2, c3 = 0.5 * (x2 - xm1) + 1.5 * (x0 - x1);
         for (const t of TP_T) { const v = Math.abs(((c3 * t + c2) * t + c1) * t + x0); if (v > pk) pk = v; }
       }
-      this.peakBuf[this.di] = pk;
-      let m = 0;
-      for (let k = 0; k < this.la; k++) if (this.peakBuf[k] > m) m = this.peakBuf[k];
+      // 直近 la サンプルの山の最大
+      const cap = this.dqV.length, t = this.tc++, p32 = Math.fround(pk);
+      while (this.dqLen && this.dqV[(this.dqHead + this.dqLen - 1) % cap] <= p32) this.dqLen--;
+      const at = (this.dqHead + this.dqLen) % cap;
+      this.dqV[at] = p32; this.dqT[at] = t; this.dqLen++;
+      while (this.dqT[this.dqHead] <= t - this.la) { this.dqHead = (this.dqHead + 1) % cap; this.dqLen--; }
+      const m = this.dqV[this.dqHead];
       const want = m > this.target ? this.target / m : 1;
       // 下げるのは先読みの間になめらかに（急に下げるとプツッと鳴る）、戻すのはゆっくり
       this.lGain = want < this.lGain ? want + (this.lGain - want) * this.lAtk : this.lRel * this.lGain + (1 - this.lRel) * want;

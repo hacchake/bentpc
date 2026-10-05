@@ -26,6 +26,9 @@ interface Voice {
   gate: boolean;
   age: number;
   sh: number; // NOISE 用の保持値
+  /** 最後に計算した高さとその周波数（同じ高さの間は計算し直さない） */
+  fN: number;
+  fHz: number;
 }
 
 interface Pending {
@@ -49,7 +52,7 @@ export class TypoEngine implements ToyEngine<TypoDisplay> {
   readonly paramDefs = TYPO_PARAMS;
   powered = false;
   private rng: Rng;
-  private v: Voice[] = Array.from({ length: POLY }, () => ({ key: -1, note: 60, ph: 0, ph2: 0, lvl: 0, vel: 1, stage: 'off', gate: false, age: 0, sh: 0 }) as Voice);
+  private v: Voice[] = Array.from({ length: POLY }, () => ({ key: -1, note: 60, ph: 0, ph2: 0, lvl: 0, vel: 1, stage: 'off', gate: false, age: 0, sh: 0, fN: NaN, fHz: 0 }) as Voice);
   private age = 0;
   private pending: Pending[] = [];
   private drums: Float32Array[];
@@ -342,6 +345,8 @@ export class TypoEngine implements ToyEngine<TypoDisplay> {
     const echoLen = Math.min(this.echoBuf.length - 1, Math.floor(sr * (60 / this.bpm) * 0.75));
     const volTarget = P('volume') ** 2;
     const toChip = CHIP_RATE / sr;
+    // 減衰の 1 サンプルぶんの倍率（毎サンプル exp を計算しないよう、先に）
+    const kDecay = Math.exp(-(1 / sr) / decay), kRel = Math.exp(-(1 / sr) / 0.06);
     let changed = false;
 
     for (let i = 0; i < out.length; i++) {
@@ -402,12 +407,14 @@ export class TypoEngine implements ToyEngine<TypoDisplay> {
         if (v.stage === 'a') { v.lvl += dt / 0.003; if (v.lvl >= 1) { v.lvl = 1; v.stage = 'd'; } }
         else if (v.stage === 'd') {
           const sus = v.gate ? 0.35 : 0;
-          v.lvl = sus + (v.lvl - sus) * Math.exp(-dt / decay);
+          v.lvl = sus + (v.lvl - sus) * kDecay;
           if (!v.gate && v.lvl < 0.3) v.stage = 'r';
-        } else { v.lvl *= Math.exp(-dt / 0.06); if (v.lvl < 0.001) { v.stage = 'off'; continue; } }
+        } else { v.lvl *= kRel; if (v.lvl < 0.001) { v.stage = 'off'; continue; } }
         const n = v.note + this.bend;
         if (this.corrupt && this.rng.chance(0.0004)) v.note += this.rng.pick([-12, 12, 7, -5]);
-        const f = mtof(n);
+        // 高さが変わらない間は、周波数を計算し直さない
+        if (n !== v.fN) { v.fN = n; v.fHz = mtof(n); }
+        const f = v.fHz;
         v.ph = (v.ph + f / sr) % 1;
         let s: number;
         switch (wave) {
