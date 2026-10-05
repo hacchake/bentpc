@@ -146,7 +146,7 @@ function makeHtml(): string {
     chapter('まずはさわってみよう！', '最初の 3 分でやること', `
       <p>電源ボタンはいらない！ 画面のどこかをさわる（キーを押す）と、表示中のおもちゃの電源が入る。タブで別のおもちゃに切り替えても、自動で入る。</p>
       <table class="grid"><tr><th>おもちゃ</th><th>RESET（再起動）の場所</th></tr>${powerRows}</table>
-      ${point('ここがポイント！', '<ul><li>電源はいつも ON。POWER だったボタンは <b>RESET</b>（押すと再起動）。おかしくなったら押してみよう。</li><li>RESET や暴走で止まっても、すぐに自動で起動し直す。</li><li>ブラウザは「最初に操作するまで音を出さない」決まりがあるけど、最初にさわった時に音の準備も済む。</li></ul>')}
+      ${point('ここがポイント！', '<ul><li>電源はいつも ON。POWER だったボタンは <b>RESET</b>（押すと再起動）。おかしくなったら押してみよう。</li><li>RESET や暴走で止まっても、すぐに自動で起動し直す。</li><li>ブラウザは「最初に操作するまで音を出さない」決まりがあるけど、最初にさわった時に音の準備も済む。</li><li>公開ページは、スマホやパソコンのホーム画面に追加できる（ブラウザのメニューの「ホーム画面に追加」「インストール」）。一度開けば、ネットにつながっていなくても開ける。</li></ul>')}
       <h3>最初の 3 分でやること</h3>
       <ol class="steps"><li><b>画面をさわる</b>：どこでも OK。1. BLIPPY なら「HELLO」としゃべる。</li><li><b>好きなキーを弾く</b>：PC キーボードの A〜Z がそのまま鳴る。</li><li><b>グリッチを押しながら弾く</b>：トイPC なら , . / ; : キーが GLITCH 1〜5。押している間だけ壊れる！</li><li><b>自動作曲</b>：右の緑の基板の赤いボタンを押すと、そのおもちゃの曲ができて鳴り出す。</li></ol>
       ${bubble('改造おじさん', 'VROOMBOX のキーだけは別。電源はいつも入っているけど、キーを回している間にセルが回ってエンジンがかかるんだ。')}`, 'power'),
@@ -207,14 +207,24 @@ function makeHtml(): string {
     chapter('シーケンサー＆自動作曲編', '録って、直して、作らせろ！', `
       ${figure('sequencer.jpg', 'seq', SEQ_PARTS, 'シーケンサー（スタジオ。ラックの ☰ SEQ も同じ画面）', 'wide-shot')}
       <h3>録音する</h3><ol class="steps"><li>● REC を押す（止まっていれば再生も始まる）</li><li>おもちゃを弾く。キーもボタンもツマミの動きも記録される</li><li>ループの終わりに来るたびに曲に重なる（オーバーダブ）。もう一度 ● REC か ■ で終わり</li></ol>
+      <p>止まっている所から録音するときは、<b>カウント</b>に印を付けておくと 1 小節クリックしてから始まる。手で弾いた音は、スピーカーから音が届くまでの遅れの分だけ前にずらして記録されるので、聞こえたとおりのタイミングで入る。</p>
       <h3>直す</h3><table class="grid"><tr><th>やりたいこと</th><th>操作</th></tr>
         <tr><td>音符を足す</td><td>行の上をダブルクリック</td></tr><tr><td>動かす・長さを変える</td><td>ドラッグ（音符の右端をドラッグで長さ）</td></tr>
         <tr><td>消す</td><td>右クリック、または選んで Delete</td></tr><tr><td>まとめて選ぶ</td><td>空いた所をドラッグ</td></tr>
         <tr><td>ノブの動きを描く</td><td>◠ ノブの行をダブルクリックで点を足し、ドラッグで動かす（点と点の間はなめらかにつながる）</td></tr>
         <tr><td>スイッチの値を変える</td><td>⇄ の行の点の上でホイール</td></tr>
         <tr><td>行を足す</td><td>トラック名の右の ＋</td></tr><tr><td>コピー・貼り付け・複製</td><td>Ctrl+C・Ctrl+V（再生位置に）・Ctrl+D（すぐ後ろに）</td></tr>
-        <tr><td>元に戻す・やり直し</td><td>Ctrl+Z・Ctrl+Y</td></tr><tr><td>セクション名</td><td>目盛りの上段をダブルクリック</td></tr><tr><td>ループ範囲</td><td>目盛りの下段をドラッグ</td></tr></table>
-      <h3>保存と書き出し</h3><p>曲はこのブラウザに自動で保存される。「保存」で JSON ファイル、<b>WAV</b>（音）・<b>WebM</b>（映像込み）・<b>MIDI</b>（将来の VST・DAW 用）で書き出せる。</p>
+        <tr><td>元に戻す・やり直し</td><td>Ctrl+Z・Ctrl+Y</td></tr><tr><td>セクション名</td><td>目盛りの上段をダブルクリック</td></tr><tr><td>ループ範囲</td><td>目盛りの下段をドラッグ</td></tr>
+        <tr><td>拍子を変える</td><td>拍子（2/4〜7/4）。音符の位置はそのままで、小節の区切りとクリックの強い音が変わる</td></tr></table>
+      <h3>ミキサー（MIX）</h3><p>おもちゃごとの音量・左右・ミュート・ソロ。左右の AUTO は、鳴った順にバンドのように並べる。つまみをダブルクリックすると元に戻る。曲に保存され、書き出しにも入る。</p>
+      <h3>保存と書き出し</h3><p>曲はこのブラウザに自動で保存される。「曲」で、名前を付けて何曲でも保存・開ける（このブラウザの中だけ）。「保存」で JSON ファイルにもできる。</p>
+      <table class="grid"><tr><th>書き出し</th><th>中身</th></tr>
+        <tr><td><b>WAV</b></td><td>音（いちばんきれい。曲の長さより速く作る）</td></tr>
+        <tr><td><b>M4A</b></td><td>圧縮した音。WAV の約 1/8 の大きさで、スマホで聞く・人に送る用（使えないブラウザでは OGG）</td></tr>
+        <tr><td><b>STEMS</b></td><td>おもちゃごとの WAV を ZIP で。ほかの音楽ソフトで混ぜ直す用</td></tr>
+        <tr><td><b>WebM</b></td><td>映像込み（曲の長さだけ時間がかかる）</td></tr>
+        <tr><td><b>MIDI</b></td><td>音符だけ（DAW・将来の VST 用）</td></tr></table>
+      <p>MIDI 機器をつなぐと（ラックの MIDI ボタン）、外のドラムマシンや DAW の START / STOP とテンポ（MIDI クロック）に合わせて再生する。</p>
       <h3>自動作曲ユニット</h3>
       ${figure('composer.jpg', 'composer', COMPOSER_PARTS, '自動作曲ユニット（AUTO COMPOSER）', 'narrow-shot')}
       <h3>スタイル別の特徴</h3>${styleTable()}
@@ -230,7 +240,7 @@ function makeHtml(): string {
       ${figure('sampler.jpg', 'sampler', SAMPLER_PARTS, 'PAKU-PAKU 16（横長の画面。縦長の画面ではパッドが下に来る）', 'wide-shot')}
       <figure class="shot narrow-shot"><div class="frame"><img src="img/sampler-phone.jpg" alt=""></div><figcaption>スマホの縦の画面</figcaption></figure>
       <h3>1 曲できるまで</h3>
-      <div class="flow"><div class="flow-step"><b>1</b><p><b>音を入れる</b>：REC（マイク）・RESAMPLE（自分の音）・📂 FILE。最初からドラムとおもちゃの音が 32 個入っている</p></div><div class="flow-step"><b>2</b><p><b>切る</b>：EDIT タブの ✂ CHOP で、ループを切り分けて空いているバンクに並べる</p></div><div class="flow-step"><b>3</b><p><b>録る</b>：PATTERN タブの ● REC で叩いて録る。STEP で 16 分のマスに置いてもよい</p></div><div class="flow-step"><b>4</b><p><b>つなぐ</b>：SONG タブで、パターンを ＋ でつなぐ</p></div><div class="flow-step"><b>5</b><p><b>出す</b>：WAV・MIDI・プロジェクト保存。→ STUDIO でスタジオのシーケンサーへ</p></div></div>
+      <div class="flow"><div class="flow-step"><b>1</b><p><b>音を入れる</b>：REC（マイク）・RESAMPLE（自分の音）・📂 FILE。最初からドラムとおもちゃの音が 32 個入っている</p></div><div class="flow-step"><b>2</b><p><b>切る</b>：EDIT タブの ✂ CHOP で、ループを切り分けて空いているバンクに並べる</p></div><div class="flow-step"><b>3</b><p><b>録る</b>：PATTERN タブの ● REC で叩いて録る。STEP で 16 分のマスに置いてもよい</p></div><div class="flow-step"><b>4</b><p><b>つなぐ</b>：SONG タブで、パターンを ＋ でつなぐ</p></div><div class="flow-step"><b>5</b><p><b>出す</b>：WAV・M4A・MIDI・プロジェクト保存。→ STUDIO でスタジオのシーケンサーへ</p></div></div>
       <h3>タブごとの機能</h3>
       <table class="grid"><tr><th>タブ</th><th>できること</th></tr>
         <tr><td><b>PAD</b></td><td>REC（AUTO：音が来てから録音）・RESAMPLE・MON（入力を聞く）・GATE・LOOP・REV・POLY・📂 FILE（PC はパッドにファイルを落としても）・COPY・DEL・FIXED VEL（いつも最大の強さ）</td></tr>
@@ -238,8 +248,8 @@ function makeHtml(): string {
         <tr><td><b>EDIT</b></td><td>〰 WAVE EDIT（START・END・LOOP の印をドラッグ・0 SNAP・ZOOM）・✂ CHOP（等分・立ち上がりで自動・手で）・⏱ TEMPO FIT（BPM を推定して、音程そのままで伸び縮み／速さだけ合わせる）・NORMALIZE・REVERSE・TRIM・UNDO・⤓ WAV</td></tr>
         <tr><td><b>FX</b></td><td>BUS 1・BUS 2（パッドごとに送り先）・MASTER に 24 種から 1 つずつ（下の表）</td></tr>
         <tr><td><b>BEND</b></td><td>むき出しの基板にジャンパー線 6 本。熱がたまると暴発（外せば冷める）</td></tr>
-        <tr><td><b>PATTERN</b></td><td>▶ PLAY・● REC（重ね録り・QUANT でそろえる）・METRO・ERASE・↶・PATTERN（P01〜P16 をパッドで選ぶ）・小節 1〜8・CLEAR・STEP・SWING（ノブ）</td></tr>
-        <tr><td><b>SONG</b></td><td>パターンをつなぐ・くり返し回数・▶ SONG・⤓ WAV（パターン／ソング）・⤓ MIDI・💾 保存／📂 読込（.paku）・→ STUDIO</td></tr></table>
+        <tr><td><b>PATTERN</b></td><td>▶ PLAY・● REC（重ね録り・QUANT でそろえる）・METRO・ERASE・↶・PATTERN（P01〜P16 をパッドで選ぶ）・小節 1〜8・CLEAR・STEP・SWING と METER（ノブ。METER は拍子 2/4〜7/4）</td></tr>
+        <tr><td><b>SONG</b></td><td>パターンをつなぐ・くり返し回数・▶ SONG・⤓ WAV（パターン／ソング）・⤓ M4A ソング（圧縮した音）・⤓ MIDI・💾 保存／📂 読込（.paku）・→ STUDIO</td></tr></table>
       <figure class="shot wide-shot"><div class="frame"><img src="img/sampler-ptn.jpg" alt=""></div><figcaption>STEP で置いたビート（液晶の横 = 時間、行 = パッド。赤い線が再生位置）</figcaption></figure>
       <figure class="shot wide-shot"><div class="frame"><img src="img/sampler-chop.jpg" alt=""></div><figcaption>✂ CHOP：バンク B のループを、音の立ち上がりで自動で切ったところ（黄色い線が切れ目）</figcaption></figure>
       <h3>エフェクト 24 種</h3>
