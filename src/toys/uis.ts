@@ -7,5 +7,6 @@ import { mountTele } from './tele/ui';
 import { mountTypo } from './typo/ui';
 import { mountVroom } from './vroom/ui';
 import { mountSamplerToy } from '../sampler/toy/ui';
+import { mountManekko } from './manekko/ui';
 
-export const TOY_UIS: ToyUIFactory[] = [mountBlippy, mountPiko, mountDj, mountVroom, mountTypo, mountTele, mountSamplerToy];
+export const TOY_UIS: ToyUIFactory[] = [mountBlippy, mountPiko, mountDj, mountVroom, mountTypo, mountTele, mountSamplerToy, mountManekko];

@@ -375,5 +375,5 @@ export class Sequencer {
 
 /** 鳴っている順に置く左右の位置（左・右・少し左・少し右…） */
 const SPREAD = [-0.55, 0.55, -0.3, 0.3, -0.8, 0.8];
-/** エンジンの番号 → 真ん中に置くか（サンプラー = ドラム・ベース担当） */
-export const toyCenter = (ids: number[]) => ids.map((id) => id === 6);
+/** エンジンの番号 → 真ん中に置くか（サンプラー = ドラム・ベース担当、MANEKKO = 元の歌） */
+export const toyCenter = (ids: number[]) => ids.map((id) => id === 6 || id === 7); // サンプラー（ドラム・ベース）と MANEKKO（歌）

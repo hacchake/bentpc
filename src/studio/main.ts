@@ -22,8 +22,8 @@ import type { ToyKind } from '../compose/types';
 import { samplerNote } from '../sampler/toy/engine';
 
 const $ = (id: string) => document.getElementById(id) as HTMLElement;
-const KINDS: ToyKind[] = ['blippy', 'piko', 'dj', 'vroom', 'typo', 'tele', 'sampler'];
-const TOY_NAMES = ['BLIPPY BOOK 30（トイPC）', 'PIKOTONE PT-32', 'SPIN-TOT DJ-28', 'VROOMBOX VR-5', 'TYPOTRON TT-109', 'TELEKEY TK-6（映像）', 'PAKU-PAKU 16（サンプラー）'];
+const KINDS: ToyKind[] = ['blippy', 'piko', 'dj', 'vroom', 'typo', 'tele', 'sampler', 'manekko'];
+const TOY_NAMES = ['BLIPPY BOOK 30（トイPC）', 'PIKOTONE PT-32', 'SPIN-TOT DJ-28', 'VROOMBOX VR-5', 'TYPOTRON TT-109', 'TELEKEY TK-6（映像）', 'PAKU-PAKU 16（サンプラー）', 'MANEKKO MK-8（カバー）'];
 const query = new URLSearchParams(location.search);
 
 // ---- 並べるおもちゃ：URL（?toys=0,5）→ 前回の並び → トイPC と TELEKEY ----
@@ -56,6 +56,11 @@ const toys: ToyUI[] = lineup.map((id, toy) =>
     enableMic: () => audio.enableMic(),
     connectVideo: (src) => audio.connectVideo(src),
     outputStream: () => audio.outputStream(),
+    // MANEKKO（カバー）が作った曲をシーケンサーに入れる口
+    songHost: {
+      toys: () => lineup.map((id, i) => ({ toy: i, kind: KINDS[id], title: toys[i].title })),
+      load: (song, play) => { arr.setSong(song); if (play) void transport(true, 0); },
+    },
   }),
 );
 const slots = toys.map((t, i) => {
@@ -81,8 +86,8 @@ $('deck').appendChild(composeSlot);
 const lineupQuery = (with_: number[]): Record<string, string> => (with_.length === lineup.length ? { toys: lineup.join(',') } : { toys: lineup.join(','), with: with_.map((t) => t + 1).join(',') });
 const panel = mountComposerPanel({
   // 自動作曲の係がいるおもちゃだけ（いまは全部）
-  choices: lineup.map((id, i) => ({ toy: i, kind: KINDS[id], name: `${i + 1}.${toys[i].title.split(' ')[0]}` })).filter((c) => PART_COMPOSERS[c.kind]),
-  defaultToys: lineup.map((_, i) => i).filter((i) => PART_COMPOSERS[KINDS[lineup[i]]]),
+  choices: lineup.map((id, i) => ({ toy: i, kind: KINDS[id], name: `${i + 1}.${toys[i].title.split(' ')[0]}` })).filter((c) => PART_COMPOSERS[c.kind] && c.kind !== 'manekko'),
+  defaultToys: lineup.map((_, i) => i).filter((i) => PART_COMPOSERS[KINDS[lineup[i]]] && KINDS[lineup[i]] !== 'manekko'),
   storeKey: 'bentpc.compose.studio',
   song: () => arr.song,
   load: (song, play) => { arr.setSong(song); if (play) void transport(true, 0); },
@@ -291,7 +296,7 @@ const webmBtn = arr.addButton('WebM', '曲を最初から最後まで再生し�
   onSongEnd = () => setTimeout(() => vrec?.state === 'recording' && vrec.stop(), 1200);
 });
 arr.addButton('MIDI', '曲を MIDI ファイルに書き出す（チャンネル = ラックの番号：トイPC = 1 … TELEKEY = 6。将来の VST 用）', () =>
-  exportMidi(arr.song, lineup.map((id, i) => ({ title: toys[i].title, channel: id, noteOf: (k: number) => (id === 6 ? samplerNote(k) : Math.min(127, (id === 5 ? 24 : 36) + k)), paramDefs: toys[i].paramDefs }))));
+  exportMidi(arr.song, lineup.map((id, i) => ({ title: toys[i].title, channel: id, noteOf: (k: number) => (id === 7 ? -1 : id === 6 ? samplerNote(k) : Math.min(127, (id === 5 ? 24 : 36) + k)), paramDefs: toys[i].paramDefs }))));
 
 // ---- おもちゃを選ぶ（並べ直すとページを開き直す） ----
 {

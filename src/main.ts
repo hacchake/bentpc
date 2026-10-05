@@ -43,6 +43,11 @@ const toys: ToyUI[] = TOY_UIS.map((make, toy) =>
     enableMic: () => audio.enableMic(),
     connectVideo: (src) => audio.connectVideo(src),
     outputStream: () => audio.outputStream(),
+    // MANEKKO（カバー）が作った曲をシーケンサーに入れる口
+    songHost: {
+      toys: () => toys.map((t, i) => ({ toy: i, kind: KINDS[i], title: t.title })),
+      load: (song, play) => { arr.setSong(song); openSeq(true); if (play) void transport(true, 0); },
+    },
   }),
 );
 const tabEls = toys.map((t, i) => {
@@ -59,14 +64,14 @@ const tabEls = toys.map((t, i) => {
 });
 
 // ---- 自動作曲ユニット（作曲係のあるおもちゃだけ、右側に付ける） ----
-const KINDS: ToyKind[] = ['blippy', 'piko', 'dj', 'vroom', 'typo', 'tele', 'sampler'];
+const KINDS: ToyKind[] = ['blippy', 'piko', 'dj', 'vroom', 'typo', 'tele', 'sampler', 'manekko'];
 const PANEL_GAP = 50;
 const panelScale = (h: number) => Math.max(0.9, Math.min(1.4, h / 820));
 // 何台かで 1 つの曲も作れる（参加ボタン）。パネルの付いたおもちゃはいつも参加
-const CHOICES = toys.map((t, i) => ({ toy: i, kind: KINDS[i], name: `${i + 1}.${t.title.split(' ')[0]}` })).filter((c) => PART_COMPOSERS[c.kind]);
+const CHOICES = toys.map((t, i) => ({ toy: i, kind: KINDS[i], name: `${i + 1}.${t.title.split(' ')[0]}` })).filter((c) => PART_COMPOSERS[c.kind] && c.kind !== 'manekko');
 const rackQuery = (i: number, with_: number[]) => ({ toy: String(i + 1), toys: with_.map((t) => t + 1).join(',') });
 const panels = toys.map((t, i) => {
-  if (!PART_COMPOSERS[KINDS[i]]) return null;
+  if (!PART_COMPOSERS[KINDS[i]] || KINDS[i] === 'manekko') return null; // MANEKKO は自分の画面でカバーを作る
   const p = mountComposerPanel({
     choices: CHOICES,
     defaultToys: [i],
@@ -298,7 +303,7 @@ const wavBtn = arr.addButton('WAV', '曲を最初から最後まで WAV に書�
   wavBtn.disabled = false;
 });
 arr.addButton('MIDI', '曲を MIDI ファイルに書き出す（チャンネル n = n 台目）', () =>
-  exportMidi(arr.song, toys.map((t, i) => ({ title: t.title, channel: i, noteOf: (k: number) => (i === 6 ? samplerNote(k) : Math.min(127, (i === 5 ? 24 : 36) + k)), paramDefs: t.paramDefs }))));
+  exportMidi(arr.song, toys.map((t, i) => ({ title: t.title, channel: i, noteOf: (k: number) => (i === 7 ? -1 : i === 6 ? samplerNote(k) : Math.min(127, (i === 5 ? 24 : 36) + k)), paramDefs: t.paramDefs }))));
 
 // ---- PC キーボード（表示中のおもちゃへ） ----
 window.addEventListener('keydown', (e) => {

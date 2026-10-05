@@ -36,7 +36,8 @@ export function arrangeEnsemble(plan: Plan, toys: ComposeToy[], parts: Part[]): 
     if (sec.kind !== 'break') continue;
     const survivor = toys[r.int(toys.length)].toy;
     const a = sec.start, z = sec.start + sec.bars * 4;
-    out = out.map((p) => (p.toy === survivor ? p : { ...p, notes: p.notes.filter((n) => n.key >= 2000 || n.start < a || n.start >= z) }));
+    // まねっこのテープ（元の歌）は消さない
+    out = out.map((p) => (p.toy === survivor || p.part === 'manekko:tape' ? p : { ...p, notes: p.notes.filter((n) => n.key >= 2000 || n.start < a || n.start >= z) }));
   }
   // ---- 音量：台数が多いほど少し下げる（音割れしないように） ----
   const k = Math.min(1, 1.3 / Math.sqrt(toys.length));

@@ -1,0 +1,99 @@
+/* MANEKKO MK-8：インコの形のカセットレコーダー（オリジナル）。モニター・ツマミ・ボタンを後からねじ止めした魔改造機 */
+.toy-mk { position: relative; font-family: 'Fredoka', sans-serif; color: #10240f; }
+
+/* しっぽ（後ろの羽） */
+.mk-tail { position: absolute; right: 0; bottom: 30px; width: 260px; height: 300px; }
+.mk-tail::before, .mk-tail::after {
+  content: ''; position: absolute; right: 10px; bottom: 0; width: 90px; height: 300px; border-radius: 60px 60px 20px 20px;
+  background: linear-gradient(180deg, #2f9bd8, #1a5fa0 70%, #123f70); transform-origin: 50% 100%; transform: rotate(28deg);
+  box-shadow: inset -8px 0 0 rgba(0,0,0,.18);
+}
+.mk-tail::after { right: 70px; height: 260px; background: linear-gradient(180deg, #f0d23a, #e09a1a 70%, #b8700a); transform: rotate(14deg); }
+
+/* 体 */
+.mk-body {
+  position: absolute; left: 20px; top: 50px; right: 70px; bottom: 16px; border-radius: 220px 140px 90px 240px;
+  background:
+    radial-gradient(ellipse 45% 55% at 30% 75%, rgba(255,240,140,.55), transparent 70%),
+    radial-gradient(circle at 25% 15%, rgba(255,255,255,.35), transparent 40%),
+    linear-gradient(160deg, #7fe06a, #3fb44a 45%, #23863a);
+  box-shadow: inset 0 -14px 0 rgba(0,60,10,.35), inset 0 8px 0 rgba(255,255,255,.4), 0 0 0 6px #17602a, 0 24px 40px rgba(0,0,0,.5);
+}
+
+/* 頭・目・くちばし・とさか */
+.mk-head {
+  position: absolute; left: -6px; top: -40px; width: 300px; height: 270px; border-radius: 50% 50% 45% 55%;
+  background: radial-gradient(circle at 70% 70%, #ff8a3a 0 18%, transparent 19%), radial-gradient(circle at 35% 25%, rgba(255,255,255,.45), transparent 35%), linear-gradient(170deg, #9cf07a, #46bf4c 60%, #2a9440);
+  box-shadow: inset 0 -10px 0 rgba(0,60,10,.3), 0 0 0 6px #17602a;
+}
+.mk-eye { position: absolute; left: 150px; top: 70px; width: 64px; height: 64px; border-radius: 50%; background: radial-gradient(circle at 45% 45%, #111 0 30%, #fff 31% 100%); box-shadow: 0 0 0 5px #17602a, inset -6px -6px 0 rgba(0,0,0,.12); }
+.mk-eye::after { content: ''; position: absolute; left: 22px; top: 18px; width: 10px; height: 10px; border-radius: 50%; background: #fff; }
+.mk-beak {
+  position: absolute; left: -58px; top: 96px; width: 120px; height: 96px; border-radius: 80% 10% 30% 90%;
+  background: linear-gradient(170deg, #ffe48a, #f2b42c 60%, #c47c10); box-shadow: 0 0 0 5px #6b3c06, inset 0 -8px 0 rgba(0,0,0,.18);
+}
+.mk-crest { position: absolute; left: 110px; top: -36px; width: 120px; height: 70px; background: radial-gradient(ellipse 18px 40px at 20% 70%, #ff5a3a 98%, transparent), radial-gradient(ellipse 18px 46px at 50% 60%, #ffb02a 98%, transparent), radial-gradient(ellipse 18px 40px at 80% 70%, #ff5a3a 98%, transparent); }
+
+.mk-logo { position: absolute; left: 70px; top: 240px; display: flex; align-items: baseline; gap: 8px; }
+.mk-logo b { font: 900 46px 'Fredoka', sans-serif; color: #fff7c2; -webkit-text-stroke: 2px #17602a; text-shadow: 3px 3px 0 #17602a; }
+.mk-logo span { font: 900 24px 'Fredoka', sans-serif; color: #fff; background: #e8322a; border: 3px solid #5a0e08; border-radius: 8px; padding: 0 6px; }
+.mk-logo em { position: absolute; left: 230px; top: -26px; font: 700 20px 'Permanent Marker', cursive; color: #ff3a2a; transform: rotate(-8deg); white-space: nowrap; }
+
+.mk-power { position: absolute; left: 70px; top: 312px; display: flex; align-items: center; gap: 10px; }
+.mk-power small { font: 700 14px 'Share Tech Mono', monospace; background: #fff; border: 2px solid #17602a; border-radius: 4px; padding: 0 5px; }
+
+/* 後付けのモニター（ねじ止め） */
+.mk-monitor {
+  position: absolute; right: 30px; top: 18px; width: 660px; height: 380px; border-radius: 18px; padding: 20px;
+  background: linear-gradient(180deg, #4a4a52, #2a2a30); box-shadow: 0 0 0 4px #111, 0 10px 0 rgba(0,0,0,.35), inset 0 2px 0 rgba(255,255,255,.2);
+}
+.mk-screen { display: block; width: 620px; height: 340px; border-radius: 10px; box-shadow: inset 0 0 30px rgba(0,0,0,.8), 0 0 0 3px #000; }
+.mk-bolt { position: absolute; width: 14px; height: 14px; border-radius: 50%; background: radial-gradient(circle at 40% 35%, #eee, #888 60%, #444); box-shadow: 0 0 0 2px #222; }
+.mk-bolt::after { content: ''; position: absolute; left: 2px; right: 2px; top: 6px; height: 2px; background: #333; transform: rotate(35deg); }
+.mk-bolt.a { left: 4px; top: 4px; } .mk-bolt.b { right: 4px; top: 4px; } .mk-bolt.c { left: 4px; bottom: 4px; } .mk-bolt.d { right: 4px; bottom: 4px; }
+
+/* ツマミの板（金属・後付け） */
+.mk-plate {
+  position: absolute; right: 30px; top: 412px; width: 660px; height: 120px; border-radius: 10px; display: flex; justify-content: space-around; align-items: center;
+  background: repeating-linear-gradient(90deg, rgba(255,255,255,.06) 0 2px, transparent 2px 6px), linear-gradient(180deg, #c9ccd2, #8e939c); box-shadow: 0 0 0 3px #333, 0 6px 0 rgba(0,0,0,.3);
+}
+.mk-k { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.mk-tape { font: 700 12px 'Share Tech Mono', monospace; background: #fffbe0; color: #222; padding: 1px 6px; border-radius: 2px; transform: rotate(-2deg); box-shadow: 0 1px 2px rgba(0,0,0,.4); }
+
+/* カバーの設定（おもちゃ・スタイル・範囲・VOCAL） */
+.mk-cover { position: absolute; left: 40px; top: 380px; width: 400px; display: flex; flex-direction: column; gap: 12px; }
+.mk-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.mk-lbl { font: 700 12px 'Share Tech Mono', monospace; color: #0c2a10; background: rgba(255,255,255,.6); border-radius: 3px; padding: 1px 4px; }
+.mk-toy {
+  width: 44px; height: 50px; border-radius: 10px; border: 3px solid #0c2a10; background: linear-gradient(180deg, #f4f1e4, #cdc6ae); box-shadow: 0 3px 0 #0c2a10;
+  font: 900 18px 'Fredoka', sans-serif; color: #0c2a10; cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 0; line-height: 1;
+}
+.mk-toy small { font: 700 9px 'Share Tech Mono', monospace; }
+.mk-toy.on { background: linear-gradient(180deg, #fff3a0, #ffc21a); box-shadow: 0 3px 0 #0c2a10, 0 0 10px #ffe46a; }
+.mk-sbtn { width: 34px; height: 34px; border-radius: 8px; border: 3px solid #0c2a10; background: #f4f1e4; color: #0c2a10; font: 900 14px sans-serif; cursor: pointer; padding: 0; }
+.mk-style { min-width: 112px; text-align: center; font: 700 16px 'Share Tech Mono', monospace; background: #06140c; color: #7dff9a; border-radius: 6px; padding: 5px 6px; border: 3px solid #222; }
+.mk-sw { width: 44px; height: 26px; border-radius: 13px; border: 3px solid #0c2a10; background: #6b6b6b; position: relative; cursor: pointer; padding: 0; }
+.mk-sw i { position: absolute; left: 2px; top: 2px; width: 16px; height: 16px; border-radius: 50%; background: #eee; transition: left .15s; }
+.mk-sw.on { background: #e8322a; } .mk-sw.on i { left: 22px; }
+
+/* カセットの部分（お腹） */
+.mk-deck { position: absolute; left: 60px; right: 40px; top: 560px; height: 220px; display: flex; gap: 24px; align-items: center; }
+.mk-window {
+  position: relative; width: 470px; height: 170px; border-radius: 16px; background: linear-gradient(180deg, #2b2b2b, #111); box-shadow: 0 0 0 6px #17602a, inset 0 0 0 10px #444;
+  display: flex; align-items: center; justify-content: space-around;
+}
+.mk-reel { width: 110px; height: 110px; border-radius: 50%; background: repeating-conic-gradient(#ddd 0 20deg, #555 20deg 60deg); box-shadow: 0 0 0 10px #6b4a2a, 0 0 0 12px #222; }
+.toy-mk.spin .mk-reel { animation: mk-spin 1.4s linear infinite; }
+@keyframes mk-spin { to { transform: rotate(360deg); } }
+.mk-label { position: absolute; left: 50%; bottom: 10px; transform: translateX(-50%); font: 700 14px 'Permanent Marker', cursive; background: #fffbe0; color: #222; padding: 2px 10px; border-radius: 3px; white-space: nowrap; max-width: 260px; overflow: hidden; text-overflow: ellipsis; }
+.mk-keys { display: flex; gap: 10px; }
+.mk-key {
+  width: 112px; height: 110px; border-radius: 10px 10px 16px 16px; border: 4px solid #1a1a1a; background: linear-gradient(180deg, #f2f2f2, #b9b9b9); box-shadow: 0 8px 0 #1a1a1a;
+  font: 900 17px 'Fredoka', sans-serif; color: #1a1a1a; cursor: pointer;
+}
+.mk-key:active, .mk-key.down { transform: translateY(6px); box-shadow: 0 2px 0 #1a1a1a; }
+.mk-key.cover { background: linear-gradient(180deg, #ff7a6a, #d62a1a); color: #fff; width: 140px; font-size: 22px; }
+.toy-mk.off .mk-screen { filter: brightness(.4); }
+.toy-mk .knob { position: relative; width: 50px; height: 50px; flex-shrink: 0; }
+.toy-mk .mk-row .knob { width: 40px; height: 40px; }
+.toy-mk .dome { position: relative; }

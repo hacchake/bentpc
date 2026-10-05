@@ -7,6 +7,7 @@ import { TeleEngine } from './tele/dsp/engine';
 import { TypoEngine } from './typo/dsp/engine';
 import { VroomEngine } from './vroom/dsp/engine';
 import { SamplerToy } from '../sampler/toy/engine';
+import { ManekkoEngine } from './manekko/engine';
 
 // seed を渡すと、そのシードの乱数で作る（スタジオの「同じ曲なら毎回同じ音」用）
 export const TOY_ENGINES: ((sampleRate: number, seed?: number) => ToyEngine)[] = [
@@ -18,4 +19,6 @@ export const TOY_ENGINES: ((sampleRate: number, seed?: number) => ToyEngine)[] =
   (sr, seed) => new TeleEngine(sr, seed),
   // 7 台目：サンプラー PAKU-PAKU 16（音の作り込みは専用のページ sampler.html）
   (sr) => new SamplerToy(sr),
+  // 8 台目：MANEKKO MK-8（取り込んだ曲の歌・伴奏をカバーの拍にそろえて鳴らす。解析とカバー作りは画面側）
+  (sr, seed) => new ManekkoEngine(sr, seed),
 ];

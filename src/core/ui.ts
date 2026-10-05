@@ -1,7 +1,8 @@
 // おもちゃの画面（UI）の共通の形と、部品を置くための道具。
 import type { ParamDef } from './params';
 import type { FromToy, ToyMsg } from '../host/protocol';
-import { SYS_NAMES } from './song';
+import { SYS_NAMES, type Song } from './song';
+import type { ToyKind } from '../compose/types';
 
 const NOTE_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
 /** MIDI ノート番号 → 音名（60 = C4） */
@@ -18,6 +19,13 @@ export interface HostApi {
   connectVideo(src: MediaStream | HTMLMediaElement | null): Promise<void>;
   /** 出力の音（録画用） */
   outputStream(): Promise<MediaStream>;
+  /** 曲を作るおもちゃ（MANEKKO）用：並んでいるおもちゃと、作った曲をシーケンサーに入れる口。無いホストもある */
+  songHost?: {
+    /** 曲の中のおもちゃ番号・種類・名前 */
+    toys(): { toy: number; kind: ToyKind; title: string }[];
+    /** シーケンサーに入れる（play なら頭から鳴らす） */
+    load(song: Song, play: boolean): void;
+  };
 }
 
 export interface ToyUI {

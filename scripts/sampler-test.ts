@@ -427,7 +427,7 @@ const freq = (x: Float32Array, a: number, b: number) => { let z = 0; for (let i 
   for (let i = 0; i < a.length; i++) if (Math.abs(a[i]) > 0.2 && (i === 0 || Math.abs(a[i - 1]) < 0.01)) o.push(i / SR);
   let diff = 0;
   for (let i = 0; i < a.length; i++) diff += Math.abs(a[i] - b[i]);
-  TOY_ENGINES.length === 7 && rms(b) > 0.02 && [0.5, 1, 1.5].every((t) => o.some((x) => Math.abs(x - t) < 0.002)) /* 頭は電源の「パクッ」と重なる */ && diff / a.length > 0.01
+  TOY_ENGINES.length >= 7 && rms(b) > 0.02 && [0.5, 1, 1.5].every((t) => o.some((x) => Math.abs(x - t) < 0.002)) /* 頭は電源の「パクッ」と重なる */ && diff / a.length > 0.01
     ? ok('スタジオ・ラックの 7 台目：工場出荷の音で鳴り、サンプラーのページの音（custom）で置き換わる（WAV 書き出しでも 0.5 秒ごと 4 発）')
     : ng(`スタジオ ${TOY_ENGINES.length} ${rms(b)} ${o} ${diff / a.length}`);
   // メロディ・ベースのキー：MELO PAD の音を音程を変えて弾く

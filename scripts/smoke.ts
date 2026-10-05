@@ -28,7 +28,7 @@ async function rack(page: Page, mobile: boolean): Promise<void> {
   const tag = mobile ? 'スマホ縦' : 'PC';
   await page.goto(`${base}index.html?lang=ja`);
   await sleep(2500);
-  for (let i = 0; i < 7; i++) {
+  for (let i = 0; i < 8; i++) {
     await page.locator('#tabs .tab').nth(i).click();
     await sleep(400);
     // おもちゃの真ん中あたりをさわる → 電源が入る
@@ -57,7 +57,9 @@ async function rack(page: Page, mobile: boolean): Promise<void> {
     const over = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
     if (over > 2) ng(`${tag}：${i + 1} 台目で横にはみ出す（${over}px）`);
   }
-  // 自動作曲 → 鳴らす → 止める
+  // 自動作曲 → 鳴らす → 止める（1 台目で。MANEKKO には自動作曲のパネルが無い）
+  await page.locator('#tabs .tab').nth(0).click();
+  await sleep(400);
   const dome = await center(page, '.dome.compose:visible');
   if (dome) {
     await page.mouse.click(dome.x, dome.y);

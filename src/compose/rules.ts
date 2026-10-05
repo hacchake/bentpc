@@ -14,6 +14,7 @@ import { composeTele } from './toys/tele';
 import { composeTypo } from './toys/typo';
 import { composeVroom } from './toys/vroom';
 import { composeSampler } from './toys/sampler';
+import { composeManekko } from './toys/manekko';
 import type { Part, PartContext } from './context';
 import { arrangeEnsemble } from './ensemble';
 import type { ComposeInfo, ComposeRequest, Composer, ToyKind } from './types';
@@ -29,6 +30,7 @@ export const PART_COMPOSERS: Partial<Record<ToyKind, PartComposer>> = {
   typo: composeTypo,
   tele: composeTele,
   sampler: composeSampler,
+  manekko: composeManekko,
 };
 
 export class RuleComposer implements Composer {
