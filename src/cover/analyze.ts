@@ -31,6 +31,8 @@ export interface CoverAnalysis {
   sections: CoverSection[];
   /** 小節ごとの大きさ 0〜1 */
   energy: number[];
+  /** メロディの高さ（MIDI、元の調のまま。0 = 歌っていない）を 22.05kHz・512 サンプルごとに（ボーカルを取り出すのに使う） */
+  pitch: number[];
 }
 
 const SR = 22050;
@@ -457,7 +459,8 @@ export function analyze(ch: Float32Array[], sr: number, progress?: Progress): Co
   const sections = sectionsOf(feat, energy);
   const beats = beatsF.slice(0, bars * 4 + 1).map((f) => (f * HOP + N / 2) / SR); // フレームの真ん中の時刻
   progress?.(1, 'できました');
-  return { duration, bpm: Math.round(bpm * 10) / 10, beats, offset: beats[0] ?? 0, bars, key, shift, chords, chordNames, melody, bass, drums, sections, energy };
+  const pitch = Array.from(F.melody, (m, f) => (F.melSal[f] > voiceTh ? m : 0));
+  return { duration, bpm: Math.round(bpm * 10) / 10, beats, offset: beats[0] ?? 0, bars, key, shift, chords, chordNames, melody, bass, drums, sections, energy, pitch };
 }
 
 /** 枠ごとの高さ（0 = 無し）→ 音符。同じ高さが続けばのばす（出だしがあれば切る）。step = 1 枠の拍 */

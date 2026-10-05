@@ -7,7 +7,7 @@ import type { ComposeSettings } from '../compose/types';
 import type { CoverAnalysis, CoverDrumBar, CoverNote } from './analyze';
 
 /** 曲データに残すカバーの元（音そのものは残さない。作り直し・セクションの作り直しに使う） */
-export interface CoverSource extends Omit<CoverAnalysis, 'beats'> {
+export interface CoverSource extends Omit<CoverAnalysis, 'beats' | 'pitch'> {
   title: string;
   /** 使う範囲（小節）。to は含まない */
   from: number;
@@ -21,10 +21,10 @@ export interface CoverPart {
   drums: CoverDrumBar[];
 }
 
-/** 解析結果から、曲データに残す元を作る（拍の時刻は大きいので捨てる） */
+/** 解析結果から、曲データに残す元を作る（拍の時刻・フレームごとの高さは大きいので捨てる） */
 export function coverSource(a: CoverAnalysis, title: string, from = 0, to = a.bars): CoverSource {
-  const { beats: _beats, ...rest } = a;
-  void _beats;
+  const { beats: _beats, pitch: _pitch, ...rest } = a;
+  void _beats; void _pitch;
   return { ...rest, title, from, to };
 }
 

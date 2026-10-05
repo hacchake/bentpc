@@ -25,13 +25,41 @@ export class FFT {
 
   /** x の off から n サンプルに窓を掛けて変換し、大きさ（0〜n/2）を mag に入れる */
   magnitudes(x: Float32Array, off: number, mag: Float32Array): void {
+    this.load(x, off);
+    this.run(this.re, this.im, false);
+    for (let k = 0; k <= this.n / 2; k++) mag[k] = Math.hypot(this.re[k], this.im[k]);
+  }
+
+  /** 窓を掛けて変換し、実部・虚部（0〜n/2）を返す（値は次に呼ぶまで有効） */
+  forward(x: Float32Array, off: number): { re: Float64Array; im: Float64Array } {
+    this.load(x, off);
+    this.run(this.re, this.im, false);
+    return { re: this.re, im: this.im };
+  }
+
+  /** 逆変換：0〜n/2 の実部・虚部 → 波形 n サンプル（out に足す。窓 w を掛けて） */
+  inverseAdd(re: ArrayLike<number>, im: ArrayLike<number>, out: Float32Array, off: number, gain = 1): void {
+    const { n, rev, window } = this;
+    const R = new Float64Array(n), I = new Float64Array(n);
+    for (let k = 0; k <= n / 2; k++) { R[rev[k]] = re[k]; I[rev[k]] = im[k]; }
+    for (let k = 1; k < n / 2; k++) { R[rev[n - k]] = re[k]; I[rev[n - k]] = -im[k]; } // 対称（実数の波形）
+    this.run(R, I, true);
+    for (let i = 0; i < n; i++) { const j = off + i; if (j >= 0 && j < out.length) out[j] += (R[i] / n) * window[i] * gain; }
+  }
+
+  private load(x: Float32Array, off: number): void {
     const { n, re, im, rev, window } = this;
     for (let i = 0; i < n; i++) { const j = off + i; re[rev[i]] = (j >= 0 && j < x.length ? x[j] : 0) * window[i]; im[rev[i]] = 0; }
+  }
+
+  /** ビット反転済みの re・im をその場で変換（inverse = 逆向き） */
+  private run(re: Float64Array, im: Float64Array, inverse: boolean): void {
+    const n = this.n, sg = inverse ? -1 : 1;
     for (let size = 2; size <= n; size <<= 1) {
       const half = size >> 1, step = n / size;
       for (let s = 0; s < n; s += size) {
         for (let k = 0; k < half; k++) {
-          const c = this.cos[k * step], si = this.sin[k * step];
+          const c = this.cos[k * step], si = this.sin[k * step] * sg;
           const a = s + k, b = a + half;
           const tr = re[b] * c - im[b] * si, ti = re[b] * si + im[b] * c;
           re[b] = re[a] - tr; im[b] = im[a] - ti;
@@ -39,6 +67,5 @@ export class FFT {
         }
       }
     }
-    for (let k = 0; k <= n / 2; k++) mag[k] = Math.hypot(re[k], im[k]);
   }
 }
