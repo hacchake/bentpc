@@ -659,4 +659,6 @@ export const EN_APP: Record<string, string> = {
   'メロディを聞き取り直しています': 'Listening to the melody again',
   'サンプラーに空きバンクが無いので、工場出荷の音で弾きます': 'The sampler has no free bank, so the factory sounds are used',
   'PAKU-PAKU に音を切り出しています': 'Cutting sounds for PAKU-PAKU',
+  'うまく動かない所がありました': 'Something went wrong',
+  '音が止まったら、ページを読み込み直してください（作った曲はブラウザに保存されています）。': 'If the sound stops, reload the page (your songs are saved in this browser).',
 };

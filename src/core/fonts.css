@@ -1,0 +1,5 @@
+/* 文字（英字）のフォントをページの中に持つ：ネットにつながっていなくても、いつも同じ見た目にする（SIL Open Font License） */
+@font-face { font-family: 'Fredoka'; font-style: normal; font-display: swap; font-weight: 500; src: url(@fontsource/fredoka/files/fredoka-latin-500-normal.woff2) format('woff2'); }
+@font-face { font-family: 'Fredoka'; font-style: normal; font-display: swap; font-weight: 700; src: url(@fontsource/fredoka/files/fredoka-latin-700-normal.woff2) format('woff2'); }
+@font-face { font-family: 'Permanent Marker'; font-style: normal; font-display: swap; font-weight: 400; src: url(@fontsource/permanent-marker/files/permanent-marker-latin-400-normal.woff2) format('woff2'); }
+@font-face { font-family: 'Share Tech Mono'; font-style: normal; font-display: swap; font-weight: 400; src: url(@fontsource/share-tech-mono/files/share-tech-mono-latin-400-normal.woff2) format('woff2'); }

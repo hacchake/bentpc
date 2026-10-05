@@ -84,7 +84,7 @@ export function mountManekko(api: HostApi): ToyUI {
           <button class="mk-sbtn" data-a="prev">◀</button><span class="mk-style"></span><button class="mk-sbtn" data-a="next">▶</button>
           <span class="mk-lbl">FROM</span><div class="knob small black" data-k="from"><div class="cap"></div></div>
           <span class="mk-lbl">TO</span><div class="knob small black" data-k="to"><div class="cap"></div></div>
-          <button class="mk-sw" data-a="vocal"><i></i></button><span class="mk-lbl">VOCAL ON</span>
+          <button class="mk-sw" data-a="vocal" aria-label="VOCAL ON"><i></i></button><span class="mk-lbl">VOCAL ON</span>
         </div>
       </div>
       <div class="mk-deck">

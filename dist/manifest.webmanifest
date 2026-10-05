@@ -1,0 +1,22 @@
+{
+  "name": "BENT TOY RACK",
+  "short_name": "BENT TOY",
+  "description": "魔改造したおもちゃ楽器で遊ぶ・曲を作る・まねっこする（ブラウザだけで動く）",
+  "lang": "ja",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#141220",
+  "theme_color": "#141220",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" },
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml" }
+  ],
+  "shortcuts": [
+    { "name": "STUDIO", "url": "studio.html" },
+    { "name": "SAMPLER（PAKU-PAKU 16）", "url": "sampler.html" }
+  ]
+}

@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- BENT TOY RACK のアイコン（オリジナル）：赤いおもちゃの本体・液晶の壊れた波形・黄色い鍵盤・ジャンパー線 -->
+  <rect width="512" height="512" rx="112" fill="#1d1a2b"/>
+  <rect x="64" y="96" width="384" height="320" rx="56" fill="#e8402f"/>
+  <rect x="64" y="96" width="384" height="320" rx="56" fill="none" stroke="#9e1f16" stroke-width="12"/>
+  <rect x="104" y="136" width="304" height="132" rx="20" fill="#2e3b2a"/>
+  <rect x="104" y="136" width="304" height="132" rx="20" fill="none" stroke="#f4c430" stroke-width="10"/>
+  <polyline points="124,214 160,214 176,170 196,248 214,182 232,214 262,214 274,160 288,200 300,200 314,236 330,176 346,214 388,214"
+    fill="none" stroke="#9cff57" stroke-width="12" stroke-linejoin="round" stroke-linecap="round"/>
+  <g fill="#f4c430" stroke="#9e1f16" stroke-width="6">
+    <rect x="104" y="300" width="52" height="76" rx="12"/>
+    <rect x="166" y="300" width="52" height="76" rx="12"/>
+    <rect x="228" y="300" width="52" height="76" rx="12"/>
+    <rect x="290" y="300" width="52" height="76" rx="12"/>
+    <rect x="352" y="300" width="52" height="76" rx="12"/>
+  </g>
+  <path d="M420 120 C 500 150, 470 250, 404 300" fill="none" stroke="#3aa0ff" stroke-width="14" stroke-linecap="round"/>
+  <circle cx="420" cy="120" r="16" fill="#3aa0ff"/>
+  <circle cx="404" cy="300" r="16" fill="#3aa0ff"/>
+</svg>

@@ -1,5 +1,6 @@
 // アプリ本体：おもちゃを並べるラック。上のタブで表示するおもちゃを切り替える（裏のおもちゃも鳴り続ける）。
 import { setupLang } from './i18n';
+import './core/fonts.css';
 import './core/parts.css';
 import './host/host.css';
 import type { ToyUI } from './core/ui';
@@ -18,6 +19,11 @@ import { download, encodeWav } from './host/wav';
 import { TOY_UIS } from './toys/uis';
 import { samplerNote } from './sampler/toy/engine';
 import { setViewRot } from './core/view';
+import { registerOffline } from './core/pwa';
+import { watchErrors } from './core/errors';
+
+registerOffline();
+watchErrors();
 
 const $ = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
 const audio = new AudioHost();

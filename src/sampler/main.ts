@@ -2,6 +2,7 @@
 // 子ども用の録音おもちゃを魔改造した見た目。16 パッド × 16 バンク。
 // 下の機能ボタンはタブで切り替える：PAD（録音・再生のしかた）／PLAY（ロール・サブパッド・16 レベル・テンポ）／EDIT（波形・チョップ・テンポ合わせ）
 import { setupLang } from '../i18n';
+import '../core/fonts.css';
 import './sampler.css';
 import { Knob } from '../core/controls';
 import { FACTORY_BANKS, factoryBank, factoryParams } from './dsp/factory';
@@ -18,6 +19,11 @@ import { midiBytes, packProject, renderOffline, sampleWav, unpackProject, wavByt
 import { loadAll, loadMeta, saveMeta, savePads, type StoredPad } from './store';
 import { openEditor, type EditorApi } from './editor';
 import { normalize as edNormalize, reverse as edReverse, trim as edTrim } from './dsp/edit';
+import { registerOffline } from '../core/pwa';
+import { watchErrors } from '../core/errors';
+
+registerOffline();
+watchErrors();
 
 const $ = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
 const host = new SamplerHost();

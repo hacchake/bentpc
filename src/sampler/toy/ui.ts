@@ -65,9 +65,9 @@ export function mountSamplerToy(api: HostApi): ToyUI {
       <div class="pkt-plate">
         <i class="pkt-screw a"></i><i class="pkt-screw b"></i><i class="pkt-screw c"></i><i class="pkt-screw d"></i>
         ${KNOBS.map(([id, label, cls]) => `<div class="pkt-k"><span class="pkt-tape">${label}</span><div class="knob small ${cls}" data-k="${id}"><div class="cap"></div></div><b class="pkt-kv" data-v="${id}"></b></div>`).join('')}
-        <div class="pkt-k sw"><span class="pkt-tape">REV</span><button class="pkt-sw" data-sw="reverse"><i></i></button><b class="pkt-kv" data-v="reverse"></b></div>
-        <div class="pkt-k sw"><span class="pkt-tape">FX</span><button class="pkt-sw" data-sw="fx"><i></i></button><b class="pkt-kv" data-v="fx"></b></div>
-        <div class="pkt-k sw"><span class="pkt-tape">STOP</span><button class="pkt-sw stop" data-a="stop"><i></i></button><b class="pkt-kv"></b></div>
+        <div class="pkt-k sw"><span class="pkt-tape">REV</span><button class="pkt-sw" data-sw="reverse" aria-label="REV"><i></i></button><b class="pkt-kv" data-v="reverse"></b></div>
+        <div class="pkt-k sw"><span class="pkt-tape">FX</span><button class="pkt-sw" data-sw="fx" aria-label="FX"><i></i></button><b class="pkt-kv" data-v="fx"></b></div>
+        <div class="pkt-k sw"><span class="pkt-tape">STOP</span><button class="pkt-sw stop" data-a="stop" aria-label="STOP"><i></i></button><b class="pkt-kv"></b></div>
       </div>
       <div class="pkt-row">
         <button class="pkt-btn" data-a="melo" title="いま選んでいるパッドをメロディ用に">♪ MELO</button><span class="pkt-val" data-id="melo"></span>

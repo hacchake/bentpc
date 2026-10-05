@@ -2,6 +2,7 @@
 // 自動作曲ユニットで、並べたおもちゃ全部の合同の曲を作れる（URL で共有できる）。
 // 再生するとキーが光り、ノブやスイッチも動いて見える。
 import { setupLang } from '../i18n';
+import '../core/fonts.css';
 import '../core/parts.css';
 import '../host/host.css';
 import './studio.css';
@@ -20,6 +21,11 @@ import { PART_COMPOSERS } from '../compose/rules';
 import { copyText, setPageQuery, settingsFromQuery, settingsToQuery, toast } from '../compose/share';
 import type { ToyKind } from '../compose/types';
 import { samplerNote } from '../sampler/toy/engine';
+import { registerOffline } from '../core/pwa';
+import { watchErrors } from '../core/errors';
+
+registerOffline();
+watchErrors();
 
 const $ = (id: string) => document.getElementById(id) as HTMLElement;
 const KINDS: ToyKind[] = ['blippy', 'piko', 'dj', 'vroom', 'typo', 'tele', 'sampler', 'manekko'];
