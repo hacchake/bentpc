@@ -28,6 +28,8 @@ export interface GenOpts {
   dense?: boolean;
   /** 歌の大きさ（1 = ふつう） */
   vocalGain?: number;
+  /** 歌の代わりに、楽器（矩形波のリード）がメロディを弾く（インストの曲） */
+  instrumental?: boolean;
   /** 人が弾いたような揺れ：テンポがゆっくり ±drift 揺れ、音ごとに少しずれる（0〜0.05） */
   drift?: number;
 }
@@ -206,6 +208,13 @@ export function genSong(o: GenOpts): { L: Float32Array; R: Float32Array; vocal: 
       src[i] = (ph * 2 - 1) + r.bi() * 0.04;
     }
     const vw = r.pick(VOWELS), out = new Float32Array(len);
+    if (o.instrumental) {
+      // リード：矩形波を少しこもらせて、はっきりした立ち上がり（ビブラートなし）
+      let p2 = 0, lp = 0;
+      for (let i = 0; i < len; i++) { p2 = (p2 + f0 / SR) % 1; lp += ((p2 < 0.5 ? 1 : -1) - lp) * 0.3; out[i] = lp * 0.25 * Math.min(1, i / (SR * 0.005)) * Math.min(1, (len - i) / (SR * 0.03)); }
+      put(V, t, out, o.vocalGain ?? 1);
+      continue;
+    }
     vw.forEach((fc, j) => {
       const w = (2 * Math.PI * fc) / SR, al = Math.sin(w) / (2 * 8), c = Math.cos(w), a0 = 1 + al;
       let x1 = 0, x2 = 0, y1 = 0, y2 = 0;

@@ -736,10 +736,18 @@ export function melodyFromVocal(vocal: Float32Array, a: CoverAnalysis): CoverNot
     slots.push(on);
   }
   if (voicedSlots < a.bars) return null; // 歌がほとんど無い（インストの曲など）
-  // 音の頭：歌の大きさがぐっと上がった所
+  // 音の頭：枠の頭のすぐ前で歌の大きさがいったん下がり（息つぎ・音の切れ目）、そこからまた上がった所。
+  // 同じ高さの音が続くときも、切れ目があれば別の音にする。切れ目は数十ミリ秒しかないので、約 6ms ごとの細かい大きさで見る
+  const EH = 128, env = new Float32Array(Math.ceil(vocal.length / EH));
+  for (let e = 0; e < env.length; e++) { let q = 0; const o0 = e * EH, o1 = Math.min(vocal.length, o0 + EH); for (let i = o0; i < o1; i++) q += vocal[i] * vocal[i]; env[e] = Math.sqrt(q / Math.max(1, o1 - o0)); }
+  const DIP = 2.2, BACK = 0.045, FWD = 0.05;
   const onset = (s: number) => {
-    const f = Math.round(beatFrame(s / 4));
-    return (rms[f] ?? 0) > (rms[f - 2] ?? 0) * 1.6 && (rms[f] ?? 0) > loud * 0.2;
+    const c = (beatFrame(s / 4) * HOP + N / 2) / EH; // 枠の頭の時刻（細かい大きさの番号）
+    const b0 = Math.floor(c - (BACK * SR) / EH), b1 = Math.ceil(c + (0.01 * SR) / EH), f1 = Math.ceil(c + (FWD * SR) / EH);
+    let lo = Infinity, hi = 0;
+    for (let e = Math.max(0, b0); e <= Math.min(env.length - 1, b1); e++) lo = Math.min(lo, env[e]);
+    for (let e = Math.max(0, Math.floor(c)); e <= Math.min(env.length - 1, f1); e++) hi = Math.max(hi, env[e]);
+    return hi > lo * DIP && hi > loud * 0.2;
   };
   return notesFrom(slots, 0.25, onset, a.shift);
 }
