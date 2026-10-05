@@ -97,7 +97,8 @@ export function extractVocal(ch: Float32Array[], sr: number, pitch?: ArrayLike<n
       const harm = (h * h) / (h * h + pp * pp + 1e-12);
       // 1. 真ん中か
       const cen = stereo ? Math.min(1, Math.max(0, (slot.c[k] - 0.55) / 0.35)) : 1;
-      mask[k] = harm * cen * band[k];
+      // 歌の高さがわかっているとき（2 回目から）は、位置をもっと厳しく見る（倍音の所に混ざる、ほかの位置の楽器を外す）
+      mask[k] = (pitch ? harm * cen * cen * cen : harm * cen) * band[k];
     }
     // 4. メロディの倍音の近く
     const vm = pitch ? pitch[t - (N / 2) / HOP] ?? 0 : 0; // 解析のフレームは窓の頭、こちらは窓の真ん中の時刻
@@ -115,11 +116,21 @@ export function extractVocal(ch: Float32Array[], sr: number, pitch?: ArrayLike<n
     if (pitch) {
       const m = vm;
       if (m > 0) {
-        const f0 = 440 * Math.pow(2, (m - 69) / 12);
+        // 細かい高さ：半音の ±60 セントの中で、倍音の山がいちばんそろう高さ（ビブラート・半音の間の高さに追いつく）
+        const fc = 440 * Math.pow(2, (m - 69) / 12);
+        let f0 = fc, bs = -1;
+        for (let c = -60; c <= 60; c += 5) {
+          const f = fc * Math.pow(2, c / 1200);
+          let sc = 0;
+          for (let h = 1; h <= 8; h++) { const k = (h * f) / binHz; if (k >= B - 2) break; const i = Math.floor(k), fr = k - i; sc += slot.mag[i] * (1 - fr) + slot.mag[i + 1] * fr; }
+          if (sc > bs) { bs = sc; f0 = f; }
+        }
+        // 倍音の山のまわりだけを、なだらかに残す（山の幅：窓の分 ＋ 高い倍音ほどビブラートで広がる分）
+        const SB = 1.2 * binHz, SH = 0.01;
         for (let k = 0; k < B; k++) {
           const f = k * binHz, h = Math.max(1, Math.round(f / f0));
-          const near = Math.abs(f - h * f0) < 0.035 * h * f0 + 12 ? 1 : 0;
-          mask[k] *= 0.15 + 0.85 * near;
+          const sg = Math.max(SB, SH * h * f0), d = (f - h * f0) / sg;
+          mask[k] *= 0.15 + 0.85 * Math.exp(-0.5 * d * d);
         }
       } else for (let k = 0; k < B; k++) mask[k] *= 0.15;
     }
@@ -211,7 +222,11 @@ export function pitchShift(x: Float32Array, sr: number, semis: number): Float32A
  */
 export function separateVocal(ch: Float32Array[], sr: number, progress?: (f: number) => void): Separated {
   const bass = bassPitch(to22k(Float32Array.from(ch[0], (v, i) => (ch[1] ? (v + ch[1][i]) / 2 : v)), sr));
-  const first = extractVocal(ch, sr, undefined, (f) => progress?.(f * 0.5), bass);
+  const first = extractVocal(ch, sr, undefined, (f) => progress?.(f * 0.4), bass);
   const guide = vocalPitch(first.vocal, 1.5).pitch;
-  return extractVocal(ch, sr, guide, (f) => progress?.(0.5 + f * 0.5), bass);
+  const second = extractVocal(ch, sr, guide, (f) => progress?.(0.4 + f * 0.3), bass);
+  // 3 回目：2 回目の歌から聞いた高さの方がさらに正しいので、もう一度
+  const sep = extractVocal(ch, sr, vocalPitch(second.vocal, 1.5).pitch, (f) => progress?.(0.7 + f * 0.3), bass);
+  return sep;
 }
+
