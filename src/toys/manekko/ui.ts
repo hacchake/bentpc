@@ -176,7 +176,10 @@ export function mountManekko(api: HostApi): ToyUI {
       const buf = await blob.arrayBuffer();
       const ctx = new OfflineAudioContext(2, 1, 44100);
       const audio = await ctx.decodeAudioData(buf);
-      const ch = Array.from({ length: Math.min(2, audio.numberOfChannels) }, (_, i) => audio.getChannelData(i).slice());
+      // 長すぎる曲は最初の 8 分だけ（スマホのメモリが足りなくならないように）
+      const MAX = 8 * 60 * audio.sampleRate;
+      const ch = Array.from({ length: Math.min(2, audio.numberOfChannels) }, (_, i) => audio.getChannelData(i).slice(0, MAX));
+      if (audio.length > MAX) errMsg = '長い曲なので、最初の 8 分だけ使います';
       if (store) { await saveFile(blob, name); st.from = 0; st.to = 0; saveSt(); }
       const w = new AnalyzeWorker();
       w.onmessage = (e: MessageEvent) => {

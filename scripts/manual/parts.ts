@@ -11,7 +11,7 @@ export interface PartDef {
 
 export interface ToyManual {
   id: string; // 画像のファイル名・data の鍵
-  index: number; // ラックの番号（0〜6）
+  index: number; // ラックの番号（0〜7）
   title: string;
   catch: string; // ひとこと
   desc: string;
@@ -166,6 +166,27 @@ export const TOYS: ToyManual[] = [
       { find: { sel: '[data-a="stop"]' }, name: 'STOP', what: '鳴っている音を全部止める（ループしている音も）。' },
       { find: { sel: '.pkt-banks' }, name: 'バンク A〜P', what: '16 パッドの組を切り替える。音の入っているバンクは水色。', tip: 'PC の [ ]' },
       { find: { sel: '.pkt-pads' }, name: 'パッド 16 個', what: '左下が 1。押すと鳴る。♪ と BASS の印はメロディ用・ベース用のパッド。', tip: 'PC の Z X C V・A S D F・Q W E R・1 2 3 4 がパッドと同じ並び' },
+    ],
+  },
+  {
+    id: 'mk', index: 7, title: 'MANEKKO MK-8', catch: '聞いた曲を、おもちゃでまねしろ！',
+    desc: 'インコの形のカセットレコーダー（オリジナル設計）に、モニターとツマミの板をねじ止めした魔改造機。取り込んだ曲を聞いて、テンポ・コード・メロディ・ドラム・構成を読み取り、選んだおもちゃだけで同じ曲を弾き直す（カバー）。元の歌を取り出して重ねることもできる！',
+    power: '頭の下の赤いボタン（「RESET」の札）',
+    parts: [
+      { find: { sel: '[data-id="power"]' }, name: 'RESET', what: '押すと再起動。テープが回り出す「カチャ・ウィーン」。' },
+      { find: { sel: '.mk-screen' }, name: 'モニター', what: '曲名・BPM・調・小節数・長さ・構成（色の帯）・小節ごとの大きさ・今から 8 小節のコードとメロディ。白い枠が使う範囲、光る線が再生位置。解析中は進み具合。' },
+      { find: { sel: '[data-k="vocal"]' }, name: 'VOCAL・KARAOKE・ORIGINAL', what: '取り出した歌・伴奏（カラオケ）・元の曲の大きさ。', tip: 'KARAOKE を上げて VOCAL を下げると、元の伴奏でおもちゃが歌う' },
+      { find: { sel: '[data-k="wow"]' }, name: 'WOW・LO-FI・ECHO', what: 'テープのよれ・カセットのこもりと歪み・付点 8 分のテープエコー。' },
+      { find: { sel: '[data-k="chaos"]' }, name: 'CHAOS', what: 'カバーの壊れ度（グリッチ・歪みの量）。いっぱいに上げると、ブレイクでクラッシュすることも。' },
+      { find: { sel: '.mk-toys' }, name: 'PLAY BY', what: 'カバーを弾くおもちゃ（いくつでも）。光っているおもちゃが弾く。' },
+      { find: { sel: '.mk-style' }, name: 'STYLE ◀ ▶', what: 'カバーの雰囲気。どの楽器・どんな刻み方で弾くかが変わる（テンポ・コード・メロディは元の曲のまま）。' },
+      { find: { sel: '[data-k="from"]' }, name: 'FROM・TO', what: '使う範囲（小節）。サビだけ・イントロだけのカバーもできる。' },
+      { find: { sel: '[data-a="vocal"]' }, name: 'VOCAL ON', what: 'カバーに元の歌（取り出したボーカル）を重ねる。元の曲のテンポの揺れをならして、カバーの拍にそろえる。' },
+      { find: { sel: '.mk-window' }, name: 'カセットの窓', what: 'テープが鳴っている間、リールが回る。ラベルは曲名。' },
+      { find: { sel: '[data-a="load"]' }, name: '⏏ LOAD', what: '曲のファイル（MP3・AAC・M4A・WAV など）を入れる。本体に落としても OK。解析とボーカル分離は、このブラウザの中だけで行う。' },
+      { find: { sel: '[data-a="orig"]' }, name: '▶ 原曲', what: '押している間、元の曲を鳴らす（カバーと聞きくらべ）。' },
+      { find: { sel: '[data-a="stutter"]' }, name: 'STUTTER', what: '押している間、テープが同じ所（1/8 拍）をくり返す。' },
+      { find: { sel: '[data-a="cover"]' }, name: 'COVER!', what: 'カバーを作ってシーケンサーに入れ、頭から鳴らす。押すたびに少し違うカバー。' },
     ],
   },
 ];

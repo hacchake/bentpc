@@ -7,6 +7,21 @@ import { createServer } from 'vite';
 import { TOYS, type PartDef } from './parts';
 import { COMPOSER_PARTS, SAMPLER_PARTS, SEQ_PARTS } from './extra-parts';
 import { translateHtml } from './i18n-html';
+import { defaultComposer } from '../../src/compose/rules';
+import { renderSongStereo } from '../../src/studio/render';
+
+/** まねっこの写真用の曲：このアプリのおもちゃで自動作曲したもの（権利の心配が無い）を WAV に */
+function makeSongWav(path: string): void {
+  const song = defaultComposer().compose({ settings: { seed: 2026, style: 'beat', chaos: 0.1, lengthSec: 30, bpm: 118 }, toys: [{ toy: 0, kind: 'piko' }, { toy: 1, kind: 'sampler' }] });
+  const [L, R] = renderSongStereo(song, 44100, { toys: [1, 6] });
+  const n = L.length, b = Buffer.alloc(44 + n * 4);
+  b.write('RIFF', 0); b.writeUInt32LE(36 + n * 4, 4); b.write('WAVE', 8); b.write('fmt ', 12); b.writeUInt32LE(16, 16); b.writeUInt16LE(1, 20); b.writeUInt16LE(2, 22);
+  b.writeUInt32LE(44100, 24); b.writeUInt32LE(44100 * 4, 28); b.writeUInt16LE(4, 32); b.writeUInt16LE(16, 34); b.write('data', 36); b.writeUInt32LE(n * 4, 40);
+  for (let i = 0; i < n; i++) { b.writeInt16LE(Math.round(L[i] * 32767), 44 + i * 4); b.writeInt16LE(Math.round(R[i] * 32767), 46 + i * 4); }
+  mkdirSync('out', { recursive: true });
+  writeFileSync(path, b);
+}
+const SONG_WAV = 'out/manual-song.wav';
 
 const trEn = (t: string) => translateHtml(t);
 
@@ -68,11 +83,24 @@ async function main(lang: 'ja' | 'en'): Promise<void> {
       await page.keyboard.press('Enter'); // 電源 ON
       await sleep(toy.id === 'blippy' ? 3200 : 1500);
       if (toy.id === 'blippy') { await page.keyboard.press('ArrowRight'); await sleep(400); await page.keyboard.press('KeyK'); await sleep(600); }
+      // まねっこ：曲を入れて、解析が終わるまで待つ
+      if (toy.id === 'mk') {
+        await page.locator('.toy-mk input[type="file"]').setInputFiles(SONG_WAV);
+        for (let i = 0; i < 60; i++) { await sleep(500); const t = await page.locator('.mk-label').textContent(); if (t && t !== 'READING…' && t !== 'NO TAPE') break; }
+        await sleep(600);
+      }
       const rootSel = `.toy-${toy.id}`;
       callouts[toy.id] = await locate(page, rootSel, toy.parts.map((p) => p.find));
       await page.locator(rootSel).screenshot({ path: `${OUT}/${toy.id}.jpg`, type: 'jpeg', quality: 86 });
       const miss = callouts[toy.id].map((c, i) => (c ? null : toy.parts[i].name)).filter(Boolean);
       console.log(`${toy.title}：撮影 OK${miss.length ? `（位置が見つからない：${miss.join('、')}）` : ''}`);
+      // まねっこ：COVER! を押して、シーケンサーに入ったところ
+      if (toy.id === 'mk') {
+        await page.locator('[data-a="cover"]').click();
+        await sleep(3500);
+        await page.screenshot({ path: `${OUT}/mk-cover.jpg`, type: 'jpeg', quality: 84 });
+        await page.keyboard.press('Space');
+      }
       // 自動作曲ユニット（トイPC のものを代表で）
       if (toy.id === 'blippy') {
         callouts.composer = await locate(page, `.compose-panel`, COMPOSER_PARTS.map((p) => p.find));
@@ -183,4 +211,4 @@ async function main(lang: 'ja' | 'en'): Promise<void> {
   }
 }
 
-(async () => { await main('ja'); await main('en'); })().catch((e) => { console.error(e); process.exit(1); });
+(async () => { makeSongWav(SONG_WAV); await main('ja'); await main('en'); })().catch((e) => { console.error(e); process.exit(1); });

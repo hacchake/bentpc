@@ -132,7 +132,7 @@ function makeHtml(): string {
       <li><a href="#intro">はじめに：魔改造おもちゃとは？</a></li><li><a href="#power">まずはさわってみよう！</a></li>
       <li><a href="#parts">各パーツ完全解説</a></li><li><a href="#keys">モード・キー全データ</a></li>
       <li><a href="#glitch">グリッチ大全</a></li><li><a href="#combo">必殺コンボ集</a></li><li><a href="#crash">クラッシュ攻略</a></li>
-      <li><a href="#video">映像マシン編</a></li><li><a href="#seq">シーケンサー＆自動作曲編</a></li><li><a href="#sampler">サンプラー編</a></li><li><a href="#seeds">おすすめシード値コレクション</a></li>
+      <li><a href="#video">映像マシン編</a></li><li><a href="#seq">シーケンサー＆自動作曲編</a></li><li><a href="#sampler">サンプラー編</a></li><li><a href="#cover">まねっこ（カバー）編</a></li><li><a href="#seeds">おすすめシード値コレクション</a></li>
       <li><a href="#tricks">裏技・隠し要素</a></li><li><a href="#qa">困ったときは（Q&amp;A）</a></li><li><a href="#words">用語集</a></li><li><a href="#rights">権利に関する注意</a></li></ol></nav>`,
   
     chapter('はじめに：魔改造おもちゃとは？', 'ようこそ、壊れた音の世界へ！', `
@@ -265,12 +265,31 @@ function makeHtml(): string {
   
     chapter('用語集', 'むずかしい言葉を 1 行で', `<dl class="words">${GLOSSARY.map(([w, d]) => `<dt>${esc(w)}</dt><dd>${esc(d)}</dd>`).join('')}</dl>`, 'words'),
   
+    chapter('まねっこ（カバー）編', 'MANEKKO MK-8 で、聞いた曲をおもちゃでまねしろ！', `
+      <p>ラック・スタジオの 8 台目 <b>MANEKKO MK-8</b> は、取り込んだ曲を聞いて、選んだおもちゃだけで同じ曲を弾き直す（<b>カバー</b>）。元の歌を取り出して重ねることもできる。曲のファイルは<b>このブラウザの中だけ</b>で処理して、どこにも送らない。</p>
+      <h3>カバーができるまで</h3>
+      <div class="flow"><div class="flow-step"><b>1</b><p><b>入れる</b>：⏏ LOAD（または本体に落とす）。MP3・AAC・M4A・WAV など</p></div><div class="flow-step"><b>2</b><p><b>聞き取る</b>：数秒から十数秒で、モニターにテンポ・調・構成・コード・メロディが出る</p></div><div class="flow-step"><b>3</b><p><b>選ぶ</b>：PLAY BY（弾くおもちゃ）・STYLE・FROM / TO（範囲）・VOCAL ON</p></div><div class="flow-step"><b>4</b><p><b>COVER!</b>：シーケンサーに入って、頭から鳴る。押すたびに少し違うカバー</p></div><div class="flow-step"><b>5</b><p><b>くらべる・直す</b>：▶ 原曲で聞きくらべ。シーケンサーで手直しして、WAV に書き出し</p></div></div>
+      <figure class="shot wide-shot"><div class="frame"><img src="img/mk-cover.jpg" alt=""></div><figcaption>COVER! を押したところ（PIKOTONE とサンプラーでカバー。下のシーケンサーにカバーが入る）</figcaption></figure>
+      <h3>何を聞き取るの？</h3>
+      <table class="grid"><tr><th>聞き取るもの</th><th>どう使う？</th></tr>
+        <tr><td><b>テンポと拍・小節の頭</b></td><td>カバーのテンポ。元の曲の拍の揺れも測るので、取り出した歌をカバーの拍にぴったりそろえられる</td></tr>
+        <tr><td><b>調</b></td><td>おもちゃはハ長調（白鍵）で考えるので、曲をハ長調（短調ならイ短調）に移して弾く</td></tr>
+        <tr><td><b>コード（小節ごと）</b></td><td>伴奏・ベースの元。モニターの四角の中</td></tr>
+        <tr><td><b>メロディ・ベース</b></td><td>メロディを弾くおもちゃ（トイPC はドレミのキー）とベース</td></tr>
+        <tr><td><b>ドラム</b></td><td>キック・スネア・ハットの位置を、ビートを刻むおもちゃがそのまま叩く</td></tr>
+        <tr><td><b>構成</b></td><td>イントロ・Aメロ・サビ・ブレイク・アウトロ（モニターの色の帯）。盛り上がりに合わせて、おもちゃの暴れ方が変わる</td></tr>
+        <tr><td><b>ボーカル</b></td><td>「真ん中で鳴っている」「伸びる音」「歌の高さ」「メロディの倍音の近く」がそろう所だけ残す。残りは伴奏（カラオケ）</td></tr></table>
+      ${point('じょうずにまねさせるコツ', '<ul><li>ドラムがはっきりした曲ほど、テンポと小節がぴったり合う。</li><li>STYLE は「楽器えらび」。レゲエ・演歌・チップチューンなどに変えると、同じ曲でも別物になる。</li><li>サビだけを FROM / TO で選んで、短いカバーを何回も作るのも楽しい。</li><li>VOCAL ON＋KARAOKE を下げると「おもちゃの伴奏で本人が歌う」、VOCAL を下げて KARAOKE を上げると「本物の伴奏でおもちゃが歌う」。</li></ul>')}
+      ${warn('うまくいかないときは', '<p>歌のメロディの聞き取りは「似ている」くらい。ボーカルの分離も AI を使わない方法なので、残響やほかの楽器が少し残る。テンポがだんだん変わる曲・拍子が 4 拍子でない曲は、小節がずれることがある。長い曲（5 分以上）は、スマホでは時間がかかったり、メモリが足りなくなったりすることがある。</p>')}
+      ${bubble('改造おじさん', 'カバーを作ったら、シーケンサーで気に入らない所を直したり、鍵を掛けてセクションだけ作り直したりできるぞ。元の歌のテープは「MANEKKO テープ」の行だ。')}`, 'cover'),
+
     chapter('権利に関する注意', 'とても大事なことです', `
       <div class="rights">
       <p>TELEKEY TK-6 は、タブ共有・動画ファイル・Web カメラの映像と音を取り込んで、加工・録画できます。</p>
       <p><b>他人の著作物（動画・音楽・画像など）を加工・録画・公開する場合は、必ずその権利を持っている人（権利者）の許可を得てください。</b>
       自分で楽しむだけのつもりでも、録画したものをインターネットに公開すると、権利者の権利を侵害することがあります。</p>
       <p>人が映っている映像（カメラの映像を含む）を公開するときは、その人の許可も得てください。</p>
+      <p><b>MANEKKO MK-8 で、他人の曲をカバーしたもの・取り出した歌を重ねたものを公開する場合も、その曲の権利者の許可が必要です。</b>自分で楽しむ・練習するのは自由です。</p>
       <p>このアプリに付いている<b>テスト映像とテスト信号</b>は、プログラムで自動生成したもので、自由に使えます。
       おもちゃの演奏そのもの（キー・グリッチ・自動作曲）で作った音も、自由に使えます。</p>
       <p lang="en"><b>English:</b> If you process, record, or publish someone else's copyrighted work (videos, music, images, etc.), please obtain permission from the rights holder. The built-in test pattern and test signal are procedurally generated and free to use.</p>

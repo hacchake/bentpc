@@ -654,4 +654,5 @@ export const EN_APP: Record<string, string> = {
   '調とコードを調べています': 'Working out the key and chords',
   '音を分けています': 'Splitting the sound',
   'このファイルは読めませんでした（{0}）': 'Could not read this file ({0})',
+  '長い曲なので、最初の 8 分だけ使います': 'This song is long, so only the first 8 minutes are used',
 };
