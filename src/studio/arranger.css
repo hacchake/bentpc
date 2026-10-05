@@ -60,3 +60,8 @@
 .arr-mixer button { background: #2a2530; color: #ddd; border: 1px solid #4a4452; border-radius: 4px; padding: 2px 8px; cursor: pointer; font: inherit; }
 .arr-mixer button.on[data-mx=mute] { background: #8a5a10; border-color: #ffb347; color: #fff; }
 .arr-mixer button.on[data-mx=solo] { background: #2c6b2a; border-color: #5dd35a; color: #fff; }
+
+/* 曲の置き場 */
+.arr-lib input[type=text] { flex: 1; min-width: 160px; background: #120f16; color: #fff; border: 1px solid #4a4452; border-radius: 4px; padding: 4px 6px; font: inherit; }
+.arr-lib .lb-title { width: auto; flex: 1; }
+.arr-lib .lb-date { color: #888; }

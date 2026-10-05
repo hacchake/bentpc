@@ -145,6 +145,7 @@ const arr = new Arranger({
   record: async (on, take) => { await audio.start(); audio.post({ type: 'seqRec', on, take }); },
   onSong: (s) => { $('songTitle').textContent = s.title ?? ''; },
   storeKey: isDefault ? 'bentpc.studio.song.v1' : `bentpc.studio.song.v1.${lineup.join('-')}`,
+  blank: () => blankStudioSong(toys.map((t) => t.title)),
 }, () => (isDefault ? demoSong() : blankStudioSong(toys.map((t) => t.title))));
 $('arr-wrap').appendChild(arr.el);
 arr.addButton('デモ曲', 'デモ曲「POWER ON / POWER OFF」を読み込む（トイPC と TELEKEY の曲。今の曲は「元に戻す」で戻せます）', () => {

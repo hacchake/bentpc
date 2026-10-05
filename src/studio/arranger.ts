@@ -7,6 +7,8 @@
 import { autoValueAt, clampSong, cloneSong, mergeTake, songBeats, trackToy, BTN, SYS_CRASH, SYS_NAMES, SYS_POWER_OFF, SYS_POWER_ON, type MixCh, type SeqAuto, type SeqNote, type Song, type takeFromRaw } from '../core/song';
 import { seqKeyName, type ToyUI } from '../core/ui';
 import './arranger.css';
+import { deleteSong, getSong, listSongs, newSongId, putSong, type SongEntry } from '../core/songlib';
+import { toast } from '../compose/share';
 
 const GUTTER = 190;
 const RULER_H = 44;
@@ -28,8 +30,10 @@ export interface ArrangerHost {
   record(on: boolean, take: number): void;
   /** 曲が変わった（画面の同期用） */
   onSong?(song: Song): void;
-  /** 曲を自動保存する場所（ブラウザの中） */
+  /** 曲を自動保存する場所（ブラウザの中）。曲の置き場でも、この名前でページを分ける */
   storeKey: string;
+  /** 空の曲（曲の置き場の「新しい曲」） */
+  blank?(): Song;
 }
 
 export class Arranger {
@@ -79,6 +83,7 @@ export class Arranger {
         <button data-id="addtrack" title="トラックを追加">＋トラック</button>
         <button data-id="mix" title="ミキサー：おもちゃごとの音量・左右・ミュート・ソロ（書き出しにも入る）">MIX</button>
         <button data-id="zout" title="縮小">－</button><button data-id="zin" title="拡大">＋</button>
+        <button data-id="lib" title="曲の置き場：名前を付けて何曲でも保存・開く（このブラウザの中）">曲</button>
         <button data-id="save" title="曲を JSON ファイルに保存">保存</button>
         <button data-id="load" title="曲の JSON ファイルを読み込む">読込</button>
         <span data-id="extra"></span>
@@ -89,6 +94,7 @@ export class Arranger {
         <canvas data-id="main" class="arr-main"></canvas>
         <select data-id="menu" class="arr-menu" size="14" hidden></select>
         <div data-id="mixer" class="arr-mixer" hidden></div>
+        <div data-id="library" class="arr-mixer arr-lib" hidden></div>
         <div class="arr-hint">ダブルクリック：追加 ／ ドラッグ：移動（音符の右端で長さ） ／ 右クリック：削除 ／ 空いた所をドラッグ：まとめて選ぶ ／ スイッチの点の上でホイール：値 ／
         目盛りの上段：セクション（ダブルクリックで追加・名前変更） ／ 下段：クリックで位置、ドラッグでループ範囲 ／ Ctrl+C・V・D：コピー・貼り付け・複製</div>
       </div>`;
@@ -103,6 +109,7 @@ export class Arranger {
     window.addEventListener('pointerdown', (e) => { if (!this.el.contains(e.target as Node)) this.focused = false; }, true);
     new ResizeObserver(() => this.draw()).observe(this.el);
     this.refreshBar();
+    void this.restoreBig();
   }
 
   /** ツールバーの右端にボタンを足す（書き出しなど） */
@@ -252,12 +259,75 @@ export class Arranger {
     this.commit();
   }
 
+  private bigWarned = false;
   private persist(): void {
     try {
       localStorage.setItem(this.host.storeKey, JSON.stringify(this.song));
     } catch {
-      // 保存できなくても使える
+      // 大きすぎて入らない（カバーの曲など）：IndexedDB の自動保存へ。古い版が残らないよう localStorage の方は消す
+      try { localStorage.removeItem(this.host.storeKey); } catch { /* 使えないブラウザ */ }
+      putSong({ id: `auto:${this.host.storeKey}`, title: this.song.title ?? '', page: this.host.storeKey, updated: Date.now(), song: this.song }).catch(() => {
+        if (!this.bigWarned) { this.bigWarned = true; toast('この曲はブラウザに自動保存できませんでした。「保存」でファイルにしておいてください', 6000); }
+      });
     }
+  }
+
+  /** localStorage に無ければ、IndexedDB の自動保存から戻す（起動の後で） */
+  private async restoreBig(): Promise<void> {
+    try {
+      if (localStorage.getItem(this.host.storeKey)) return;
+      const e = await getSong(`auto:${this.host.storeKey}`);
+      if (e?.song?.version === 1) this.setSong(e.song, false);
+    } catch { /* 使えないブラウザ */ }
+  }
+
+  // ================= 曲の置き場 =================
+  private async renderLibrary(): Promise<void> {
+    const box = this.$('library');
+    let list: SongEntry[] = [];
+    try { list = await listSongs(this.host.storeKey); } catch { box.innerHTML = `<div class="mx-head"><b>${'曲の置き場'}</b><span>このブラウザでは使えません</span></div>`; return; }
+    const cur = list.find((e) => e.id === this.song.libId);
+    const date = (t: number) => new Date(t).toLocaleString();
+    const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]!);
+    box.innerHTML = `<div class="mx-head"><b>曲の置き場</b><span>このブラウザの中だけに保存します</span><button data-lb="close" type="button" aria-label="閉じる">×</button></div>
+      <div class="mx-row">
+        <input data-lb="name" type="text" maxlength="60" placeholder="曲の名前" value="${esc(cur?.title ?? this.song.title ?? '')}">
+        ${cur ? '<button data-lb="over" type="button">上書き保存</button>' : ''}
+        <button data-lb="saveas" type="button">${cur ? '別の曲として保存' : '保存'}</button>
+        <button data-lb="new" type="button" title="空の曲から始める（今の曲は「元に戻す」で戻せます）">新しい曲</button>
+      </div>`
+      + (list.length ? list.map((e) => `<div class="mx-row" data-id="${e.id}"><span class="mx-name lb-title">${esc(e.title || '（名前なし）')}</span><span class="lb-date">${date(e.updated)}</span>
+          <button data-lb="open" type="button">開く</button><button data-lb="del" type="button" aria-label="消す">🗑</button></div>`).join('')
+        : '<div class="mx-row"><span class="lb-date">まだ保存した曲はありません</span></div>');
+    const name = box.querySelector<HTMLInputElement>('[data-lb=name]')!;
+    name.addEventListener('keydown', (e) => e.stopPropagation());
+    const save = async (asNew: boolean) => {
+      const title = name.value.trim() || this.song.title || '無題';
+      const id = !asNew && this.song.libId ? this.song.libId : newSongId();
+      this.song.title = title;
+      this.song.libId = id;
+      this.commit();
+      try { await putSong({ id, title, page: this.host.storeKey, updated: Date.now(), song: this.song }); toast(`「${title}」を保存しました`); } catch { toast('保存できませんでした（ブラウザの空きが足りないかもしれません）'); }
+      void this.renderLibrary();
+    };
+    box.querySelectorAll<HTMLButtonElement>('button[data-lb]').forEach((b) => b.addEventListener('click', async () => {
+      const k = b.dataset.lb, id = (b.closest('[data-id]') as HTMLElement | null)?.dataset.id;
+      if (k === 'close') { box.hidden = true; this.$('lib').classList.remove('on'); return; }
+      if (k === 'over') return save(false);
+      if (k === 'saveas') return save(true);
+      if (k === 'new') { const s = this.host.blank?.(); if (s) { this.setSong(s); toast('新しい曲にしました（元に戻す：Ctrl+Z）'); } return; }
+      if (!id) return;
+      if (k === 'open') {
+        const e = await getSong(id);
+        if (e?.song) { this.setSong({ ...e.song, libId: id }); toast(`「${e.title}」を開きました（元に戻す：Ctrl+Z）`); }
+      } else if (k === 'del') {
+        const e = list.find((x) => x.id === id);
+        if (!confirm(`「${e?.title ?? ''}」を消しますか？（元に戻せません）`)) return;
+        await deleteSong(id);
+        if (this.song.libId === id) delete this.song.libId;
+      }
+      void this.renderLibrary();
+    }));
   }
 
   private load(): Song | null {
@@ -366,9 +436,17 @@ export class Arranger {
     on('redo', () => this.redo());
     on('zin', () => { this.pxPerBeat = Math.min(300, this.pxPerBeat * 1.4); this.draw(); });
     on('zout', () => { this.pxPerBeat = Math.max(3, this.pxPerBeat / 1.4); this.draw(); });
+    on('lib', () => {
+      const m = this.$('library');
+      m.hidden = !m.hidden;
+      this.$('mixer').hidden = true; this.$('mix').classList.remove('on');
+      this.$('lib').classList.toggle('on', !m.hidden);
+      if (!m.hidden) void this.renderLibrary();
+    });
     on('mix', () => {
       const m = this.$('mixer');
       m.hidden = !m.hidden;
+      this.$('library').hidden = true; this.$('lib').classList.remove('on');
       this.$('mix').classList.toggle('on', !m.hidden);
       if (!m.hidden) this.renderMixer();
     });

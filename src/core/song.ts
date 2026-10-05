@@ -74,6 +74,8 @@ export interface Song {
   compose?: ComposeInfo;
   /** ミキサー：おもちゃごとの音量・左右・ミュート・ソロ（並び順 = おもちゃ番号。無ければ 0dB・自動で並べる） */
   mix?: (MixCh | null)[];
+  /** 曲の置き場（songlib）での番号：上書き保存の先 */
+  libId?: string;
 }
 
 /** ミキサーの 1 台分 */

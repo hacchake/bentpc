@@ -285,6 +285,7 @@ const arr: Arranger = new Arranger({
   transport: (play, from) => void transport(play, from),
   record: async (on, take) => { await audio.start(); if (on) powerUsedToys(); audio.post({ type: 'seqRec', on, take }); },
   storeKey: 'bentpc.song.v1',
+  blank: () => emptySong(toys.length),
 }, () => emptySong(toys.length));
 $('arr-wrap').appendChild(arr.el);
 arr.sendInitial();
