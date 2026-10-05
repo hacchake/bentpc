@@ -193,6 +193,22 @@ if (!bn.ended() || bn.seq.playing) ng('BOUNCE が終わらない');
   else console.log(`OK ミキサー：-12dB → ${(20 * Math.log10(ratio)).toFixed(1)}dB・ミュートとほかのおもちゃのソロで無音`);
 }
 
+// カウントイン：1 小節（120 BPM で 2 秒）クリックしてから、再生と録音が始まる
+{
+  const s = emptySong(TOY_ENGINES.length);
+  s.metronome = false;
+  const c = rig(s);
+  c.seq.startCountIn(4, 9);
+  const clicks = new Float32Array(128), out = new Float32Array(128), tmp = new Float32Array(128);
+  let clickE = 0, startedAt = -1;
+  for (let i = 0; i < (SR * 2.2) / 128; i++) {
+    c.seq.render(out, clicks, tmp);
+    for (const v of clicks) clickE += v * v;
+    if (startedAt < 0 && c.seq.playing) startedAt = (i * 128) / SR;
+  }
+  Math.abs(startedAt - 2) < 0.01 && c.seq.recording && clickE > 1 ? console.log(`OK カウントイン：${startedAt.toFixed(3)} 秒後に再生と録音`) : ng(`カウントイン：始まり ${startedAt}・録音 ${c.seq.recording}・クリック ${clickE.toFixed(2)}`);
+}
+
 // MIDI クロック：外の機器のテンポ・START / STOP に合わせる
 {
   const got: string[] = [];

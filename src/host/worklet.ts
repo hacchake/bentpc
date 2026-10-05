@@ -76,7 +76,14 @@ class ToyRackProcessor extends AudioWorkletProcessor {
       const m = e.data;
       if (m.type === 'song') { this.seq.setSong(m.song); return; }
       if (m.type === 'transport') { if (m.play) this.seq.play(m.from); else this.seq.stop(); return; }
-      if (m.type === 'seqRec') { if (m.on && !this.seq.playing) this.seq.play(); this.seq.setRecording(m.on, m.take); return; }
+      if (m.type === 'seqRec') {
+        // 止まっている所からの録音：カウントイン（クリックを countIn 拍）してから始める
+        if (m.on && !this.seq.playing && m.countIn) { this.seq.startCountIn(m.countIn, m.take); return; }
+        if (!m.on && this.seq.counting) { this.seq.cancelCountIn(); return; }
+        if (m.on && !this.seq.playing) this.seq.play();
+        this.seq.setRecording(m.on, m.take);
+        return;
+      }
       if (m.type === 'bounce') { this.seq.stop(); this.seq.bounce = true; this.seq.play(0); return; }
       if (m.type === 'rec') {
         if (m.on) { this.recording = true; this.recPos = 0; }
@@ -175,7 +182,7 @@ class ToyRackProcessor extends AudioWorkletProcessor {
     else for (let i = 0; i < l.length; i++) l[i] = (l[i] + r[i]) * 0.5;
     if (++this.posCounter >= 6) {
       this.posCounter = 0;
-      this.send({ type: 'seqPos', beat: this.seq.pos, playing: this.seq.playing, recording: this.seq.recording });
+      this.send({ type: 'seqPos', beat: this.seq.pos, playing: this.seq.playing, recording: this.seq.recording || this.seq.counting });
     }
 
     this.toys.forEach((t, toy) => {

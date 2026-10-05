@@ -39,6 +39,11 @@ export class Sequencer {
   private held: Set<number>[]; // シーケンサーが押しているキー（おもちゃごと）
   private liveHeld: Set<number>[]; // 手で押しているキー（録音の区切りで続きを作るため）
   private clickT = 1e9;
+  /** カウントイン：残りのフレーム・全体のフレーム・1 拍のフレーム・その後の録音の番号 */
+  private countLeft = 0;
+  private countTotal = 0;
+  private countFpb = 0;
+  private countTake = 0;
   private clickAccent = false;
   private crash: (Crash | null)[];
   private hist: Float32Array[]; // 各おもちゃの直前の出力（クラッシュの張り付き用）
@@ -138,6 +143,16 @@ export class Sequencer {
     this.cb.onRebuild?.();
   }
 
+  /** カウントインしている最中か */
+  get counting(): boolean { return this.countLeft > 0; }
+  /** beats 拍クリックしてから、再生と録音を始める（止まっているときの録音） */
+  startCountIn(beats: number, takeId: number): void {
+    this.countFpb = this.framesPerBeat;
+    this.countTotal = this.countLeft = Math.round(beats * this.countFpb);
+    this.countTake = takeId;
+  }
+  cancelCountIn(): void { this.countLeft = 0; }
+
   setRecording(on: boolean, takeId?: number): void {
     if (on && !this.recording) {
       this.take = takeId ?? this.take + 1;
@@ -216,6 +231,14 @@ export class Sequencer {
     const n = out.length;
     const evs: Ev[][] = this.toys.map(() => []);
     click.fill(0);
+    if (this.countLeft > 0 && !this.playing) {
+      // カウントイン：拍の頭でクリック（1 拍目は高い音。メトロノームの設定に関係なく鳴らす）。終わったら再生と録音を始める
+      for (let i = 0; i < n && this.countLeft > 0; i++, this.countLeft--) {
+        const el = this.countTotal - this.countLeft, k = Math.floor(el / this.countFpb), ph = el - k * this.countFpb;
+        if (ph < this.sr * 0.03) { const t = ph / this.sr; click[i] = Math.sin(2 * Math.PI * (k === 0 ? 1760 : 1320) * t) * Math.exp(-t / 0.006) * 0.3; }
+      }
+      if (this.countLeft === 0) { this.play(); this.setRecording(true, this.countTake); }
+    }
     if (this.playing) this.schedule(n, evs);
     out.fill(0);
     outR?.fill(0);

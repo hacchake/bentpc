@@ -691,4 +691,6 @@ export const EN_APP: Record<string, string> = {
   '「{0}」を消しますか？（元に戻せません）': 'Delete "{0}"? (This cannot be undone)',
   'この曲はブラウザに自動保存できませんでした。「保存」でファイルにしておいてください': 'This song could not be auto-saved in the browser. Use "Save" to keep it as a file',
   '無題': 'Untitled',
+  '止まっている所から録音するとき、1 小節クリックしてから始める': 'When recording from a stop, click for one bar before starting',
+  'カウント': 'Count-in',
 };

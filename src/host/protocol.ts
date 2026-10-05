@@ -25,7 +25,7 @@ export type ToEngine =
   /** 再生／停止。from を付けるとその拍から */
   | { type: 'transport'; play: boolean; from?: number }
   /** 操作の録音（オーバーダブ）。take はテイク番号 */
-  | { type: 'seqRec'; on: boolean; take: number }
+  | { type: 'seqRec'; on: boolean; take: number; countIn?: number }
   /** 曲を最初から 1 回だけ鳴らして止まる（WAV 書き出し用） */
   | { type: 'bounce' };
 

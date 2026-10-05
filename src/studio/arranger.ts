@@ -27,7 +27,8 @@ export interface ArrangerHost {
   toys: ToyUI[];
   send(song: Song): void;
   transport(play: boolean, from?: number): void;
-  record(on: boolean, take: number): void;
+  /** countIn：止まっている所からの録音の前にクリックする拍（0 = すぐ） */
+  record(on: boolean, take: number, countIn?: number): void;
   /** 曲が変わった（画面の同期用） */
   onSong?(song: Song): void;
   /** 曲を自動保存する場所（ブラウザの中）。曲の置き場でも、この名前でページを分ける */
@@ -76,6 +77,7 @@ export class Arranger {
         <label class="chk"><input data-id="loop" type="checkbox"> LOOP</label>
         <label>グリッド <select data-id="grid">${GRIDS.map(([n], i) => `<option value="${i}">${n}</option>`).join('')}</select></label>
         <label class="chk"><input data-id="metro" type="checkbox"> クリック</label>
+        <label class="chk" title="止まっている所から録音するとき、1 小節クリックしてから始める"><input data-id="count" type="checkbox"> カウント</label>
         <label title="乱数のシード：同じ曲・同じシードなら、頭から再生するたびに同じグリッチになる">SEED <input data-id="seed" type="number" min="0" step="1"></label>
         <span class="sp"></span>
         <button data-id="undo" title="元に戻す（Ctrl+Z）">↶</button>
@@ -429,7 +431,7 @@ export class Arranger {
     });
     on('play', () => this.togglePlay());
     on('rec', () => {
-      if (!this.recording) { this.snapshot(); this.host.record(true, this.nextTake()); }
+      if (!this.recording) { this.snapshot(); this.host.record(true, this.nextTake(), !this.playing && (this.$('count') as HTMLInputElement).checked ? 4 : 0); }
       else this.host.record(false, 0);
     });
     on('undo', () => this.undo());
@@ -501,6 +503,10 @@ export class Arranger {
       this.commit();
     });
     (this.$('metro') as HTMLInputElement).addEventListener('change', (e) => { this.song.metronome = (e.target as HTMLInputElement).checked; this.commit(); });
+    // カウントインは曲ではなく、このブラウザの好み
+    const count = this.$('count') as HTMLInputElement;
+    try { count.checked = localStorage.getItem('bentpc.countIn') !== '0'; } catch { count.checked = true; }
+    count.addEventListener('change', () => { try { localStorage.setItem('bentpc.countIn', count.checked ? '1' : '0'); } catch { /* 保存できなくても使える */ } });
     const grid = this.$('grid') as HTMLSelectElement;
     grid.value = '2';
     grid.addEventListener('change', () => { this.grid = GRIDS[Number(grid.value)][1]; this.draw(); });
