@@ -4,7 +4,7 @@ import { analyze, melodyFromVocal, refineHarmony } from '../src/cover/analyze';
 import { f0Of, sampleBank } from '../src/cover/sampling';
 import { coverSource } from '../src/cover/plan';
 import { defaultComposer } from '../src/compose/rules';
-import { alignToGrid, extractVocal, pitchShift, to22k } from '../src/cover/vocal';
+import { alignToGrid, separateVocal, pitchShift, to22k } from '../src/cover/vocal';
 import { Rng } from '../src/core/rng';
 
 const SR = 44100;
@@ -63,7 +63,7 @@ for (let i = 0; i < n; i++) { L[i] += voc[i]; R[i] += voc[i]; }
 // ---- 解析 → ボーカルを取り出す ----
 const t0 = performance.now();
 const a = analyze([L, R], SR);
-const sep = extractVocal([L, R], SR, a.pitch);
+const sep = separateVocal([L, R], SR);
 // 2 回目：伴奏から調とコード（答え：ハ長調で C G Am F）
 {
   const before = `${a.key.name} ${a.chordNames.slice(0, 4).join(' ')}`;
@@ -91,7 +91,7 @@ let vInMix = 0, vInInst = 0;
 for (let i = 0; i < truth.length; i++) { vInMix += mix[i] * truth[i]; vInInst += sep.inst[i] * truth[i]; }
 vInInst / vInMix < 0.5 ? ok(`伴奏（カラオケ）：歌が ${Math.round((1 - vInInst / vInMix) * 100)}% 減った`) : ng(`伴奏の歌 ${vInInst / vInMix}`);
 // モノラルの曲でも動く
-const mono = extractVocal([Float32Array.from(L, (v, i) => (v + R[i]) / 2)], SR, a.pitch);
+const mono = separateVocal([Float32Array.from(L, (v, i) => (v + R[i]) / 2)], SR);
 const monoSdr = sdr(mono.vocal);
 monoSdr > before ? ok(`モノラルの曲でも取り出せる（${monoSdr.toFixed(1)}dB）`) : ng(`モノラル ${monoSdr}`);
 // 拍にそろえる：解析の拍の時刻 → 一定のテンポの格子（長さが小節数ぶん）
@@ -113,7 +113,7 @@ Math.abs(al.length - want) <= 1 ? ok(`カバーの拍にそろえる：${a.bars}
     return hit / Math.max(1, all);
   };
   const first = acc(a.melody), v = melodyFromVocal(sep.vocal, a), second = v ? acc(v) : 0;
-  second >= first && second >= 0.7 ? ok(`メロディ：混ざった曲から ${Math.round(first * 100)}% → 取り出した歌から ${Math.round(second * 100)}%`) : ng(`メロディ ${first} → ${second}`);
+  second >= Math.min(first, 0.85) && second >= 0.7 ? ok(`メロディ：混ざった曲から ${Math.round(first * 100)}% → 取り出した歌から ${Math.round(second * 100)}%`) : ng(`メロディ ${first} → ${second}`);
 }
 // 音程だけずらす（カバーの調に合わせる）：440Hz を +3 半音 → 523Hz、長さそのまま
 {

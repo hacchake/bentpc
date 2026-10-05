@@ -67,11 +67,11 @@ export function composeTele(ctx: PartContext): Part[] {
     const chimeEvery = style === 'ambient' ? 2 : sec.energy > 0.7 ? 1 : 2;
     for (let b = 0; b < sec.bars; b += chimeEvery) {
       const bar = Math.floor(s0 / 4) + b;
-      const degs = chordDegs(plan, bar);
       const t0 = s0 + b * 4;
       const offs = style === 'ambient' ? [0] : sec.energy > 0.6 ? [0, 1.5, 2.5] : [0, 2];
       for (const o of offs) {
         if (ri.chance(0.25)) continue;
+        const degs = chordDegs(plan, bar + o / 4);
         if (degs.includes(4)) inst.note(BLIP_G, t0 + o, style === 'ambient' ? 2 : 0.4);
         else if (degs.includes(0)) inst.note(ri.chance(0.5) ? CHIRP_C : BEEP_C, t0 + o, style === 'ambient' ? 2 : 0.4);
       }

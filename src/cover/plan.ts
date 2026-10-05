@@ -33,7 +33,9 @@ export function coverSource(a: CoverAnalysis, title: string, from = 0, to = a.ba
 }
 
 export function coverPlan(settings: ComposeSettings, src: CoverSource): Plan {
-  const style = styleOf(settings.style);
+  const base = styleOf(settings.style);
+  // ハネた曲は、元の曲のハネで（解析の音符はハネを戻した位置にあるので、作曲係がハネをつけ直す）
+  const style = src.swing ? { ...base, swing: [src.swing, 0.5] as [number, number] } : base;
   const from = Math.max(0, Math.min(src.bars - 1, Math.floor(src.from)));
   const to = Math.max(from + 1, Math.min(src.bars, Math.floor(src.to)));
   const bars = to - from;
@@ -64,6 +66,7 @@ export function coverPlan(settings: ComposeSettings, src: CoverSource): Plan {
     });
   }
   if (!sections.length) sections.push({ index: 0, name: 'Aメロ', kind: 'verse', start: 0, bars, energy: 0.7, chaos: settings.chaos });
+  const half = src.chordsHalf?.slice(from * 2, to * 2);
   // クラッシュは、壊れ度をかなり上げたときだけ（ブレイクで）
   const crashSection = settings.chaos >= Math.max(0.85, style.crashAt) ? sections.findIndex((s) => s.kind === 'break') : -1;
   return {
@@ -73,6 +76,8 @@ export function coverPlan(settings: ComposeSettings, src: CoverSource): Plan {
     bars,
     sections,
     chords: src.chords.slice(from, to),
+    // 小節の途中でコードが変わる所があるときだけ、半小節ごとのコードも渡す
+    chordsHalf: half && half.some((d, i) => i % 2 === 1 && d !== half[i - 1]) ? half : undefined,
     crashSection,
     cover,
   };

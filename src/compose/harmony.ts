@@ -9,9 +9,15 @@ export const MAJOR = [0, 2, 4, 5, 7, 9, 11];
 /** 音階の段（0 = ド）→ MIDI ノート。base = 段 0 の高さ（60 = C4） */
 export const degToMidi = (deg: number, base = 60) => base + 12 * Math.floor(deg / 7) + MAJOR[((deg % 7) + 7) % 7];
 const mod7 = (d: number) => ((d % 7) + 7) % 7;
-/** その小節のコードの音（音階の段 0〜6）。seventh = 7 の音も */
+/** その位置（小節。3.5 = 4 小節目の後半）のコード（度数）。半小節ごとのコードがあれば、それを使う */
+export const chordAt = (plan: Plan, bar: number) => {
+  const h = plan.chordsHalf;
+  if (h?.length) return h[Math.max(0, Math.min(h.length - 1, Math.floor(bar * 2 + 1e-6)))];
+  return plan.chords[Math.max(0, Math.min(plan.chords.length - 1, Math.floor(bar + 1e-6)))];
+};
+/** その小節（小数なら、その位置）のコードの音（音階の段 0〜6）。seventh = 7 の音も */
 export const chordDegs = (plan: Plan, bar: number, seventh = false) => {
-  const d = plan.chords[Math.max(0, Math.min(plan.chords.length - 1, bar))];
+  const d = chordAt(plan, bar);
   const out = [mod7(d), mod7(d + 2), mod7(d + 4)];
   if (seventh) out.push(mod7(d + 6));
   return out;
@@ -163,6 +169,16 @@ const COMP: Record<string, [number, number][]> = {
   strum: [[0, 0.5], [0.75, 0.5], [1.5, 0.5], [2.5, 0.75], [3.25, 0.5]],
   block: [[0, 0.4], [1, 0.4], [2, 0.4], [3, 0.4]],
 };
+/**
+ * 刻み方の 1 つ（小節の頭からの拍 o・長さ len）を、その位置のコードで。小節の途中でコードが変わる曲は、
+ * 3 拍目をまたぐ長い音を 2 つに分ける
+ */
+export function hitsIn(plan: Plan, bar: number, t0: number, o: number, len: number, seventh: boolean): CompHit[] {
+  if (plan.chordsHalf && o < 2 && o + len > 2.05 && chordAt(plan, bar) !== chordAt(plan, bar + 0.5)) {
+    return [{ t: t0 + o, len: 2 - o, degs: chordDegs(plan, bar, seventh) }, { t: t0 + 2, len: o + len - 2, degs: chordDegs(plan, bar + 0.5, seventh) }];
+  }
+  return [{ t: t0 + o, len, degs: chordDegs(plan, bar + o / 4, seventh) }];
+}
 /** セクションの伴奏：小節ごとのコードを、スタイルの弾き方で（arp は 16 分で 1 音ずつ） */
 export function compHits(plan: Plan, sec: PlannedSection): CompHit[] {
   const out: CompHit[] = [];
@@ -170,15 +186,17 @@ export function compHits(plan: Plan, sec: PlannedSection): CompHit[] {
   if (type === 'none') return out;
   for (let b = 0; b < sec.bars; b++) {
     const bar = barOf(sec.start) + b;
-    const degs = chordDegs(plan, bar, !!plan.style.sevenths);
     const t0 = sec.start + b * 4;
     if (type === 'arp') {
-      const seq = [...degs, degs[0] + 7, ...degs.slice(1).reverse()];
-      for (let i = 0; i < 16; i++) out.push({ t: t0 + i * 0.25, len: 0.22, degs: [seq[i % seq.length]] });
+      for (let i = 0; i < 16; i++) {
+        const degs = chordDegs(plan, bar + i / 16, !!plan.style.sevenths);
+        const seq = [...degs, degs[0] + 7, ...degs.slice(1).reverse()];
+        out.push({ t: t0 + i * 0.25, len: 0.22, degs: [seq[i % seq.length]] });
+      }
       continue;
     }
     const pat = sec.energy < 0.3 ? COMP.pad : COMP[type] ?? COMP.pad;
-    for (const [o, len] of pat) out.push({ t: t0 + o, len, degs });
+    for (const [o, len] of pat) out.push(...hitsIn(plan, bar, t0, o, len, !!plan.style.sevenths));
   }
   return out;
 }

@@ -1,12 +1,13 @@
 // ボーカルを取り出す（AI を使わない、ブラウザの中だけの方法。DOM 非依存）。
 // 曲を細かい音の高さ × 時間に分けて、次の 4 つがそろう所だけ残す：
-//   1. 左右が同じ（歌はたいてい真ん中）… モノラルの曲ではこれは使わない
+//   1. 歌と同じ左右の位置（たいてい真ん中。メロディの倍音から位置を見つける）… モノラルの曲ではこれは使わない
 //   2. 伸びる音（ドラムのような一瞬の音ではない）… 時間方向と高さ方向のなめらかさをくらべる
 //   3. 歌の高さ（120Hz〜8kHz）
 //   4. 解析したメロディの高さの倍音の近く（歌っていない所は小さく）
 // 残りは「伴奏（カラオケ）」。どちらも 22.05kHz のモノラル。専用の AI ほどきれいには分かれない（残響・ほかの楽器が少し混ざる）。
 import { FFT } from './fft';
 import { stretch } from '../sampler/dsp/edit';
+import { vocalPitch } from './analyze';
 
 const SR = 22050;
 const N = 2048;
@@ -60,6 +61,29 @@ export function extractVocal(ch: Float32Array[], sr: number, pitch?: ArrayLike<n
     const f = k * binHz;
     band[k] = Math.min(1, Math.max(0, (f - 110) / 90)) * Math.min(1, Math.max(0, (9000 - f) / 2000));
   }
+  // 0. 歌の左右の位置：メロディの倍音の所で、左右の大きさの比がどこに集まるか（真ん中とは限らない）
+  let gL = 1, gR = 1;
+  if (stereo && pitch) {
+    const BINS = 41, hist = new Float64Array(BINS);
+    for (let t = 0; t < frames; t += 3) {
+      const m = pitch[t - (N / 2) / HOP] ?? 0;
+      if (m <= 0) continue;
+      const off = t * HOP - N / 2;
+      const a = fl.forward(L, off), b = fr.forward(R, off);
+      const f0 = 440 * Math.pow(2, (m - 69) / 12);
+      for (let h = 1; h <= 6; h++) {
+        const k = Math.round((f0 * h) / binHz);
+        if (k >= B) break;
+        const ml = Math.hypot(a.re[k], a.im[k]), mr = Math.hypot(b.re[k], b.im[k]);
+        hist[Math.round((Math.atan2(mr, ml) / (Math.PI / 2)) * (BINS - 1))] += ml + mr;
+      }
+    }
+    let bj = (BINS - 1) / 2;
+    for (let j = 0; j < BINS; j++) if (hist[j] > hist[bj] * 1.15) bj = j;
+    const th = (bj / (BINS - 1)) * (Math.PI / 2);
+    gL = Math.cos(th) * Math.SQRT2; gR = Math.sin(th) * Math.SQRT2;
+  }
+  const gg = gL * gL + gR * gR;
   const mask = new Float32Array(B);
   const emit = (slot: (typeof ring)[number]) => {
     const t = slot.t;
@@ -102,13 +126,15 @@ export function extractVocal(ch: Float32Array[], sr: number, pitch?: ArrayLike<n
       const ar = Float64Array.from(a.re.subarray(0, B)), ai = Float64Array.from(a.im.subarray(0, B));
       const b = stereo ? fr.forward(R, off) : { re: a.re, im: a.im };
       for (let k = 0; k < B; k++) {
-        const mr = (ar[k] + b.re[k]) * 0.5, mi = (ai[k] + b.im[k]) * 0.5;
+        // 歌の位置の向きに取り出す（真ん中なら左右の平均）
+        const mr = (gL * ar[k] + gR * b.re[k]) / gg, mi = (gL * ai[k] + gR * b.im[k]) / gg;
         slot.re[k] = mr; slot.im[k] = mi;
         slot.mag[k] = Math.hypot(mr, mi);
         if (stereo) {
+          // 1. 歌と同じ位置か：歌の位置の音なら gR·L − gL·R が 0 になる
           const dl = Math.hypot(ar[k], ai[k]), dr = Math.hypot(b.re[k], b.im[k]);
-          const diff = Math.hypot(ar[k] - b.re[k], ai[k] - b.im[k]);
-          slot.c[k] = 1 - diff / (dl + dr + 1e-12);
+          const diff = Math.hypot(gR * ar[k] - gL * b.re[k], gR * ai[k] - gL * b.im[k]);
+          slot.c[k] = 1 - diff / (gR * dl + gL * dr + 1e-12);
         }
         hsum[k] += slot.mag[k];
       }
@@ -120,7 +146,9 @@ export function extractVocal(ch: Float32Array[], sr: number, pitch?: ArrayLike<n
     if (progress && t % 300 === 0) progress(t / (frames + K));
   }
   const inst = new Float32Array(n);
-  for (let i = 0; i < n; i++) inst[i] = mid[i] - vocal[i];
+  // 真ん中（左右の平均）の中の歌の分を引く
+  const vm = (gL + gR) / 2;
+  for (let i = 0; i < n; i++) inst[i] = mid[i] - vocal[i] * vm;
   return { sr: SR, vocal, inst };
 }
 
@@ -161,4 +189,14 @@ export function pitchShift(x: Float32Array, sr: number, semis: number): Float32A
     out[i] = i0 + 1 < long.length ? long[i0] * (1 - f) + long[i0 + 1] * f : 0;
   }
   return out;
+}
+
+/**
+ * 2 回に分けて取り出す。1 回目はメロディの高さを使わずに取り出し、そこから歌の高さ（と歌っている所）を聞き取って、
+ * 2 回目はその倍音の所だけを残す。曲全体から聞き取った高さより、取り出した歌から聞き取った高さの方が正しいので、よく分かれる
+ */
+export function separateVocal(ch: Float32Array[], sr: number, progress?: (f: number) => void): Separated {
+  const first = extractVocal(ch, sr, undefined, (f) => progress?.(f * 0.5));
+  const guide = vocalPitch(first.vocal, 1.5).pitch;
+  return extractVocal(ch, sr, guide, (f) => progress?.(0.5 + f * 0.5));
 }

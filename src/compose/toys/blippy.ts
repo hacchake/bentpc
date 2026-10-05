@@ -9,7 +9,7 @@ import type { Rng } from '../../core/rng';
 import type { Plan, PlannedSection } from '../plan';
 import type { Texture } from '../styles';
 import { PartWriter } from '../writer';
-import { crashSpan, drumBar, midiToDeg, snapToScale } from '../harmony';
+import { chordAt, crashSpan, drumBar, midiToDeg, snapToScale } from '../harmony';
 
 // ================= おもちゃの番号 =================
 const P = { volume: 0, mode: 1, base: 8, lfoRate: 11, lfoDepth: 12, stretch: 13, stretchHold: 14, stretchRel: 15, dist: 16, distType: 17 };
@@ -105,7 +105,7 @@ export function composeBlippy(ctx: BlippyContext): (SeqTrack & { part: string })
   };
   /** コードの構成音（ドレミの 1〜10 で）。度数 d のコード = 音階の d, d+2, d+4 */
   const chordTones = (bar: number) => {
-    const d = plan.chords[Math.min(plan.chords.length - 1, Math.max(0, bar))];
+    const d = chordAt(plan, Math.max(0, bar));
     const set = new Set([d % 7, (d + 2) % 7, (d + 4) % 7]);
     return Array.from({ length: 10 }, (_, i) => i + 1).filter((n) => set.has((n - 1) % 7));
   };

@@ -1,6 +1,6 @@
 // MANEKKO の解析を画面とは別の流れ（Web Worker）で：曲の解析 → ボーカルを取り出す。画面が固まらないように
 import { analyze, melodyFromVocal, refineHarmony } from '../../cover/analyze';
-import { extractVocal, to22k } from '../../cover/vocal';
+import { separateVocal, to22k } from '../../cover/vocal';
 
 interface Req { ch: Float32Array[]; sr: number }
 
@@ -9,7 +9,7 @@ self.onmessage = (e: MessageEvent<Req>) => {
   const post = (m: unknown, t: Transferable[] = []) => (self as unknown as Worker).postMessage(m, t);
   try {
     const analysis = analyze(ch, sr, (f, what) => post({ type: 'progress', f: f * 0.7, what }));
-    const sep = extractVocal(ch, sr, analysis.pitch, (f) => post({ type: 'progress', f: 0.7 + f * 0.28, what: 'ボーカルを取り出しています' }));
+    const sep = separateVocal(ch, sr, (f) => post({ type: 'progress', f: 0.7 + f * 0.28, what: 'ボーカルを取り出しています' }));
     // 2 回目：歌を抜いた伴奏から調とコードを、取り出した歌からメロディを、聞き取り直す（混ざらないので正しく取りやすい）
     post({ type: 'progress', f: 0.98, what: 'メロディを聞き取り直しています' });
     refineHarmony(sep.inst, analysis);

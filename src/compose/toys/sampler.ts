@@ -6,7 +6,7 @@
 //   mods   … 電源・クラッシュ・音量・使うパッドの切り替え・BEND（壊れ度）・後付けのツマミ・ワンショット
 // パッドの中身はサンプラーのページで変えられる。工場出荷の並び（factory.ts / factory2.ts）を前提に作る。
 import type { Rng } from '../../core/rng';
-import { bassLine, chordDegs, compHits, degToMidi, drumBar, makeMotif, realize, steps } from '../harmony';
+import { bassLine, chordDegs, compHits, degToMidi, drumBar, hitsIn, makeMotif, realize, steps } from '../harmony';
 import { powerAndCrash, type Part, type PartContext } from '../context';
 import type { PlannedSection } from '../plan';
 import { PartWriter } from '../writer';
@@ -204,8 +204,7 @@ export function composeSampler(ctx: PartContext): Part[] {
       if (pat && sec.energy >= 0.3) {
         hits = [];
         for (let b = 0; b < sec.bars; b++) {
-          const degs = chordDegs(plan, bar0 + b, !!st.sevenths);
-          for (const [o, l] of pat) hits.push({ t: s0 + b * 4 + o, len: l, degs });
+          for (const [o, l] of pat) hits.push(...hitsIn(plan, bar0 + b, s0 + b * 4, o, l, !!st.sevenths));
         }
       } else hits = compHits(plan, sec).filter(() => !rm.chance(sec.energy > 0.7 ? 0.15 : 0.35)); // 少し間引いて、メロディを邪魔しない
       for (const h of hits) {

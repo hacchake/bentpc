@@ -25,6 +25,8 @@ export interface Plan {
   sections: PlannedSection[];
   /** 小節ごとのコード（ハ長調の度数 0 = C, 1 = Dm, … 5 = Am） */
   chords: number[];
+  /** 半小節（2 拍）ごとのコード。小節の途中でコードが変わる曲（カバー）だけ。無ければ chords を使う */
+  chordsHalf?: number[];
   /** クラッシュさせるセクション（無ければ -1） */
   crashSection: number;
   /** カバー（取り込んだ曲の解析）：あれば、メロディ・ベース・ドラムを作らずにこれを使う（cover/plan.ts） */
