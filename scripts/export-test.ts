@@ -7,6 +7,7 @@ import { STUDIO_MIDI, STUDIO_TOYS } from '../src/studio/songs';
 import { renderSongStereo } from '../src/studio/render';
 import { usedToys } from '../src/core/song';
 import { crc32, makeZip } from '../src/host/zip';
+import { muxM4a, muxOgg } from '../src/host/compress';
 
 let fail = 0;
 const ng = (m: string) => { fail++; console.log('NG', m); };
@@ -94,5 +95,35 @@ writeFileSync('out/demo.mid', bytes);
   okZip ? console.log(`OK ZIP（${zip.length} バイト・2 ファイル・CRC 一致）`) : ng('ZIP が壊れている');
 }
 console.log('out/demo.mid に書き出しました');
+// ---- 圧縮の入れ物：M4A は ftyp・moov・mdat の順で、stco が最初のフレームを指す。OGG はページの CRC が合う ----
+{
+  const frames = [new Uint8Array([1, 2, 3]), new Uint8Array([4, 5])];
+  const m = muxM4a(frames, new Uint8Array([0x11, 0x90]), 48000, 1500);
+  const dv = new DataView(m.buffer);
+  const type = (o: number) => String.fromCharCode(...m.subarray(o + 4, o + 8));
+  const ftypLen = dv.getUint32(0), moovLen = dv.getUint32(ftypLen);
+  const mdatAt = ftypLen + moovLen;
+  const stcoAt = [...Array(m.length - 8).keys()].find((i) => String.fromCharCode(...m.subarray(i, i + 4)) === 'stco')!;
+  const off = dv.getUint32(stcoAt + 12);
+  const okM4a = type(0) === 'ftyp' && type(ftypLen) === 'moov' && type(mdatAt) === 'mdat' && off === mdatAt + 8 && m[off] === 1 && m[off + 3] === 4;
+  okM4a ? console.log(`OK M4A の入れ物（${m.length} バイト・フレームの位置が合う）`) : ng('M4A の入れ物が壊れている');
+  const o = muxOgg([new Uint8Array(10), new Uint8Array(300)], null, 1500);
+  let pos = 0, pages = 0, crcOk = true;
+  while (pos < o.length) {
+    const segs = o[pos + 26];
+    let len = 27 + segs;
+    for (let k = 0; k < segs; k++) len += o[pos + 27 + k];
+    const pg = o.slice(pos, pos + len);
+    const want = new DataView(pg.buffer).getUint32(22, true);
+    new DataView(pg.buffer).setUint32(22, 0, true);
+    // ページの CRC を数え直す
+    let c = 0;
+    for (const byte of pg) { c ^= byte << 24; for (let k = 0; k < 8; k++) c = c & 0x80000000 ? (c << 1) ^ 0x04c11db7 : c << 1; c >>>= 0; }
+    if (c !== want) crcOk = false;
+    pos += len; pages++;
+  }
+  pages === 3 && crcOk ? console.log('OK OGG の入れ物（3 ページ・CRC 一致）') : ng(`OGG の入れ物：${pages} ページ・CRC ${crcOk}`);
+}
+
 console.log(fail ? `失敗 ${fail} 件` : 'すべて OK');
 process.exit(fail ? 1 : 0);

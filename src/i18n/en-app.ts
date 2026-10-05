@@ -693,4 +693,11 @@ export const EN_APP: Record<string, string> = {
   '無題': 'Untitled',
   '止まっている所から録音するとき、1 小節クリックしてから始める': 'When recording from a stop, click for one bar before starting',
   'カウント': 'Count-in',
+  '曲を圧縮した音声（M4A。使えないブラウザでは OGG）に書き出す。WAV と同じ音で約 1/8 の大きさ。スマホで聞く・人に送る用': 'Export the song as compressed audio (M4A, or OGG in browsers without it). Same sound as WAV at about 1/8 the size. For phones and sharing',
+  'M4A を書き出せませんでした：': 'Could not export M4A: ',
+  'このブラウザでは圧縮した書き出しができません（WAV を使ってください）': 'This browser cannot export compressed audio (please use WAV)',
+  'ソングを圧縮した音声（M4A。使えないブラウザでは OGG）に。WAV の約 1/8 の大きさ': 'Export the song as compressed audio (M4A, or OGG in browsers without it). About 1/8 the size of WAV',
+  '⤓ M4A ソング': '⤓ M4A song',
+  '圧縮しています…': 'Compressing…',
+  '{0} を書き出しました（{1} 秒{2}）': 'Exported {0} ({1} s{2})',
 };

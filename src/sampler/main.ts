@@ -21,6 +21,7 @@ import { openEditor, type EditorApi } from './editor';
 import { normalize as edNormalize, reverse as edReverse, trim as edTrim } from './dsp/edit';
 import { registerOffline } from '../core/pwa';
 import { watchErrors } from '../core/errors';
+import { encodeCompressed } from '../host/compress';
 
 registerOffline();
 watchErrors();
@@ -118,7 +119,7 @@ dev.innerHTML = `
     <div class="pk-tab" data-tab="song">
       <div class="pk-chain" id="pk-chain"></div>
       <div class="pk-grp"><button class="pk-btn orange" id="pk-sadd">＋ P01</button><button class="pk-btn gray" id="pk-sdel">削除</button><button class="pk-btn gray" id="pk-srep-">×−</button><button class="pk-btn gray" id="pk-srep+">×＋</button><button class="pk-btn mode" id="pk-splay">${lamp}▶ SONG</button></div>
-      <div class="pk-grp"><button class="pk-btn gray" id="pk-xwp">⤓ WAV パターン</button><button class="pk-btn gray" id="pk-xws">⤓ WAV ソング</button><button class="pk-btn gray" id="pk-xmid">⤓ MIDI</button><button class="pk-btn gray" id="pk-xsave">💾 保存</button><button class="pk-btn gray" id="pk-xload">📂 読込</button><button class="pk-btn orange" id="pk-xstudio" title="ソング（無ければいまのパターン）を、スタジオのシーケンサーに入れて開く">→ STUDIO</button></div>
+      <div class="pk-grp"><button class="pk-btn gray" id="pk-xwp">⤓ WAV パターン</button><button class="pk-btn gray" id="pk-xws">⤓ WAV ソング</button><button class="pk-btn gray" id="pk-xms" title="ソングを圧縮した音声（M4A。使えないブラウザでは OGG）に。WAV の約 1/8 の大きさ">⤓ M4A ソング</button><button class="pk-btn gray" id="pk-xmid">⤓ MIDI</button><button class="pk-btn gray" id="pk-xsave">💾 保存</button><button class="pk-btn gray" id="pk-xload">📂 読込</button><button class="pk-btn orange" id="pk-xstudio" title="ソング（無ければいまのパターン）を、スタジオのシーケンサーに入れて開く">→ STUDIO</button></div>
     </div>
     <div class="pk-side">
       <div class="pk-vol"><div class="knob red" id="pk-master"><div class="cap"></div></div><span>VOL</span></div>
@@ -1055,35 +1056,41 @@ click('pk-splay', () => {
   host.post({ type: 'transport', play: true, mode: 'song' });
 });
 
-function download(bytes: Uint8Array, name: string, type: string): void {
+function download(bytes: Uint8Array | Blob, name: string, type: string): void {
   const a = document.createElement('a');
-  a.href = URL.createObjectURL(new Blob([bytes as BlobPart], { type }));
+  a.href = URL.createObjectURL(bytes instanceof Blob ? bytes : new Blob([bytes as BlobPart], { type }));
   a.download = name;
   a.click();
   setTimeout(() => URL.revokeObjectURL(a.href), 20000);
 }
 const setup = (): RenderSetup => ({ samples, params, fx: meta.fx, bend: meta.bend, bpm: meta.bpm, swing: meta.swing, patterns: meta.patterns, song: meta.song });
 let exporting = false;
-function exportWav(m: 'pattern' | 'song'): void {
+/** packed = 圧縮した音声（M4A、使えなければ OGG）で */
+function exportWav(m: 'pattern' | 'song', packed = false): void {
   if (exporting) return;
   if (m === 'song' && !meta.song.length) { msg('ソングがからっぽです', 2500); return; }
   if (m === 'pattern' && !curPattern().events.length) { msg('パターンがからっぽです', 2500); return; }
   exporting = true;
-  const g = renderOffline(setup(), m, meta.ptn, 44100, m === 'pattern' ? 2 : 1);
+  const sr = packed ? 48000 : 44100;
+  const g = renderOffline(setup(), m, meta.ptn, sr, m === 'pattern' ? 2 : 1);
   const tick = () => {
     const t0 = performance.now();
     let r = g.next();
     while (!r.done && performance.now() - t0 < 30) r = g.next();
     if (!r.done) { msg(`書き出し中… ${Math.round(r.value * 100)}%`); setTimeout(tick, 0); return; }
     const [L, R] = r.value;
-    download(wavBytes(L, R, 44100), m === 'pattern' ? `paku16-${ptnName(meta.ptn)}.wav` : 'paku16-song.wav', 'audio/wav');
-    exporting = false;
-    msg(`WAV を書き出しました（${(L.length / 44100).toFixed(1)} 秒${m === 'pattern' ? '・2 回くり返し' : ''}）`, 3000);
+    const base = m === 'pattern' ? `paku16-${ptnName(meta.ptn)}` : 'paku16-song';
+    const done = (kind: string) => { exporting = false; msg(`${kind} を書き出しました（${(L.length / sr).toFixed(1)} 秒${m === 'pattern' ? '・2 回くり返し' : ''}）`, 3000); };
+    if (!packed) { download(wavBytes(L, R, sr), `${base}.wav`, 'audio/wav'); done('WAV'); return; }
+    msg('圧縮しています…');
+    encodeCompressed(L, R, sr).then((c) => { download(c.blob, `${base}.${c.ext}`, c.mime); done(c.ext.toUpperCase()); })
+      .catch((e: Error) => { exporting = false; msg(e.message, 4000); });
   };
   tick();
 }
 click('pk-xwp', () => exportWav('pattern'));
 click('pk-xws', () => exportWav('song'));
+click('pk-xms', () => exportWav('song', true));
 click('pk-xmid', () => {
   const m = meta.song.length ? 'song' : 'pattern';
   download(midiBytes(setup(), m, meta.ptn), m === 'song' ? 'paku16-song.mid' : `paku16-${ptnName(meta.ptn)}.mid`, 'audio/midi');

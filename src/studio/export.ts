@@ -2,6 +2,7 @@
 import { songBeats, trackToy, usedToys, type Song } from '../core/song';
 import { encodeWav, encodeWavFloat, download } from '../host/wav';
 import { makeZip } from '../host/zip';
+import { compressedFormat, encodeCompressed } from '../host/compress';
 import { fromInt8 } from '../toys/blippy/dsp/mic';
 import { songToMidi, type MidiToy } from './midi-export';
 import RenderWorker from './render-worker.ts?worker&inline';
@@ -26,14 +27,27 @@ function userSamples(): { toy: number; key: number; data: Float32Array }[] {
 
 /** WAV：曲を最初から最後まで（実際の時間より速く）鳴らして書き出す。progress は 0〜1 */
 /** toys：曲のおもちゃ番号 → エンジンの番号（スタジオは [0, 5]、ラックは全部） */
-export function exportWav(song: Song, progress: (f: number) => void, toys?: number[], sr = 48000, customs: { toy: number; data: unknown }[] = []): Promise<void> {
+export async function exportWav(song: Song, progress: (f: number) => void, toys?: number[], sr = 48000, customs: { toy: number; data: unknown }[] = []): Promise<void> {
+  const [L, R] = await renderMix(song, progress, toys, sr, customs);
+  download(encodeWav([L], sr, [R]), `${safeName(song)}.wav`);
+}
+
+/** 圧縮した音声（M4A、使えなければ OGG）：WAV と同じ音を、約 1/8 の大きさで。曲を作る分が 8 割、圧縮が 2 割の進み具合 */
+export async function exportCompressed(song: Song, progress: (f: number) => void, toys?: number[], sr = 48000, customs: { toy: number; data: unknown }[] = []): Promise<void> {
+  if (!(await compressedFormat(sr))) throw new Error('このブラウザでは圧縮した書き出しができません（WAV を使ってください）');
+  const [L, R] = await renderMix(song, (f) => progress(f * 0.8), toys, sr, customs);
+  const c = await encodeCompressed(L, R, sr, (f) => progress(0.8 + f * 0.2));
+  download(c.blob, `${safeName(song)}.${c.ext}`);
+}
+
+/** 曲を最初から最後まで、仕上げ・音量合わせまでした左右の波形（画面とは別の流れで） */
+function renderMix(song: Song, progress: (f: number) => void, toys?: number[], sr = 48000, customs: { toy: number; data: unknown }[] = []): Promise<[Float32Array, Float32Array]> {
   return new Promise((resolve, reject) => {
     const w = new RenderWorker();
     w.onmessage = (e: MessageEvent<{ type: 'progress'; f: number } | { type: 'done'; data: Float32Array; dataR: Float32Array }>) => {
       if (e.data.type === 'progress') { progress(e.data.f); return; }
-      download(encodeWav([e.data.data], sr, [e.data.dataR]), `${safeName(song)}.wav`);
       w.terminate();
-      resolve();
+      resolve([e.data.data, e.data.dataR]);
     };
     w.onerror = (e) => { w.terminate(); reject(new Error(e.message)); };
     w.postMessage({ song: JSON.parse(JSON.stringify(song)), sr, toys, userSamples: userSamples(), customs });

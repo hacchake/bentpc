@@ -8,7 +8,7 @@ import { AudioHost } from './host/audio';
 import { AlwaysOn } from './core/alwayson';
 import { Arranger } from './studio/arranger';
 import { createViewSync } from './studio/sync';
-import { exportMidi, exportStems, exportWav } from './studio/export';
+import { exportCompressed, exportMidi, exportStems, exportWav } from './studio/export';
 import { PANEL_H, PANEL_W, mountComposerPanel } from './compose/panel';
 import { PART_COMPOSERS } from './compose/rules';
 import { copyText, setPageQuery, settingsFromQuery, settingsToQuery, toast } from './compose/share';
@@ -317,6 +317,18 @@ const wavBtn = arr.addButton('WAV', '曲を最初から最後まで WAV に書�
   }
   wavBtn.textContent = 'WAV';
   wavBtn.disabled = false;
+});
+const m4aBtn = arr.addButton('M4A', '曲を圧縮した音声（M4A。使えないブラウザでは OGG）に書き出す。WAV と同じ音で約 1/8 の大きさ。スマホで聞く・人に送る用', async () => {
+  if (m4aBtn.disabled) return;
+  m4aBtn.disabled = true;
+  try {
+    const customs = toys.flatMap((t, i) => (t.customData?.() ?? []).map((c) => ({ toy: i, data: c.data })));
+    await exportCompressed(arr.song, (f) => { m4aBtn.textContent = `M4A ${Math.round(f * 100)}%`; }, RACK_IDS, 48000, customs);
+  } catch (e) {
+    alert(`M4A を書き出せませんでした：${(e as Error).message}`);
+  }
+  m4aBtn.textContent = 'M4A';
+  m4aBtn.disabled = false;
 });
 const stemBtn = arr.addButton('STEMS', '楽器（おもちゃ）ごとの WAV を ZIP で書き出す（ほかの音楽ソフトで混ぜ直す用。32bit・仕上げなし）', async () => {
   if (stemBtn.disabled) return;
