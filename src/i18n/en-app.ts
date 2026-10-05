@@ -23,6 +23,7 @@ export const EN_APP: Record<string, string> = {
   'シーケンサー：演奏の操作を録音（重ね録り）して、あとから手直しできる。WAV / MIDI で書き出し': 'Sequencer: record what you play (overdub) and edit it later. Export as WAV / MIDI',
   'おもちゃの右の緑の基板：「自動作曲」を押すと、曲を作ってシーケンサーに書き込み、鳴らす（STYLE 26 種類・参加するおもちゃ・壊れ度・LENGTH・BPM・SEED）。参加ボタンで何台かを 1 つの曲に': 'The green board to the right of the toy: press "AUTO COMPOSE" to write a song into the sequencer and play it (26 STYLEs, joining toys, CHAOS, LENGTH, BPM, SEED). Use the join buttons to put several toys in one song',
   'チャンネル n → n 台目（1〜7）、それ以外→表示中のおもちゃ': 'Channel n → toy n (1–7), others → the toy on screen',
+  'チャンネル n → n 台目（1〜7）、それ以外→表示中のおもちゃ。外の機器の START / STOP と MIDI クロックのテンポにも合わせる': 'Channel n → toy n (1–7), others → the toy on screen. Also follows START / STOP and the MIDI clock tempo from external gear',
   '電源の案内をもう一度見る': 'Show the power guide again',
   'ノブ：上下にドラッグ（Shift で細かく）、ホイール、ダブルクリックで初期値': 'Knobs: drag up/down (Shift for fine), mouse wheel, double-click to reset',
   '曲を最初から最後まで WAV に書き出す（実際の時間より速く作ります）': 'Export the whole song as WAV (faster than real time)',
@@ -669,4 +670,5 @@ export const EN_APP: Record<string, string> = {
   '楽器（おもちゃ）ごとの WAV を ZIP で書き出す（ほかの音楽ソフトで混ぜ直す用。32bit・仕上げなし）': 'Export one WAV per instrument (toy) as a ZIP (for remixing in other music software; 32-bit, no mastering)',
   'STEMS を書き出せませんでした：': 'Could not export STEMS: ',
   '音符の入ったトラックがありません': 'There are no tracks with notes',
+  'MIDI クロックに合わせて {0} BPM': 'Following MIDI clock: {0} BPM',
 };

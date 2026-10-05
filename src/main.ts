@@ -15,6 +15,7 @@ import { copyText, setPageQuery, settingsFromQuery, settingsToQuery, toast } fro
 import type { ToyKind } from './compose/types';
 import { emptySong } from './core/song';
 import { startMidi } from './host/midi';
+import { MidiSync } from './host/midisync';
 import { download, encodeWav } from './host/wav';
 import { TOY_UIS } from './toys/uis';
 import { samplerNote } from './sampler/toy/engine';
@@ -36,7 +37,7 @@ const COMMON_HELP = `
   <tr><td>REC</td><td>全部のおもちゃの音を録音。もう一度押すと WAV をダウンロード</td></tr>
   <tr><td>☰ SEQ</td><td>シーケンサー：演奏の操作を録音（重ね録り）して、あとから手直しできる。WAV / MIDI で書き出し</td></tr>
   <tr><td>AUTO COMPOSER</td><td>おもちゃの右の緑の基板：「自動作曲」を押すと、曲を作ってシーケンサーに書き込み、鳴らす（STYLE 26 種類・参加するおもちゃ・壊れ度・LENGTH・BPM・SEED）。参加ボタンで何台かを 1 つの曲に</td></tr>
-  <tr><td>MIDI</td><td>チャンネル n → n 台目（1〜7）、それ以外→表示中のおもちゃ</td></tr>
+  <tr><td>MIDI</td><td>チャンネル n → n 台目（1〜7）、それ以外→表示中のおもちゃ。外の機器の START / STOP と MIDI クロックのテンポにも合わせる</td></tr>
 </table>
 <p>電源はいつも ON（最初に画面をさわると入る）。POWER だったボタンは RESET（押すと再起動）</p>
 <p>ノブ：上下にドラッグ（Shift で細かく）、ホイール、ダブルクリックで初期値</p>`;
@@ -253,6 +254,7 @@ $('midiBtn').addEventListener('click', async () => {
       $('midiName').textContent = names.length ? names[0].slice(0, 16) : 'NO DEVICE';
       $('midiBtn').querySelector('.led')?.classList.toggle('lit', names.length > 0);
     },
+    (status, t) => midiSync.feed(status, t),
   );
   if (!ok) $('midiName').textContent = 'NOT AVAILABLE';
 });
@@ -270,6 +272,13 @@ async function transport(play: boolean, from?: number): Promise<void> {
   if (play && (from ?? posBeat) < 1e-9 && arr.song.seed !== undefined) sync.resetViews();
   audio.post({ type: 'transport', play, from });
 }
+// 外の MIDI 機器（ドラムマシン・DAW）の START / STOP・テンポ（MIDI クロック）に合わせる
+const midiSync = new MidiSync({
+  start: () => { openSeq(true); void transport(true, arr.song.loop?.on ? arr.song.loop.start : 0); },
+  cont: () => { if (!arr.playing) void transport(true, arr.playhead); },
+  stop: () => { if (arr.playing) void transport(false); },
+  tempo: (bpm) => { arr.setTempo(bpm); toast(`MIDI クロックに合わせて ${bpm} BPM`, 1500); },
+});
 const arr: Arranger = new Arranger({
   toys,
   send: (song) => { audio.post({ type: 'song', song }); panels.forEach((p) => p?.refresh()); },

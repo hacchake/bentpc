@@ -4,6 +4,7 @@ import { hashSeed } from '../src/core/rng';
 import { TestSignal } from '../src/core/testsignal';
 import type { ToyEngine } from '../src/core/toy';
 import { Sequencer } from '../src/host/sequencer';
+import { MidiSync } from '../src/host/midisync';
 import { TOY_ENGINES } from '../src/toys/engines';
 
 const SR = 48000;
@@ -190,6 +191,19 @@ if (!bn.ended() || bn.seq.playing) ng('BOUNCE が終わらない');
   else if (Math.abs(20 * Math.log10(ratio) + 12) > 1) ng(`ミキサー：-12dB のはずが ${(20 * Math.log10(ratio)).toFixed(1)}dB`);
   else if (muted > plain * 0.01 || soloOther > plain * 0.01) ng(`ミキサー：ミュート ${muted}・ほかのソロ ${soloOther} で音が残る`);
   else console.log(`OK ミキサー：-12dB → ${(20 * Math.log10(ratio)).toFixed(1)}dB・ミュートとほかのおもちゃのソロで無音`);
+}
+
+// MIDI クロック：外の機器のテンポ・START / STOP に合わせる
+{
+  const got: string[] = [];
+  let bpm = 0;
+  const ms = new MidiSync({ start: () => got.push('start'), cont: () => got.push('cont'), stop: () => got.push('stop'), tempo: (b) => { bpm = b; } });
+  ms.feed(0xfa, 0);
+  // 128 BPM のクロック（少し揺らす）を 3 秒
+  const iv = 60000 / 128 / 24;
+  for (let k = 1; k < 24 * 6; k++) ms.feed(0xf8, k * iv + Math.sin(k) * 0.4);
+  ms.feed(0xfc, 4000);
+  got.join(',') === 'start,stop' && bpm === 128 ? console.log(`OK MIDI クロック：START・STOP・${bpm} BPM`) : ng(`MIDI クロック：${got.join(',')} ${bpm} BPM`);
 }
 
 console.log(fail ? `失敗 ${fail} 件` : 'すべて OK');

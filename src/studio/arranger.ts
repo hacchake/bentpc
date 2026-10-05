@@ -127,6 +127,15 @@ export class Arranger {
     this.commit();
   }
 
+  /** 外の MIDI 機器のテンポに合わせる（元に戻すの履歴には残さない） */
+  setTempo(bpm: number): void {
+    const v = Math.max(40, Math.min(300, Math.round(bpm)));
+    if (v === this.song.bpm) return;
+    this.song.bpm = v;
+    this.refreshBar();
+    this.commit();
+  }
+
   sendInitial(): void {
     this.host.send(cloneSong(this.song));
     this.host.onSong?.(this.song);
