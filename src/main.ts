@@ -168,7 +168,7 @@ $('rotBtn').addEventListener('click', () => {
   fit();
 });
 window.addEventListener('resize', fit);
-alwaysOn = new AlwaysOn(toys, () => [active], (i) => i === 3, (i) => (i === 0 ? 'REBOOT' : 'RESET'));
+alwaysOn = new AlwaysOn(toys, () => [active], () => arr.playing, (i) => i === 3, (i) => (i === 0 ? 'REBOOT' : 'RESET'));
 
 // ---- エンジンからのメッセージを各おもちゃへ ----
 let recChunks: Float32Array[] = [];

@@ -226,7 +226,7 @@ const HELP = `
 </table>`;
 $('s-help').innerHTML = HELP;
 // 電源はいつも ON（最初にさわると入る・POWER は RESET）。VROOMBOX のキーはエンジンをかけるのでそのまま
-const alwaysOn = new AlwaysOn(toys, () => toys.map((_, i) => i), (i) => lineup[i] === 3, (i) => (lineup[i] === 0 ? 'REBOOT' : 'RESET'));
+const alwaysOn = new AlwaysOn(toys, () => toys.map((_, i) => i), () => arr.playing, (i) => lineup[i] === 3, (i) => (lineup[i] === 0 ? 'REBOOT' : 'RESET'));
 $('helpBtn').addEventListener('click', () => { $('s-help').hidden = !$('s-help').hidden; });
 document.querySelectorAll<HTMLButtonElement>('#s-top button').forEach((b) => { b.tabIndex = -1; b.addEventListener('mousedown', (e) => e.preventDefault()); });
 
