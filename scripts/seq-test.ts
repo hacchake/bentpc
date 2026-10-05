@@ -172,5 +172,25 @@ if (!bn.ended() || bn.seq.playing) ng('BOUNCE が終わらない');
   if (rms(before) > 0.002 || rms(after) < 0.01) ng('POWER ON の音符が効いていない');
 }
 
+// ミキサー：音量・ミュート・ソロが音に効く（PIKOTONE の鍵盤を押しっぱなしで比べる）
+{
+  const level = (mix: Song['mix']) => {
+    const s = emptySong(TOY_ENGINES.length);
+    s.mix = mix;
+    const m = rig(s);
+    m.toys[1].powerOn();
+    m.run(0.3);
+    m.toys[1].keyDown(5);
+    return rms(m.run(0.5));
+  };
+  const plain = level(undefined), quiet = level([null, { gain: -12, pan: null }]);
+  const muted = level([null, { gain: 0, pan: null, mute: true }]), soloOther = level([{ gain: 0, pan: null, solo: true }]);
+  const ratio = quiet / plain;
+  if (plain < 0.01) ng(`ミキサー：元の音が出ていない ${plain}`);
+  else if (Math.abs(20 * Math.log10(ratio) + 12) > 1) ng(`ミキサー：-12dB のはずが ${(20 * Math.log10(ratio)).toFixed(1)}dB`);
+  else if (muted > plain * 0.01 || soloOther > plain * 0.01) ng(`ミキサー：ミュート ${muted}・ほかのソロ ${soloOther} で音が残る`);
+  else console.log(`OK ミキサー：-12dB → ${(20 * Math.log10(ratio)).toFixed(1)}dB・ミュートとほかのおもちゃのソロで無音`);
+}
+
 console.log(fail ? `失敗 ${fail} 件` : 'すべて OK');
 process.exit(fail ? 1 : 0);

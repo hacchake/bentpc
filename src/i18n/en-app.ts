@@ -661,4 +661,12 @@ export const EN_APP: Record<string, string> = {
   'PAKU-PAKU に音を切り出しています': 'Cutting sounds for PAKU-PAKU',
   'うまく動かない所がありました': 'Something went wrong',
   '音が止まったら、ページを読み込み直してください（作った曲はブラウザに保存されています）。': 'If the sound stops, reload the page (your songs are saved in this browser).',
+  'ミキサー：おもちゃごとの音量・左右・ミュート・ソロ（書き出しにも入る）': 'Mixer: volume, pan, mute and solo for each toy (also applied to exports)',
+  '書き出し（WAV）にも入ります': 'Also applied to WAV export',
+  'リセット': 'Reset',
+  'ミュート': 'Mute',
+  'ソロ（このおもちゃだけ鳴らす。いくつでも）': 'Solo (play only this toy; any number)',
+  '楽器（おもちゃ）ごとの WAV を ZIP で書き出す（ほかの音楽ソフトで混ぜ直す用。32bit・仕上げなし）': 'Export one WAV per instrument (toy) as a ZIP (for remixing in other music software; 32-bit, no mastering)',
+  'STEMS を書き出せませんでした：': 'Could not export STEMS: ',
+  '音符の入ったトラックがありません': 'There are no tracks with notes',
 };

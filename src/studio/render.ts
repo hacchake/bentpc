@@ -22,6 +22,8 @@ export interface RenderOpts {
   customs?: { toy: number; data: unknown }[];
   /** 書き出し用：曲全体の大きさをそろえる（EXPORT_LUFS） */
   normalize?: boolean;
+  /** 仕上げ（まとめ・響き・割れ止め）を通さない（楽器ごとの書き出し用。足し合わせると元の混ぜた音に近い） */
+  raw?: boolean;
 }
 
 /**
@@ -54,10 +56,11 @@ export function renderSongStereo(song: Song, sr: number, opts: RenderOpts = {}):
   for (let i = 0; i < total + lat; i += BLOCK) {
     sig.render(inp, seq.playing ? seq.pos : null, s.bpm);
     seq.render(out, click, tmp, inp, outR);
-    master.process(out, outR, L.subarray(i, i + BLOCK), R.subarray(i, i + BLOCK));
+    if (opts.raw) { L.set(out, i); R.set(outR, i); } else master.process(out, outR, L.subarray(i, i + BLOCK), R.subarray(i, i + BLOCK));
     if (opts.onProgress && (i / BLOCK) % 2000 === 0) opts.onProgress(i / total);
   }
-  const outL = L.slice(lat, lat + total), outR2 = R.slice(lat, lat + total);
+  const skip = opts.raw ? 0 : lat;
+  const outL = L.slice(skip, skip + total), outR2 = R.slice(skip, skip + total);
   if (opts.normalize) normalizeLoudness(outL, outR2, sr);
   return [outL, outR2];
 }

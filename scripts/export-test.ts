@@ -3,7 +3,10 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 import { BTN, SYS_CRASH, SYS_POWER_ON } from '../src/core/song';
 import { demoSong } from '../src/studio/demo';
 import { PPQ, songToMidi } from '../src/studio/midi-export';
-import { STUDIO_MIDI } from '../src/studio/songs';
+import { STUDIO_MIDI, STUDIO_TOYS } from '../src/studio/songs';
+import { renderSongStereo } from '../src/studio/render';
+import { usedToys } from '../src/core/song';
+import { crc32, makeZip } from '../src/host/zip';
 
 let fail = 0;
 const ng = (m: string) => { fail++; console.log('NG', m); };
@@ -63,6 +66,33 @@ if (!hasBtn || !hasPower || ccs < 50) ng('ボタン・電源・ツマミの CC �
 
 mkdirSync('out', { recursive: true });
 writeFileSync('out/demo.mid', bytes);
+
+// ---- 楽器ごとの書き出し（ステム）：1 台ずつソロにした音を足すと、全部いっしょ（仕上げなし）の音とほぼ同じ ----
+{
+  const s2 = demoSong();
+  s2.bars = Math.min(s2.bars, 8);
+  const sr = 16000;
+  const used = usedToys(s2, STUDIO_TOYS.length);
+  const [aL, aR] = renderSongStereo(s2, sr, { raw: true, tail: 0.2 });
+  const sumL = new Float32Array(aL.length), sumR = new Float32Array(aR.length);
+  for (const toy of used) {
+    const s3 = JSON.parse(JSON.stringify(s2));
+    s3.mix = []; s3.mix[toy] = { gain: 0, pan: null, solo: true };
+    const [l, r] = renderSongStereo(s3, sr, { raw: true, tail: 0.2 });
+    for (let i = 0; i < l.length; i++) { sumL[i] += l[i]; sumR[i] += r[i]; }
+  }
+  let e = 0, d = 0;
+  for (let i = 0; i < aL.length; i++) { e += aL[i] ** 2 + aR[i] ** 2; d += (aL[i] - sumL[i]) ** 2 + (aR[i] - sumR[i]) ** 2; }
+  const snr = 10 * Math.log10(e / (d + 1e-20));
+  // 左右の自動の並べ方は「鳴ったおもちゃ」で決まるので、ソロにすると真ん中に寄る。だから完全には一致しない
+  used.length >= 2 && snr > 6 ? console.log(`OK ステム ${used.length} 本：足すと全体の音と ${snr.toFixed(1)}dB の近さ`) : ng(`ステム ${used.length} 本・近さ ${snr.toFixed(1)}dB`);
+  // ZIP：中身の名前と大きさが読める
+  const zip = new Uint8Array(await (await makeZip([{ name: '01 テスト.wav', data: new Blob([new Uint8Array([1, 2, 3])]) }, { name: '02 B.wav', data: new Blob([new Uint8Array(10)]) }])).arrayBuffer());
+  const dv = new DataView(zip.buffer);
+  const eocd = zip.length - 22;
+  const okZip = dv.getUint32(0, true) === 0x04034b50 && dv.getUint32(eocd, true) === 0x06054b50 && dv.getUint16(eocd + 10, true) === 2 && dv.getUint32(14, true) === crc32(new Uint8Array([1, 2, 3]));
+  okZip ? console.log(`OK ZIP（${zip.length} バイト・2 ファイル・CRC 一致）`) : ng('ZIP が壊れている');
+}
 console.log('out/demo.mid に書き出しました');
 console.log(fail ? `失敗 ${fail} 件` : 'すべて OK');
 process.exit(fail ? 1 : 0);

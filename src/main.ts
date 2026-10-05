@@ -8,7 +8,7 @@ import { AudioHost } from './host/audio';
 import { AlwaysOn } from './core/alwayson';
 import { Arranger } from './studio/arranger';
 import { createViewSync } from './studio/sync';
-import { exportMidi, exportWav } from './studio/export';
+import { exportMidi, exportStems, exportWav } from './studio/export';
 import { PANEL_H, PANEL_W, mountComposerPanel } from './compose/panel';
 import { PART_COMPOSERS } from './compose/rules';
 import { copyText, setPageQuery, settingsFromQuery, settingsToQuery, toast } from './compose/share';
@@ -307,6 +307,18 @@ const wavBtn = arr.addButton('WAV', '曲を最初から最後まで WAV に書�
   }
   wavBtn.textContent = 'WAV';
   wavBtn.disabled = false;
+});
+const stemBtn = arr.addButton('STEMS', '楽器（おもちゃ）ごとの WAV を ZIP で書き出す（ほかの音楽ソフトで混ぜ直す用。32bit・仕上げなし）', async () => {
+  if (stemBtn.disabled) return;
+  stemBtn.disabled = true;
+  try {
+    const customs = toys.flatMap((t, i) => (t.customData?.() ?? []).map((c) => ({ toy: i, data: c.data })));
+    await exportStems(arr.song, (f) => { stemBtn.textContent = `STEMS ${Math.round(f * 100)}%`; }, toys.map((t) => t.title), RACK_IDS, 48000, customs);
+  } catch (e) {
+    alert(`STEMS を書き出せませんでした：${(e as Error).message}`);
+  }
+  stemBtn.textContent = 'STEMS';
+  stemBtn.disabled = false;
 });
 arr.addButton('MIDI', '曲を MIDI ファイルに書き出す（チャンネル n = n 台目）', () =>
   exportMidi(arr.song, toys.map((t, i) => ({ title: t.title, channel: i, noteOf: (k: number) => (i === 7 ? -1 : i === 6 ? samplerNote(k) : Math.min(127, (i === 5 ? 24 : 36) + k)), paramDefs: t.paramDefs }))));

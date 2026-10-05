@@ -4,7 +4,7 @@
 //   ⇄ スイッチ（モード・BASE・LOOP・DIST タイプなど：値の段） / ◠ ノブ（線グラフ）
 // 上の目盛り：セクション名（イントロ・サビ…）、小節番号、ループ範囲。
 // 編集はすべてマウス（ダブルクリックで追加・ドラッグで移動・右クリックで削除）とキー（Delete・Ctrl+Z など）。
-import { autoValueAt, clampSong, cloneSong, mergeTake, songBeats, trackToy, BTN, SYS_CRASH, SYS_NAMES, SYS_POWER_OFF, SYS_POWER_ON, type SeqAuto, type SeqNote, type Song, type takeFromRaw } from '../core/song';
+import { autoValueAt, clampSong, cloneSong, mergeTake, songBeats, trackToy, BTN, SYS_CRASH, SYS_NAMES, SYS_POWER_OFF, SYS_POWER_ON, type MixCh, type SeqAuto, type SeqNote, type Song, type takeFromRaw } from '../core/song';
 import { seqKeyName, type ToyUI } from '../core/ui';
 import './arranger.css';
 
@@ -77,6 +77,7 @@ export class Arranger {
         <button data-id="undo" title="元に戻す（Ctrl+Z）">↶</button>
         <button data-id="redo" title="やり直し（Ctrl+Y）">↷</button>
         <button data-id="addtrack" title="トラックを追加">＋トラック</button>
+        <button data-id="mix" title="ミキサー：おもちゃごとの音量・左右・ミュート・ソロ（書き出しにも入る）">MIX</button>
         <button data-id="zout" title="縮小">－</button><button data-id="zin" title="拡大">＋</button>
         <button data-id="save" title="曲を JSON ファイルに保存">保存</button>
         <button data-id="load" title="曲の JSON ファイルを読み込む">読込</button>
@@ -87,6 +88,7 @@ export class Arranger {
         <canvas data-id="ruler" class="arr-ruler"></canvas>
         <canvas data-id="main" class="arr-main"></canvas>
         <select data-id="menu" class="arr-menu" size="14" hidden></select>
+        <div data-id="mixer" class="arr-mixer" hidden></div>
         <div class="arr-hint">ダブルクリック：追加 ／ ドラッグ：移動（音符の右端で長さ） ／ 右クリック：削除 ／ 空いた所をドラッグ：まとめて選ぶ ／ スイッチの点の上でホイール：値 ／
         目盛りの上段：セクション（ダブルクリックで追加・名前変更） ／ 下段：クリックで位置、ドラッグでループ範囲 ／ Ctrl+C・V・D：コピー・貼り付け・複製</div>
       </div>`;
@@ -355,6 +357,12 @@ export class Arranger {
     on('redo', () => this.redo());
     on('zin', () => { this.pxPerBeat = Math.min(300, this.pxPerBeat * 1.4); this.draw(); });
     on('zout', () => { this.pxPerBeat = Math.max(3, this.pxPerBeat / 1.4); this.draw(); });
+    on('mix', () => {
+      const m = this.$('mixer');
+      m.hidden = !m.hidden;
+      this.$('mix').classList.toggle('on', !m.hidden);
+      if (!m.hidden) this.renderMixer();
+    });
     on('addtrack', () => {
       const names = this.host.toys.map((t, i) => `${i + 1}: ${t.title}`).join('\n');
       const a = prompt(`どのおもちゃのトラック？（番号）\n${names}`, '1');
@@ -426,7 +434,69 @@ export class Arranger {
     this.menu.addEventListener('keydown', (e) => { e.stopPropagation(); if (e.key === 'Escape') this.menu.hidden = true; });
   }
 
+  // ================= ミキサー =================
+  /** おもちゃ toy のミキサーの設定（無ければ作る） */
+  private mixOf(toy: number): MixCh {
+    const mix = (this.song.mix ??= []);
+    return (mix[toy] ??= { gain: 0, pan: null });
+  }
+  private mixSend = 0;
+  /** つまみを動かしている間は、曲を送るのを 1 フレームに 1 回にまとめる */
+  private mixCommit(): void {
+    if (this.mixSend) return;
+    this.mixSend = requestAnimationFrame(() => { this.mixSend = 0; this.commit(); });
+  }
+  private renderMixer(): void {
+    const box = this.$('mixer');
+    const used = new Set(this.song.tracks.map((_, i) => trackToy(this.song, i)));
+    const rows = this.host.toys.map((t, toy) => ({ t, toy })).filter(({ toy }) => used.has(toy));
+    const db = (v: number) => (v <= -60 ? '-∞' : `${v > 0 ? '+' : ''}${v.toFixed(1)}`);
+    box.innerHTML = `<div class="mx-head"><b>MIXER</b><span>書き出し（WAV）にも入ります</span><button data-mx="reset" type="button">リセット</button><button data-mx="close" type="button" aria-label="閉じる">×</button></div>`
+      + rows.map(({ t, toy }) => {
+        const c = this.song.mix?.[toy];
+        const g = c?.gain ?? 0, p = c?.pan;
+        return `<div class="mx-row" data-toy="${toy}">
+          <span class="mx-name">${t.title}</span>
+          <button type="button" data-mx="mute" class="${c?.mute ? 'on' : ''}" title="ミュート">M</button>
+          <button type="button" data-mx="solo" class="${c?.solo ? 'on' : ''}" title="ソロ（このおもちゃだけ鳴らす。いくつでも）">S</button>
+          <label>VOL <input type="range" data-mx="gain" min="-60" max="6" step="0.5" value="${g}"><output>${db(g)} dB</output></label>
+          <label>PAN <input type="range" data-mx="pan" min="-1" max="1" step="0.05" value="${p ?? 0}" ${p == null ? 'disabled' : ''}></label>
+          <label class="chk"><input type="checkbox" data-mx="auto" ${p == null ? 'checked' : ''}> AUTO</label>
+        </div>`;
+      }).join('');
+    const rowToy = (el: Element) => Number((el.closest('.mx-row') as HTMLElement).dataset.toy);
+    box.querySelectorAll<HTMLButtonElement>('button[data-mx]').forEach((b) => b.addEventListener('click', () => {
+      const k = b.dataset.mx;
+      if (k === 'close') { box.hidden = true; this.$('mix').classList.remove('on'); return; }
+      this.snapshot();
+      if (k === 'reset') delete this.song.mix;
+      else { const c = this.mixOf(rowToy(b)); if (k === 'mute') c.mute = !c.mute; else c.solo = !c.solo; }
+      this.commit();
+      this.renderMixer();
+    }));
+    box.querySelectorAll<HTMLInputElement>('input[type=range]').forEach((inp) => {
+      inp.addEventListener('pointerdown', () => this.snapshot());
+      inp.addEventListener('keydown', () => this.snapshot());
+      // ダブルクリックで元に（0dB・真ん中）
+      inp.addEventListener('dblclick', () => { inp.value = '0'; inp.dispatchEvent(new Event('input')); });
+      inp.addEventListener('input', () => {
+        const c = this.mixOf(rowToy(inp)), v = Number(inp.value);
+        if (inp.dataset.mx === 'gain') { c.gain = v; (inp.nextElementSibling as HTMLOutputElement).textContent = `${db(v)} dB`; } else c.pan = v;
+        this.mixCommit();
+      });
+    });
+    box.querySelectorAll<HTMLInputElement>('input[data-mx=auto]').forEach((inp) => inp.addEventListener('change', () => {
+      this.snapshot();
+      const c = this.mixOf(rowToy(inp));
+      c.pan = inp.checked ? null : 0;
+      this.commit();
+      this.renderMixer();
+    }));
+    box.querySelectorAll('button, input').forEach((el) => el.addEventListener('keydown', (e) => e.stopPropagation()));
+  }
+
   refreshBar(): void {
+    if (!this.$('mixer').hidden) this.renderMixer();
     (this.$('bpm') as HTMLInputElement).value = String(this.song.bpm);
     (this.$('bars') as HTMLInputElement).value = String(this.song.bars);
     (this.$('seed') as HTMLInputElement).value = String(this.song.seed ?? 0);

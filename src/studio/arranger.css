@@ -42,3 +42,21 @@
   background: repeating-linear-gradient(0deg, rgba(0,0,0,.35) 0 3px, transparent 3px 7px), rgba(0, 20, 170, .55);
   color: #fff; font: 700 40px/1.6 'Share Tech Mono', monospace; pointer-events: none;
 }
+
+/* ミキサー（MIX） */
+.arr-mixer {
+  position: absolute; z-index: 6; right: 8px; top: 48px; max-height: calc(100% - 56px); overflow: auto;
+  min-width: min(560px, calc(100vw - 24px)); padding: 8px 10px; background: #1c1922; color: #ddd;
+  border: 1px solid #7dff6a; border-radius: 8px; box-shadow: 0 10px 30px rgba(0,0,0,.5); font: 12px 'Share Tech Mono', monospace;
+}
+.arr-mixer .mx-head { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+.arr-mixer .mx-head b { color: #9dff7a; }
+.arr-mixer .mx-head span { color: #777; flex: 1; }
+.arr-mixer .mx-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 5px 0; border-top: 1px solid #2c2834; }
+.arr-mixer .mx-name { width: 130px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #fff; }
+.arr-mixer label { display: flex; align-items: center; gap: 4px; color: #aaa; }
+.arr-mixer input[type=range] { width: 120px; accent-color: #7dff6a; }
+.arr-mixer output { width: 62px; text-align: right; color: #9dff7a; }
+.arr-mixer button { background: #2a2530; color: #ddd; border: 1px solid #4a4452; border-radius: 4px; padding: 2px 8px; cursor: pointer; font: inherit; }
+.arr-mixer button.on[data-mx=mute] { background: #8a5a10; border-color: #ffb347; color: #fff; }
+.arr-mixer button.on[data-mx=solo] { background: #2c6b2a; border-color: #5dd35a; color: #fff; }

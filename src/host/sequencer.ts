@@ -6,7 +6,7 @@
 //   ノブの点の間をなめらかにつなぐ、シードで「頭から再生するたびにおもちゃを新品にする」（毎回同じ音）
 
 import {
-  BTN, SYS_CRASH, SYS_POWER_OFF, SYS_POWER_ON, emptySong, mergeTake, songBeats, takeFromRaw, trackToy, type RawEvent, type SeqAuto, type Song,
+  BTN, SYS_CRASH, mixGain, SYS_POWER_OFF, SYS_POWER_ON, emptySong, mergeTake, songBeats, takeFromRaw, trackToy, type RawEvent, type SeqAuto, type Song,
 } from '../core/song';
 import type { ToyEngine } from '../core/toy';
 
@@ -49,6 +49,7 @@ export class Sequencer {
   /** 真ん中に置くおもちゃ（ドラム・ベースを受け持つサンプラー） */
   center: boolean[] = [];
   private panNow: number[] = [];
+  private gainNow: number[] = [];
   private peakHold: number[] = [];
   private lastPeak: number[] = [];
 
@@ -253,14 +254,21 @@ export class Sequencer {
           let pk = 0;
           for (let i = cur; i < to; i++) { const v = tmp[i]; out[i] += v * gl; outR[i] += v * gr; if (v > pk) pk = v; else if (-v > pk) pk = -v; }
           this.peakHold[toy] = Math.max(this.peakHold[toy] ?? 0, pk);
-        } else for (let i = cur; i < to; i++) out[i] += tmp[i];
+        } else for (let i = cur; i < to; i++) out[i] += tmp[i] * gv;
         cur = to;
       };
       // 左右の位置（なめらかに動かす）→ 音量の割り振り（真ん中で -3dB）
-      const target = targets[toy] ?? 0;
+      // ミキサーで左右を決めてあれば、そちらを使う
+      const mp = this.song.mix?.[toy]?.pan;
+      const target = mp ?? targets[toy] ?? 0;
       this.panNow[toy] = (this.panNow[toy] ?? 0) + (target - (this.panNow[toy] ?? 0)) * glide;
       const ang = ((this.panNow[toy] + 1) * Math.PI) / 4;
-      const gl = Math.cos(ang) * Math.SQRT2, gr = Math.sin(ang) * Math.SQRT2;
+      // 音量（ミュート・ソロ込み）は短くなめらかに変える（プチッと鳴らないように）
+      const gTarget = mixGain(this.song.mix, toy);
+      const g0 = this.gainNow[toy] ?? gTarget;
+      const gv = g0 + (gTarget - g0) * (1 - Math.exp(-n / (this.sr * 0.02)));
+      this.gainNow[toy] = gv;
+      const gl = Math.cos(ang) * Math.SQRT2 * gv, gr = Math.sin(ang) * Math.SQRT2 * gv;
       for (const e of list) {
         if (e.off > cur) run(e.off);
         e.apply();

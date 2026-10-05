@@ -72,10 +72,36 @@ export interface Song {
   chords?: number[][];
   /** 自動作曲で作った曲：どの作曲方法・どの設定で作ったか */
   compose?: ComposeInfo;
+  /** ミキサー：おもちゃごとの音量・左右・ミュート・ソロ（並び順 = おもちゃ番号。無ければ 0dB・自動で並べる） */
+  mix?: (MixCh | null)[];
+}
+
+/** ミキサーの 1 台分 */
+export interface MixCh {
+  /** 音量（dB、-60〜+6。-60 で無音） */
+  gain: number;
+  /** 左右（-1〜+1）。null = 自動（鳴った順にバンドのように並べる） */
+  pan: number | null;
+  mute?: boolean;
+  solo?: boolean;
+}
+/** ミキサーの設定から、おもちゃ toy の音量（倍率）。ソロのおもちゃがあれば、ほかは鳴らさない */
+export function mixGain(mix: Song['mix'], toy: number): number {
+  const c = mix?.[toy];
+  if (mix?.some((m) => m?.solo)) { if (!c?.solo) return 0; } else if (c?.mute) return 0;
+  const db = c?.gain ?? 0;
+  return db <= -60 ? 0 : Math.pow(10, db / 20);
 }
 
 /** トラック i が鳴らすおもちゃの番号 */
 export const trackToy = (s: Song, i: number) => s.tracks[i]?.toy ?? i;
+
+/** 曲の中で音符・ノブの動きが入っているおもちゃ（曲の中の番号、小さい順） */
+export function usedToys(song: Song, count: number): number[] {
+  const set = new Set<number>();
+  song.tracks.forEach((tr, i) => { const t = trackToy(song, i); if (t < count && (tr.notes.length || tr.autos.length)) set.add(t); });
+  return [...set].sort((a, b) => a - b);
+}
 
 /** 録音中に集めた生の操作 */
 export type RawEvent =

@@ -14,7 +14,7 @@ import { TOY_UIS } from '../toys/uis';
 import { Arranger } from './arranger';
 import { createViewSync } from './sync';
 import { demoSong } from './demo';
-import { exportMidi, exportWav, makeCompositor, safeName } from './export';
+import { exportMidi, exportStems, exportWav, makeCompositor, safeName } from './export';
 import { STUDIO_TOYS, blankStudioSong } from './songs';
 import { PANEL_H, PANEL_W, mountComposerPanel } from '../compose/panel';
 import { PART_COMPOSERS } from '../compose/rules';
@@ -256,6 +256,18 @@ const wavBtn = arr.addButton('WAV', '曲を最初から最後まで WAV（音声
   }
   wavBtn.textContent = 'WAV';
   wavBtn.disabled = false;
+});
+const stemBtn = arr.addButton('STEMS', '楽器（おもちゃ）ごとの WAV を ZIP で書き出す（ほかの音楽ソフトで混ぜ直す用。32bit・仕上げなし）', async () => {
+  if (stemBtn.disabled) return;
+  stemBtn.disabled = true;
+  try {
+    const customs = toys.flatMap((t, i) => (t.customData?.() ?? []).map((c) => ({ toy: i, data: c.data })));
+    await exportStems(arr.song, (f) => { stemBtn.textContent = `STEMS ${Math.round(f * 100)}%`; }, toys.map((t) => t.title), lineup, 48000, customs);
+  } catch (e) {
+    alert(`STEMS を書き出せませんでした：${(e as Error).message}`);
+  }
+  stemBtn.textContent = 'STEMS';
+  stemBtn.disabled = false;
 });
 let vrec: MediaRecorder | null = null;
 const webmBtn = arr.addButton('WebM', '曲を最初から最後まで再生して、映像（TELEKEY のモニター＋トイPC の液晶）と音を WebM に録画する（曲の長さだけ時間がかかります）', async () => {

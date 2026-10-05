@@ -1,6 +1,7 @@
 // スタジオの書き出し：WAV（オフラインで一気に）・MIDI・映像込み WebM 用の合成画面
-import { songBeats, trackToy, type Song } from '../core/song';
-import { encodeWav, download } from '../host/wav';
+import { songBeats, trackToy, usedToys, type Song } from '../core/song';
+import { encodeWav, encodeWavFloat, download } from '../host/wav';
+import { makeZip } from '../host/zip';
 import { fromInt8 } from '../toys/blippy/dsp/mic';
 import { songToMidi, type MidiToy } from './midi-export';
 import RenderWorker from './render-worker.ts?worker&inline';
@@ -36,6 +37,34 @@ export function exportWav(song: Song, progress: (f: number) => void, toys?: numb
     };
     w.onerror = (e) => { w.terminate(); reject(new Error(e.message)); };
     w.postMessage({ song: JSON.parse(JSON.stringify(song)), sr, toys, userSamples: userSamples(), customs });
+  });
+}
+
+/**
+ * 楽器ごとの WAV（ステム）を ZIP にまとめて書き出す。曲で使っているおもちゃを 1 台ずつソロにして、仕上げを通さず 32bit 浮動小数で。
+ * names：曲の中のおもちゃ番号 → 名前。ほかの音楽ソフトで並べると、どれも曲の頭から始まる（そろう）
+ */
+export function exportStems(song: Song, progress: (f: number) => void, names: string[], toys?: number[], sr = 48000, customs: { toy: number; data: unknown }[] = []): Promise<void> {
+  const used = usedToys(song, names.length);
+  return new Promise((resolve, reject) => {
+    if (!used.length) { reject(new Error('音符の入ったトラックがありません')); return; }
+    const w = new RenderWorker();
+    const files: { name: string; data: Blob }[] = [];
+    type Msg = { type: 'progress'; f: number } | { type: 'stem'; toy: number; data: Float32Array; dataR: Float32Array } | { type: 'stemsDone' };
+    w.onmessage = async (e: MessageEvent<Msg>) => {
+      const m = e.data;
+      if (m.type === 'progress') { progress(m.f); return; }
+      if (m.type === 'stem') {
+        const nm = names[m.toy].replace(/[\\/:*?"<>|]/g, '_');
+        files.push({ name: `${String(files.length + 1).padStart(2, '0')} ${nm}.wav`, data: encodeWavFloat(m.data, m.dataR, sr) });
+        return;
+      }
+      w.terminate();
+      download(await makeZip(files), `${safeName(song)} (stems).zip`);
+      resolve();
+    };
+    w.onerror = (e) => { w.terminate(); reject(new Error(e.message)); };
+    w.postMessage({ song: JSON.parse(JSON.stringify(song)), sr, toys, userSamples: userSamples(), customs, stems: used });
   });
 }
 

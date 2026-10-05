@@ -23,6 +23,20 @@ export function encodeWav(chunks: Float32Array[], sampleRate: number, right?: Fl
   return new Blob([buf], { type: 'audio/wav' });
 }
 
+/** 32bit 浮動小数の WAV（ステレオ）：割れない・音量をいじらない（楽器ごとの書き出し＝ステム用。ほかの音楽ソフトに読み込む） */
+export function encodeWavFloat(L: Float32Array, R: Float32Array, sampleRate: number): Blob {
+  const n = L.length, ch = 2, bytes = n * 4 * ch;
+  const head = new DataView(new ArrayBuffer(44));
+  const str = (o: number, s: string) => { for (let i = 0; i < s.length; i++) head.setUint8(o + i, s.charCodeAt(i)); };
+  str(0, 'RIFF'); head.setUint32(4, 36 + bytes, true); str(8, 'WAVE');
+  str(12, 'fmt '); head.setUint32(16, 16, true); head.setUint16(20, 3, true); head.setUint16(22, ch, true);
+  head.setUint32(24, sampleRate, true); head.setUint32(28, sampleRate * 4 * ch, true); head.setUint16(32, 4 * ch, true); head.setUint16(34, 32, true);
+  str(36, 'data'); head.setUint32(40, bytes, true);
+  const body = new Float32Array(n * 2);
+  for (let i = 0; i < n; i++) { body[2 * i] = L[i]; body[2 * i + 1] = R[i]; }
+  return new Blob([head.buffer, body.buffer], { type: 'audio/wav' });
+}
+
 export function download(blob: Blob, name: string): void {
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
