@@ -100,12 +100,6 @@ function frames(x: Float32Array, progress?: Progress): Frames {
     pc[k] = ((Math.round(12 * Math.log2((k * binHz) / 440)) + 69) % 12 + 12) % 12;
     pw[k] = Math.min(1, 500 / (k * binHz));
   }
-  // ベース：8 分の 1 に間引いた信号を細かく（2.7Hz ごと）見る
-  const DEC = 8, NB = 1024, bassFft = new FFT(NB);
-  const xb = new Float32Array(Math.floor(x.length / DEC));
-  { let s = 0; for (let i = 0; i < xb.length; i++) { let a = 0; for (let j = 0; j < DEC; j++) a += x[i * DEC + j]; s += 0.5 * (a / DEC - s); xb[i] = s; } }
-  const bmag = new Float32Array(NB / 2 + 1);
-  const bHz = SR / DEC / NB;
   const rawK = new Float32Array(count), rawS = new Float32Array(count), rawH = new Float32Array(count);
   const bandE = (lo: number, hi: number) => { let e = 0; for (let k = bin(lo); k <= bin(hi); k++) e += mag[k] * mag[k]; return e; };
   for (let f = 0; f < count; f++) {
@@ -136,17 +130,6 @@ function frames(x: Float32Array, progress?: Progress): Frames {
       if (s > best) { best = s; bestM = m; }
     }
     F.melody[f] = bestM; F.melSal[f] = best * (F.rms[f] > 1e-4 ? 1 : 0);
-    // ベース（MIDI 28〜52）
-    const bo = Math.floor(off / DEC) - NB / 2 + N / DEC / 2;
-    bassFft.magnitudes(xb, bo, bmag);
-    let bb = 0, bm = 0;
-    for (let m = 28; m <= 52; m++) {
-      // 倍音（2・3 倍）が無い低い音は、ほぼキック（正弦波の「ドン」）。倍音がそろうほど、ベースの音として数える
-      const h1 = lin(bmag, midiHz(m) / bHz), h2 = lin(bmag, (midiHz(m) * 2) / bHz), h3 = lin(bmag, (midiHz(m) * 3) / bHz);
-      const s = (h1 + 0.5 * h2 + 0.5 * h3) * (0.1 + 0.9 * Math.min(1, (h2 + h3) / (h1 + 1e-9)) ** 2);
-      if (s > bb) { bb = s; bm = m; }
-    }
-    F.bass[f] = bm; F.bassSal[f] = bb;
     F.chroma.push(ch);
     if (progress && f % 400 === 0) progress(0.05 + 0.6 * (f / count), '音を分けています');
   }
@@ -158,14 +141,50 @@ function frames(x: Float32Array, progress?: Progress): Frames {
     for (let f = 1; f < raw.length; f++) out[f] = Math.max(0, Math.log(raw[f] + floor) - Math.log(raw[f - 1] + floor));
   };
   onset(rawK, F.kick); onset(rawS, F.snare); onset(rawH, F.hat);
-  // ベースは「同じ高さが続く音」だけ（キックは一瞬で高さが下がるので、ベースの音とまちがえないように）。3 フレーム（約 70ms）同じ高さ
-  const bassRaw = F.bass.slice();
-  for (let f = 0; f < count; f++) {
-    const st = f >= 2 && bassRaw[f] === bassRaw[f - 1] && bassRaw[f] === bassRaw[f - 2] && bassRaw[f] > 0;
-    const ahead = f + 2 < count && bassRaw[f] === bassRaw[f + 1] && bassRaw[f] === bassRaw[f + 2];
-    if (!st && !ahead) F.bassSal[f] = 0;
-  }
+  const bt = bassTrack(x, count);
+  F.bass = bt.bass; F.bassSal = bt.sal;
   return F;
+}
+
+/**
+ * ベースの高さ（MIDI 28〜52）と目立ち度を、フレーム（窓の頭が f × HOP）ごとに。8 分の 1 に間引いた信号を細かく（2.7Hz ごと）見る。
+ * 「同じ高さが続く音」だけ（キックは一瞬で高さが下がるので、ベースの音とまちがえないように。3 フレーム＝約 70ms 同じ高さ）。それ以外は目立ち度 0
+ */
+function bassTrack(x: Float32Array, count: number): { bass: Float32Array; sal: Float32Array } {
+  const DEC = 8, NB = 1024, bassFft = new FFT(NB);
+  const xb = new Float32Array(Math.floor(x.length / DEC));
+  { let s = 0; for (let i = 0; i < xb.length; i++) { let a = 0; for (let j = 0; j < DEC; j++) a += x[i * DEC + j]; s += 0.5 * (a / DEC - s); xb[i] = s; } }
+  const bmag = new Float32Array(NB / 2 + 1);
+  const bHz = SR / DEC / NB;
+  const bass = new Float32Array(count), sal = new Float32Array(count);
+  for (let f = 0; f < count; f++) {
+    const bo = Math.floor((f * HOP) / DEC) - NB / 2 + N / DEC / 2;
+    bassFft.magnitudes(xb, bo, bmag);
+    let bb = 0, bm = 0;
+    for (let m = 28; m <= 52; m++) {
+      // 倍音（2・3 倍）が無い低い音は、ほぼキック（正弦波の「ドン」）。倍音がそろうほど、ベースの音として数える
+      const h1 = lin(bmag, midiHz(m) / bHz), h2 = lin(bmag, (midiHz(m) * 2) / bHz), h3 = lin(bmag, (midiHz(m) * 3) / bHz);
+      const s = (h1 + 0.5 * h2 + 0.5 * h3) * (0.1 + 0.9 * Math.min(1, (h2 + h3) / (h1 + 1e-9)) ** 2);
+      if (s > bb) { bb = s; bm = m; }
+    }
+    bass[f] = bm; sal[f] = bb;
+  }
+  const raw = bass.slice();
+  for (let f = 0; f < count; f++) {
+    const st = f >= 2 && raw[f] === raw[f - 1] && raw[f] === raw[f - 2] && raw[f] > 0;
+    const ahead = f + 2 < count && raw[f] === raw[f + 1] && raw[f] === raw[f + 2];
+    if (!st && !ahead) sal[f] = 0;
+  }
+  return { bass, sal };
+}
+
+/** 曲（22.05kHz モノラル）のベースの高さ（MIDI、0 = はっきりしない）をフレームごとに（analyze の pitch と同じ並び。歌からベースの倍音を外すのに使う） */
+export function bassPitch(x: Float32Array): Float32Array {
+  const count = Math.max(1, Math.floor((x.length - N) / HOP) + 1);
+  const { bass, sal } = bassTrack(x, count);
+  const sorted = [...sal].filter((v) => v > 0).sort((a, b) => a - b);
+  const th = sorted[Math.floor(sorted.length * 0.2)] ?? 0;
+  return Float32Array.from(bass, (m, f) => (sal[f] > th ? m : 0));
 }
 
 // ================= 2. テンポと拍 =================

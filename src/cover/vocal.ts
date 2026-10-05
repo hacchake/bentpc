@@ -7,11 +7,13 @@
 // 残りは「伴奏（カラオケ）」。どちらも 22.05kHz のモノラル。専用の AI ほどきれいには分かれない（残響・ほかの楽器が少し混ざる）。
 import { FFT } from './fft';
 import { stretch } from '../sampler/dsp/edit';
-import { vocalPitch } from './analyze';
+import { bassPitch, vocalPitch } from './analyze';
 
 const SR = 22050;
 const N = 2048;
 const HOP = 512;
+/** ベースの倍音を外す高さの上限（Hz）と、外すときに残す割合 */
+const BASS_TOP = 1500, BASS_KEEP = 0.3;
 
 export interface Separated {
   sr: number;
@@ -40,7 +42,7 @@ export function to22k(x: Float32Array, sr: number): Float32Array {
  * ch：左右（1 本ならモノラル）、sr：サンプルレート。
  * pitch：解析したメロディの高さ（MIDI、0 = 歌っていない）を 22.05kHz・512 サンプルごとに（analyze の pitch）。無ければ 4 は使わない
  */
-export function extractVocal(ch: Float32Array[], sr: number, pitch?: ArrayLike<number>, progress?: (f: number) => void): Separated {
+export function extractVocal(ch: Float32Array[], sr: number, pitch?: ArrayLike<number>, progress?: (f: number) => void, bass?: ArrayLike<number>): Separated {
   const L = to22k(ch[0], sr), R = ch[1] ? to22k(ch[1], sr) : L;
   const stereo = !!ch[1];
   const n = L.length;
@@ -98,8 +100,20 @@ export function extractVocal(ch: Float32Array[], sr: number, pitch?: ArrayLike<n
       mask[k] = harm * cen * band[k];
     }
     // 4. メロディの倍音の近く
+    const vm = pitch ? pitch[t - (N / 2) / HOP] ?? 0 : 0; // 解析のフレームは窓の頭、こちらは窓の真ん中の時刻
+    // 5. ベースの倍音の線は外す（歌の倍音と重なる所は残す）。真ん中で伸びる音なので、1〜4 では残ってしまう
+    const bm = bass ? bass[t - (N / 2) / HOP] ?? 0 : 0;
+    if (bm > 0) {
+      const fb = 440 * Math.pow(2, (bm - 69) / 12), f0 = vm > 0 ? 440 * Math.pow(2, (vm - 69) / 12) : 0;
+      for (let h = 1; h * fb < BASS_TOP; h++) {
+        const hf = h * fb;
+        if (f0 && Math.abs(hf - Math.max(1, Math.round(hf / f0)) * f0) < 0.035 * hf + 12) continue;
+        const k0 = Math.max(0, Math.floor((hf - 0.03 * hf - 8) / binHz)), k1 = Math.min(B - 1, Math.ceil((hf + 0.03 * hf + 8) / binHz));
+        for (let k = k0; k <= k1; k++) mask[k] *= BASS_KEEP;
+      }
+    }
     if (pitch) {
-      const m = pitch[t - (N / 2) / HOP] ?? 0; // 解析のフレームは窓の頭、こちらは窓の真ん中の時刻
+      const m = vm;
       if (m > 0) {
         const f0 = 440 * Math.pow(2, (m - 69) / 12);
         for (let k = 0; k < B; k++) {
@@ -196,7 +210,8 @@ export function pitchShift(x: Float32Array, sr: number, semis: number): Float32A
  * 2 回目はその倍音の所だけを残す。曲全体から聞き取った高さより、取り出した歌から聞き取った高さの方が正しいので、よく分かれる
  */
 export function separateVocal(ch: Float32Array[], sr: number, progress?: (f: number) => void): Separated {
-  const first = extractVocal(ch, sr, undefined, (f) => progress?.(f * 0.5));
+  const bass = bassPitch(to22k(Float32Array.from(ch[0], (v, i) => (ch[1] ? (v + ch[1][i]) / 2 : v)), sr));
+  const first = extractVocal(ch, sr, undefined, (f) => progress?.(f * 0.5), bass);
   const guide = vocalPitch(first.vocal, 1.5).pitch;
-  return extractVocal(ch, sr, guide, (f) => progress?.(0.5 + f * 0.5));
+  return extractVocal(ch, sr, guide, (f) => progress?.(0.5 + f * 0.5), bass);
 }
