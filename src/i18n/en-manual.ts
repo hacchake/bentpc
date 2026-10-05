@@ -829,4 +829,5 @@ export const EN_MANUAL: Record<string, string> = {
   'カバーを作ったら、シーケンサーで気に入らない所を直したり、鍵を掛けてセクションだけ作り直したりできるぞ。元の歌のテープは「MANEKKO テープ」の行だ。': 'Once you have a cover, fix the bits you do not like in the sequencer, or lock tracks and redo just one section. The original vocal tape is the "MANEKKO tape" row.',
   'MANEKKO MK-8 で、他人の曲をカバーしたもの・取り出した歌を重ねたものを公開する場合も、その曲の権利者の許可が必要です。': 'Publishing a cover of someone else\'s song made with MANEKKO MK-8, or one layered with an extracted vocal, also requires permission from the rights holder of that song.',
   '自分で楽しむ・練習するのは自由です。': 'Enjoying it yourself or practicing is fine.',
+  'うまくいかないときは': 'When it does not work well',
 };
