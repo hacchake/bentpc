@@ -54,7 +54,7 @@ function pluck(r: Rng, hz: number, n: number, decay: number): Float32Array {
   return y;
 }
 
-export function genSong(o: GenOpts): { L: Float32Array; R: Float32Array; vocal: Float32Array; sr: number; truth: GenTruth } {
+export function genSong(o: GenOpts): { L: Float32Array; R: Float32Array; vocal: Float32Array; sr: number; truth: GenTruth; stems: Record<string, Float32Array> } {
   const r = new Rng(o.seed);
   const beat = 60 / o.bpm, lead = o.lead ?? 0.3, swing = o.swing ?? 0;
   const n = Math.round((lead + o.bars * 4 * beat + 2) * SR);
@@ -69,8 +69,14 @@ export function genSong(o: GenOpts): { L: Float32Array; R: Float32Array; vocal: 
     const jit = drift ? Math.sin(x * 12.9898 + 78.233) * 0.008 : 0;
     return lead + (x + wob) * beat + jit;
   };
+  /** 楽器ごとの音（左右の平均。どの楽器がボーカルに混ざったかを調べる用） */
+  const stems: Record<string, Float32Array> = {};
+  let cur = 'piano';
   const put = (buf: Float32Array, at: number, x: Float32Array, g: number) => { const o2 = Math.round(at * SR); for (let i = 0; i < x.length && o2 + i < n; i++) buf[o2 + i] += x[i] * g; };
-  const pan = (at: number, x: Float32Array, g: number, p: number) => { put(L, at, x, g * Math.cos(((p + 1) * Math.PI) / 4) * Math.SQRT2); put(R, at, x, g * Math.sin(((p + 1) * Math.PI) / 4) * Math.SQRT2); };
+  const pan = (at: number, x: Float32Array, g: number, p: number) => {
+    const gl = g * Math.cos(((p + 1) * Math.PI) / 4) * Math.SQRT2, gr = g * Math.sin(((p + 1) * Math.PI) / 4) * Math.SQRT2;
+    put(L, at, x, gl); put(R, at, x, gr); put((stems[cur] ??= new Float32Array(n)), at, x, (gl + gr) / 2);
+  };
   // ---- コード（ハ長調の度数で作って、主音へ移す） ----
   const progs = o.minor ? [[5, 3, 0, 4], [5, 1, 4, 5], [5, 0, 3, 4]] : [[0, 5, 3, 4], [0, 4, 5, 3], [3, 4, 0, 5], [1, 4, 0, 0]];
   const prog = r.pick(progs);
@@ -88,24 +94,29 @@ export function genSong(o: GenOpts): { L: Float32Array; R: Float32Array; vocal: 
       const deg = chordsHalf[b * 2 + half];
       const t0 = b * 4 + half * 2;
       // ピアノ（右）：倍音つき、2 拍
+      cur = 'piano';
       for (const m of tri(deg, 48)) {
         const x = new Float32Array(Math.round(2 * beat * SR)), f = midiHz(m);
         for (let i = 0; i < x.length; i++) { let v = 0; for (let h = 1; h <= 6; h++) v += Math.sin((2 * Math.PI * f * h * i) / SR) * Math.pow(h, -1.4) * Math.exp((-i / SR) * (1.2 + h * 0.6)); x[i] = v * Math.min(1, i / 60); }
         pan(tOf(t0), x, 0.07, 0.45);
       }
       // ギター（左）：8 分で刻む
+      cur = 'guitar';
       for (let e = 0; e < 4; e++) for (const m of tri(deg, 52)) pan(tOf(t0 + e * 0.5) + 0.004 * m % 0.01, pluck(r, midiHz(m), Math.round(beat * 0.5 * SR), 0.35), 0.06, -0.5);
       // パッド（真ん中・小さく）
+      cur = 'pad';
       for (const m of tri(deg, 60)) {
         const x = new Float32Array(Math.round(2 * beat * SR)), f = midiHz(m);
         for (let i = 0; i < x.length; i++) x[i] = (Math.sin((2 * Math.PI * f * i) / SR) + 0.3 * Math.sin((4 * Math.PI * f * i) / SR)) * Math.min(1, i / (SR * 0.1), (x.length - i) / (SR * 0.1));
         pan(tOf(t0), x, 0.02, 0);
       }
       // ベース：根音を 8 分
+      cur = 'bass';
       const root = 36 + MAJOR[deg % 7] + toTonic - (MAJOR[deg % 7] + toTonic >= 8 ? 12 : 0);
       for (let e = 0; e < 4; e++) { const x = pluck(r, midiHz(root), Math.round(beat * 0.48 * SR), 0.6); pan(tOf(t0 + e * 0.5), x, 0.25, 0); }
     }
     // ドラム
+    cur = 'drums';
     const t0 = b * 4;
     const kick = new Float32Array(Math.round(0.3 * SR)); for (let i = 0; i < kick.length; i++) kick[i] = Math.sin(2 * Math.PI * (52 * i / SR + 1.6 * (1 - Math.exp(-i / (SR * 0.02))))) * Math.pow(1 - i / kick.length, 2);
     for (const q of [0, 2, ...(b % 2 ? [2.5] : [])]) pan(tOf(t0 + q), kick, 0.75, 0);
@@ -153,11 +164,14 @@ export function genSong(o: GenOpts): { L: Float32Array; R: Float32Array; vocal: 
     const wet = new Float32Array(n);
     for (const d of ds) { const b2 = new Float32Array(n); for (let i = 0; i < n; i++) { b2[i] = (V[i] + (L[i] + R[i]) * 0.15) + (i >= d ? b2[i - d] * 0.78 : 0); wet[i] += b2[i] * 0.33; } }
     for (let i = 0; i < n; i++) buf[i] += wet[i] * rv * 0.25;
+    const st = (stems.reverb ??= new Float32Array(n));
+    for (let i = 0; i < n; i++) st[i] += (wet[i] * rv * 0.25) / 2;
   }
   let pk = 0;
   for (let i = 0; i < n; i++) pk = Math.max(pk, Math.abs(L[i]), Math.abs(R[i]));
   const g = 0.9 / pk;
   for (let i = 0; i < n; i++) { L[i] *= g; R[i] *= g; V[i] *= g; }
+  for (const k in stems) for (let i = 0; i < n; i++) stems[k][i] *= g;
   const shiftRaw = ((o.minor ? 9 : 0) - o.tonic + 12) % 12;
-  return { L, R, vocal: V, sr: SR, truth: { bpm: o.bpm, offset: lead, shift: shiftRaw > 6 ? shiftRaw - 12 : shiftRaw, chordsHalf, melody, swing } };
+  return { L, R, vocal: V, sr: SR, truth: { bpm: o.bpm, offset: lead, shift: shiftRaw > 6 ? shiftRaw - 12 : shiftRaw, chordsHalf, melody, swing }, stems };
 }
