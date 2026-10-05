@@ -40,7 +40,7 @@ function fmt(id: keyof typeof SP, v: number): string {
 const HELP = `
 <h3>PAKU-PAKU 16（サンプラー）</h3>
 <table>
-  <tr><td>POWER</td><td>左上の赤いボタン（パクッ、パクッと鳴って起動）。電源 OFF のときは Enter キーでも入る</td></tr>
+  <tr><td>RESET</td><td>左上の赤いボタン。押すと「パクッ、パクッ」と鳴って再起動（電源はいつも ON。最初に画面をさわると入る）</td></tr>
   <tr><td>パッド</td><td>押すと鳴る。シーケンサーではキー A-01〜P-16 の行になる</td></tr>
   <tr><td>A〜P</td><td>バンクの切り替え（16 バンク。PC は [ ]）</td></tr>
   <tr><td>Z X C V・A S D F・Q W E R・1 2 3 4</td><td>いまのバンクのパッド 1〜16（下の段から）</td></tr>

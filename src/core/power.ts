@@ -25,12 +25,7 @@ export class PowerHints {
     this.bubble.hidden = true;
     // ボタンと同じ台（Board）の上に置く（座標をボタンと同じにするため）
     (button.closest('.mod')?.parentElement ?? root).appendChild(this.bubble);
-    // 電源 OFF のまま POWER 以外を触った → 教える
-    root.addEventListener('pointerdown', (e) => {
-      const t = e.target as HTMLElement;
-      if (this.powered || button.contains(t) || t.closest('.power-safe')) return;
-      this.nudge();
-    }, true);
+    // 電源はいつも ON（さわると入る：core/alwayson.ts）なので、「まず POWER を押して」の案内は出さない
     this.update(false);
   }
 
@@ -43,8 +38,7 @@ export class PowerHints {
 
   /** POWER ボタンをピカッと光らせて、吹き出しで教える */
   nudge(): void {
-    this.flash();
-    this.say('まず POWER を押して電源を入れよう！（Enter キーでも入るよ）', 3000);
+    // 電源はいつも ON（さわると入る）なので、案内は出さない
   }
 
   flash(): void {

@@ -8,7 +8,7 @@ import './studio.css';
 import type { Song } from '../core/song';
 import type { ToyUI } from '../core/ui';
 import { AudioHost } from '../host/audio';
-import { PowerGuide } from '../core/power';
+import { AlwaysOn } from '../core/alwayson';
 import { TOY_UIS } from '../toys/uis';
 import { Arranger } from './arranger';
 import { createViewSync } from './sync';
@@ -165,7 +165,7 @@ audio.onMessage = (m) => {
     if (m.type === 'status') {
       const heat = m.status.fx.heat ?? 0;
       heats[m.toy] = heat;
-      if (m.status.powered && guide.showing) guide.hide();
+      alwaysOn.status(m.toy, m.status.powered);
       (slots[m.toy].querySelector('.stress i') as HTMLElement).style.width = `${Math.min(100, heat * 100)}%`;
       arr.setStress(m.toy, heat);
     }
@@ -221,16 +221,12 @@ const HELP = `
   <tr><td>キー</td><td>Delete 削除 ／ Ctrl+Z・Y 元に戻す・やり直し ／ Ctrl+C・V コピー・再生位置に貼り付け ／ Ctrl+D すぐ後ろに複製 ／ ← → 少しずらす</td></tr>
   <tr><td>表示</td><td>ホイールで上下、Shift＋ホイールで左右、Ctrl＋ホイールで拡大縮小</td></tr>
   <tr><td>CRASH</td><td>⚡ CRASH の音符の長さの間、音が張り付いて止まり、画面が固まる → 終わりで RESET・再起動（起動音）</td></tr>
-  <tr><td>電源</td><td>各おもちゃの大きな <b>POWER</b> ボタン（またはおもちゃを選んで Enter）。▶ で曲を頭から再生しても電源が入ります</td></tr>
+  <tr><td>電源</td><td>いつも ON（最初に画面をさわると入る）。POWER だったボタンは <b>RESET</b>（押すと再起動）</td></tr>
   <tr><td>保存</td><td>曲は自動でこのブラウザに保存。「保存」「読込」で JSON ファイルにも</td></tr>
 </table>`;
-$('s-help').innerHTML = HELP + '<p><button class="guide-again" type="button">電源の案内をもう一度見る</button></p>';
-// ---- 最初の案内：画面を少し暗くして、2 台の POWER ボタンだけを明るく見せる（▶ で再生しても電源が入る） ----
-const guide = new PowerGuide(() => toys.map((t) => t.powerButton).filter((b): b is HTMLElement => !!b));
-$('s-help').addEventListener('click', (e) => {
-  if ((e.target as HTMLElement).classList.contains('guide-again')) { $('s-help').hidden = true; guide.show(); }
-});
-setTimeout(() => guide.showIfFirst(), 300);
+$('s-help').innerHTML = HELP;
+// 電源はいつも ON（最初にさわると入る・POWER は RESET）。VROOMBOX のキーはエンジンをかけるのでそのまま
+const alwaysOn = new AlwaysOn(toys, () => toys.map((_, i) => i), (i) => lineup[i] === 3, (i) => (lineup[i] === 0 ? 'REBOOT' : 'RESET'));
 $('helpBtn').addEventListener('click', () => { $('s-help').hidden = !$('s-help').hidden; });
 document.querySelectorAll<HTMLButtonElement>('#s-top button').forEach((b) => { b.tabIndex = -1; b.addEventListener('mousedown', (e) => e.preventDefault()); });
 

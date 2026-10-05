@@ -91,15 +91,6 @@ async function main(lang: 'ja' | 'en'): Promise<void> {
       }
     }
 
-    // ---- 最初の電源の案内（初めて開いたとき） ----
-    const ctx2 = await browser.newContext({ viewport: { width: 1500, height: 900 }, deviceScaleFactor: 1 });
-    await ctx2.addInitScript((l) => { localStorage.setItem('bentpc.lang', l); }, lang);
-    await ctx2.addInitScript(() => { localStorage.setItem('bentpc.activeToy', '0'); });
-    const p2 = await ctx2.newPage();
-    await p2.goto(base);
-    await sleep(1200);
-    await p2.screenshot({ path: `${OUT}/guide.jpg`, type: 'jpeg', quality: 84 });
-    console.log('電源の案内：撮影 OK');
 
     // ---- スタジオ（デモ曲） ----
     await page.goto(`${base}studio.html?toys=0,5&demo=1`);

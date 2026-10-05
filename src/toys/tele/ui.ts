@@ -32,7 +32,7 @@ const HELP = `
   <tr><td>← →</td><td>5 秒戻る / 進む</td></tr>
   <tr><td>BS</td><td>RELEASE（効いているグリッチを全部止める）</td></tr>
   <tr><td>Home</td><td>再生 / 一時停止</td></tr>
-  <tr><td>POWER</td><td>モニターの右下の大きな緑のボタン（押すたびに ON / OFF）。電源 OFF のときは Enter でも入る</td></tr>
+  <tr><td>RESET</td><td>モニターの右下の大きな緑のボタン。押すと再起動（電源はいつも ON。最初に画面をさわると入る）</td></tr>
   <tr><td>PgUp / PgDn</td><td>電源 ON / OFF</td></tr>
   <tr><td>F1〜F5</td><td>GLITCH ボタン：今の BASE の一発グリッチ（左パネルに名前）</td></tr>
   <tr><td>F6〜F10</td><td>BASE 1〜5（TAPE / DIGITAL / SIGNAL / BEEP / MELTDOWN）</td></tr>

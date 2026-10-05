@@ -23,10 +23,10 @@ export const TOYS: ToyManual[] = [
   {
     id: 'blippy', index: 0, title: 'BLIPPY BOOK 30', catch: 'しゃべる！ 歌う！ まちがえる！ 魔改造トイPC',
     desc: 'ふたに液晶、本体に文字キー 26 個とドレミの数字キーがついた子供向けパソコン。8 つのモードで、文字の読み上げ・単語・メロディ・ピアノ・ドラム・効果音・クイズになる。そこへ GLITCH ボタンや LOOP・STRETCH・DIST を後付けした、読み上げが壊れる魔改造機だ！',
-    power: '本体の左上の大きな緑のボタン（赤い「POWER」の札）。OFF はその下の小さいボタン',
+    power: '本体の左上の大きな緑のボタン（「REBOOT」の札）。押すと再起動',
     parts: [
-      { find: { text: 'POWER' }, name: 'POWER', what: '電源 ON。起動音のあと「HELLO」としゃべって、モードの画面になる。しゃべり終わるまではキーが効かない。', tip: 'キーボードの Enter でも入る（電源 OFF のとき）' },
-      { find: { text: 'OFF', nth: 0 }, name: 'OFF', what: '電源を切る。' },
+      { find: { text: 'REBOOT' }, name: 'REBOOT', what: '再起動。起動音のあと「HELLO」としゃべって、モードの画面になる。しゃべり終わるまではキーが効かない。電源はいつも ON（最初に画面をさわると入る）。' },
+      { find: { text: 'OFF', nth: 0 }, name: 'OFF', what: '電源を切る。いつも ON なので、すぐに入り直す（再起動）。' },
       { find: { text: 'VOLUME' }, name: 'VOLUME', what: '音量のツマミ。' },
       { find: { sel: 'canvas[data-id="lcd"]' }, name: '液晶', what: '押した文字・キャラ・モードが出る。グリッチ中は液晶の絵も崩れ、VOICE 系のグリッチでは別のキャラに化ける。' },
       { find: { sel: '.keys-panel' }, name: '文字キー（A〜Z）と ♪ ? ★ OK', what: 'モードによって、文字の名前・単語・メロディ・ピアノの音・ドラム・効果音・クイズの答えになる。1 音ずつしか鳴らない（新しい音が前の音を切る）。', tip: 'PC キーボードの A〜Z がそのまま文字キー。- ^ @ [ が ♪ ? ★ OK' },
@@ -45,9 +45,9 @@ export const TOYS: ToyManual[] = [
   {
     id: 'piko', index: 1, title: 'PIKOTONE PT-32', catch: '電圧を下げると、音も心もよれていく',
     desc: '32 鍵のミニキーボードに、リズムマシンと 8 つの音色（ORCHESTRA）。上には別のエフェクトユニットをつなぎ、左には電圧 Starve（わざと電気を減らす）ツマミとタッチポイントを増設した魔改造機だ！',
-    power: '操作パネルの左の大きな緑のボタン（押すたびに ON / OFF）',
+    power: '操作パネルの左の大きな緑のボタン（「RESET」の札）',
     parts: [
-      { find: { text: 'POWER' }, name: 'POWER', what: '押すたびに電源 ON / OFF。' },
+      { find: { text: 'RESET' }, name: 'RESET', what: '押すと再起動。' },
       { find: { text: 'MASTER VOL' }, name: 'MASTER VOL', what: '音量。' },
       { find: { text: 'TEMPO' }, name: 'TEMPO（▲▼）', what: 'リズムの速さ（60〜200 BPM）。' },
       { find: { text: 'RHYTHM' }, name: 'RHYTHM ＋ START / STOP', what: 'MARCH・RHUMBA・DISCO・POP・BALLAD・WALTZ・TANGO・SWING の 8 種類。START で鳴らし、STOP で止める。', tip: 'PC の ↑ ↓ で選び、Space で START / STOP' },
@@ -67,9 +67,9 @@ export const TOYS: ToyManual[] = [
   {
     id: 'dj', index: 2, title: 'SPIN-TOT DJ-28', catch: 'こすれ！ 止めろ！ 暗くしろ！',
     desc: '子供用 DJ セット。ディスクをこすってスクラッチ、6 つの効果音パッド、13 鍵のキーボード、28 種類のリズム（うち 7 つは隠しパターン）。そこへピッチの粗・微調整、テープのように止まる STOP、光センサー、2 つの DIST と FEEDBACK を後付けした魔改造機だ！',
-    power: '右下の大きな緑のボタン（OFF は右の青いボタン）',
+    power: '右下の大きな緑のボタン（「RESET」の札）',
     parts: [
-      { find: { text: 'POWER' }, name: 'POWER / OFF', what: '電源 ON（緑）と OFF（青）。' },
+      { find: { text: 'RESET' }, name: 'RESET / OFF', what: '緑を押すと再起動。青の OFF でも切れて、すぐに入り直す。' },
       { find: { sel: '.dj-disc' }, name: 'ディスク', what: 'マウスでつかんで回すとスクラッチ。DISC EFFECT の音をこする。', tip: 'PC の . / で前・逆に回す（押している間）' },
       { find: { text: 'RHYTHM SELECTION' }, name: 'RHYTHM SELECTION', what: 'リズム 28 種類を選ぶ（1-7・8-14・15-21 と、隠しの 22-28）。', tip: 'PC の 1 2 3 4。押すたびに次へ' },
       { find: { text: 'DISC EFFECT SELECTION' }, name: 'DISC EFFECT SELECTION', what: 'ディスクでこする音を選ぶ（21 種）。', tip: 'PC の 5 6 7' },
@@ -87,9 +87,9 @@ export const TOYS: ToyManual[] = [
   {
     id: 'vroom', index: 3, title: 'VROOMBOX VR-5', catch: 'エンジンの爆発を、音階で弾け！',
     desc: '子供用ドライブ・ダッシュボード（オリジナル設計）。エンジン音は「点火の粒」でできていて、改造パネルで点火を間引くとリズムになり、TUNE で音階になる。MIDI やシーケンサーでエンジンそのものを弾けるのが自慢の魔改造機だ！',
-    power: '左の「POWER」の札のイグニッションキー（クリックで ON、ON のままクリックでエンジン始動）',
+    power: '左の「POWER」の札のイグニッションキー（電源はいつも ON。クリックしている間エンジン始動）',
     parts: [
-      { find: { text: 'POWER' }, name: 'POWER（イグニッションキー）', what: 'クリックで電源 ON（キーが ON の位置へ）。ON のままクリックしている間セルが回り、エンジンがかかる。KEY OFF で切る。', tip: 'PC の Enter（押している間セルが回る）' },
+      { find: { text: 'POWER' }, name: 'POWER（イグニッションキー）', what: '電源はいつも ON（キーは ON の位置）。クリックしている間セルが回り、エンジンがかかる。', tip: 'PC の Enter（押している間セルが回る）' },
       { find: { text: 'VOLUME' }, name: 'VOLUME', what: '音量。' },
       { find: { text: 'GEAR' }, name: 'GEAR', what: 'N・1〜5。ギアが高いほど回転がゆっくり追いつく。変えた瞬間、回転がガクッと変わる。', tip: 'PC の Z / X' },
       { find: { text: 'ACCEL' }, name: 'ACCEL（ペダル）', what: '踏んでいる間アクセル。回転数（＝点火の速さ＝音の高さ）が上がる。', tip: 'PC の ↑ または W' },
@@ -108,9 +108,9 @@ export const TOYS: ToyManual[] = [
   {
     id: 'typo', index: 4, title: 'TYPOTRON TT-109', catch: 'キーボードを、楽器として叩け！',
     desc: 'PC キーボードそのものを楽器に改造した（オリジナル設計）。全部のキーに役目があり、文字の段が音階、テンキーがドラム、F キーが波形・音階・「キーボードの故障」。上にはツマミを 12 個増設した魔改造機だ！',
-    power: 'キーボードの左上の大きな緑のボタン（押すたびに ON / OFF）',
+    power: 'キーボードの左上の大きな緑のボタン（「RESET」の札）',
     parts: [
-      { find: { text: 'POWER' }, name: 'POWER', what: '押すたびに電源 ON / OFF。', tip: 'PC の PgUp / PgDn でも' },
+      { find: { text: 'RESET' }, name: 'RESET', what: '押すと再起動。' },
       { find: { sel: '.tt-lcd' }, name: '液晶', what: '打った音の「行」、波形・音階・テンポなどが出る。' },
       { find: { text: 'VOLUME' }, name: 'VOLUME・DECAY・TONE', what: '音量・音の減り方・明るさ。' },
       { find: { text: 'DRIVE' }, name: 'DRIVE・CRUSH・ECHO', what: '歪み・ビットつぶし・こだま。' },
@@ -128,9 +128,9 @@ export const TOYS: ToyManual[] = [
   {
     id: 'tele', index: 5, title: 'TELEKEY TK-6', catch: '映像も、音も、いっしょに壊せ！',
     desc: 'ブラウン管モニター付きの魔改造キーボード（オリジナル設計）。Web カメラ・別のタブ・動画ファイルの映像と音を取り込んで、キーで同時に壊す。キーの下の小さな文字が「映像の壊れ方／音の壊れ方」。GLITCH ボタン×BASE の一発グリッチ、ノブ 8 個、熱による暴発つきの映像マシンだ！',
-    power: 'モニターの右下の大きな緑のボタン（押すたびに ON / OFF）',
+    power: 'モニターの右下の大きな緑のボタン（「RESET」の札）',
     parts: [
-      { find: { text: 'POWER' }, name: 'POWER', what: '押すたびに電源 ON / OFF。ON でブラウン管が「ボン」と点く。', tip: 'PC の Enter（電源 OFF のとき）、PgUp / PgDn' },
+      { find: { text: 'RESET' }, name: 'RESET', what: '押すと再起動。ブラウン管が「ボン」と点き直す。' },
       { find: { sel: '.tk-screen' }, name: 'モニター', what: '取り込んだ映像を、効いているグリッチで壊して映す（WebGL）。入力が無いときは砂嵐。' },
       { find: { sel: '.tk-vrec' }, name: '● REC VIDEO', what: '壊した後の映像と音を録画して、WebM で保存。もう一度押すと止めて保存。' },
       { find: { sel: '.tk-src' }, name: '入力の切り替え', what: 'TAB を取り込む（別のタブの映像と音）・FILE（動画ファイル）・CAM（Web カメラ）・TEST（自動で作るテスト映像）・✕（外す）。→ 8 章' },
@@ -150,9 +150,9 @@ export const TOYS: ToyManual[] = [
   {
     id: 'pkt', index: 6, title: 'PAKU-PAKU 16', catch: '音を食べて、切って、並べろ！',
     desc: '子ども用の録音おもちゃ（ワニの口のスピーカー付き）を魔改造したサンプラー。16 パッド × 16 バンクに、録った声・読み込んだ音・最初から入っている 32 音を入れて叩く。ラックとスタジオではこの小さい版で叩いて録って自動作曲、音の作り込み（録音・チョップ・エフェクト・ベンド・パターン）は専用のページ（サンプラー編）で！',
-    power: '左上の赤いボタン（パクッ、パクッと鳴って起動）。電源 OFF のときは Enter でも入る',
+    power: '左上の赤いボタン（「RESET」。押すと「パクッ、パクッ」と鳴って再起動）',
     parts: [
-      { find: { sel: '[data-id="power"]' }, name: 'POWER', what: '電源の入／切。入れると「パクッ、パクッ」と鳴って、パッドが明るくなる。', tip: '電源 OFF のときは Enter キーでも入る' },
+      { find: { sel: '[data-id="power"]' }, name: 'RESET', what: '押すと再起動。「パクッ、パクッ」と鳴る。' },
       { find: { sel: '.pkt-lcd' }, name: '液晶', what: 'いま選んでいるパッドと音の名前、入っている音の数。下は波形：赤い線が鳴らす範囲（START・END）、明るい線が再生位置。' },
       { find: { sel: '[data-k="pitch"]' }, name: 'PITCH・START', what: '全部のパッドの音程を ±12 半音／鳴らし始めを後ろへずらす（ノブを回すほどスライスの途中から）。' },
       { find: { sel: '[data-k="cutoff"]' }, name: 'CUTOFF・RESO', what: '出口のローパス。回すほどこもる・RESO でピーキーなクセ。', tip: '自動作曲では、盛り上げの所でだんだん開く' },

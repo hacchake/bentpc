@@ -29,7 +29,7 @@ const HELP = `
   <tr><td>← →</td><td>INSTRUMENT（鍵盤の音色）</td></tr>
   <tr><td>Tab</td><td>KEYBOARD PATTERN 1 / 2（2 = アルペジオ）</td></tr>
   <tr><td>P / L</td><td>PITCH スイッチ / LIGHT スイッチ</td></tr>
-  <tr><td>POWER</td><td>右下の大きな緑の POWER ボタン（OFF は右の青いボタン）。電源 OFF のときは Enter キーでも入る</td></tr>
+  <tr><td>RESET</td><td>右下の大きな緑のボタン。押すと再起動（電源はいつも ON。最初に画面をさわると入る）</td></tr>
   <tr><td>PageUp / PageDown</td><td>電源 ON / OFF</td></tr>
 </table>
 <p>ディスクはマウスでつかんで回すとスクラッチ。光センサー（左右の丸いレンズ）はマウスを近づけると影になり、LIGHT スイッチ ON で音程が下がる。押さえるとまっ暗。</p>

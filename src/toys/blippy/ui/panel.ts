@@ -40,7 +40,7 @@ const TEMPLATE = `
 
 const HELP = `
 <h3>BLIPPY BOOK 30 のキー操作</h3>
-<p><b>まず左上の大きな緑の POWER ボタンで電源を入れよう</b>（電源 OFF のときは Enter キーでも入る）。RESET を押すと CPU が止まるので、もう一度 POWER。</p>
+<p><b>電源はいつも ON</b>（最初に画面をさわると入る）。左上の大きな緑のボタンは REBOOT（押すと再起動）。RESET を押すと CPU が止まって、すぐに起動し直す。</p>
 <table>
   <tr><td>A〜Z</td><td>文字キー</td></tr>
   <tr><td>1〜0</td><td>ドレミの数字キー</td></tr>
@@ -187,7 +187,7 @@ export function mountBlippy(api: HostApi): ToyUI {
     api.post({ type: 'power', on: true });
     // LOOP スイッチが下（MUTE）だと起動しない（実物どおり）→ 教える
     setTimeout(() => {
-      if (!hints.powered && loopSw.value === 2) hints.say('LOOP スイッチが <b>MUTE</b>（いちばん下）だと起動しないよ！上か真ん中にしてから POWER を押そう', 6000, true);
+      if (!hints.powered && loopSw.value === 2) hints.say('LOOP スイッチが <b>MUTE</b>（いちばん下）だと起動しないよ！上か真ん中にしてね（すぐ起動する）', 6000, true);
     }, 700);
   };
   const powerOff = () => api.post({ type: 'power', on: false });
@@ -366,14 +366,14 @@ export function mountBlippy(api: HostApi): ToyUI {
         leds.power.classList.toggle('lit', st.powered);
         // RESET で CPU が止まった → 再起動の手順を案内
         if (hints.powered && !st.powered && performance.now() - resetAt < 3000) {
-          hints.say('リセットしたよ！CPU が止まったので、<b>POWER</b> を押して再起動しよう', 7000, true);
+          hints.say('リセットしたよ！CPU が止まったので、すぐに再起動するよ', 7000, true);
           hints.flash();
         }
         hints.update(st.powered);
         const heat = (st.fx.heat as number) ?? 0;
         if (st.powered && heat > 0.85 && performance.now() - heatSaid > 20000) {
           heatSaid = performance.now();
-          hints.say('熱くなりすぎ！グリッチが勝手に暴れだしたぞ。手を離すと冷める。すぐ止めたいなら <b>RESET</b> → <b>POWER</b>', 6000, true);
+          hints.say('熱くなりすぎ！グリッチが勝手に暴れだしたぞ。手を離すと冷める。すぐ止めたいなら <b>RESET</b>', 6000, true);
         }
         leds.stretch.classList.toggle('lit', st.leds.stretch > 0);
         leds.loop.classList.toggle('lit', st.leds.loop > 0);

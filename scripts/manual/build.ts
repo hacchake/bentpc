@@ -129,7 +129,7 @@ function makeHtml(): string {
     </section>`,
     // ---- 目次 ----
     `<nav class="toc"><h2>もくじ</h2><ol>
-      <li><a href="#intro">はじめに：魔改造おもちゃとは？</a></li><li><a href="#power">まずは電源を入れよう！</a></li>
+      <li><a href="#intro">はじめに：魔改造おもちゃとは？</a></li><li><a href="#power">まずはさわってみよう！</a></li>
       <li><a href="#parts">各パーツ完全解説</a></li><li><a href="#keys">モード・キー全データ</a></li>
       <li><a href="#glitch">グリッチ大全</a></li><li><a href="#combo">必殺コンボ集</a></li><li><a href="#crash">クラッシュ攻略</a></li>
       <li><a href="#video">映像マシン編</a></li><li><a href="#seq">シーケンサー＆自動作曲編</a></li><li><a href="#sampler">サンプラー編</a></li><li><a href="#seeds">おすすめシード値コレクション</a></li>
@@ -143,13 +143,13 @@ function makeHtml(): string {
       ${bubble('改造おじさん', 'どれも「読み上げがまちがう」「電気が足りなくてよれる」「エンジンで音階を弾く」みたいに、ちゃんと壊れ方にクセがあるんだ。1 台ずつ、クセをつかむのがうまくなる近道だぞ！')}
       ${point('ここがポイント！', '<p>全部のおもちゃは、上のタブ（1〜7）で切り替える。裏にいるおもちゃも鳴り続けるので、重ねて演奏できる。<b>STUDIO</b> では好きなおもちゃを並べて、いっしょに曲を作れる。</p>')}`, 'intro'),
   
-    chapter('まずは電源を入れよう！', '最初の 3 分でやること', `
-      <figure class="shot"><div class="frame"><img src="img/guide.jpg" alt="最初の案内"></div><figcaption>初めて開くと、画面が暗くなって POWER ボタンだけが光る。「電源を入れてね」の矢印の先を押そう！</figcaption></figure>
-      <table class="grid"><tr><th>おもちゃ</th><th>POWER の場所</th></tr>${powerRows}</table>
-      ${point('ここがポイント！', '<ul><li>電源 OFF の間は、POWER の横の LED がゆっくり点滅して「ここを押して」と教えてくれる。</li><li><b>キーボードの Enter</b> でも電源が入る（電源 OFF のとき）。</li><li>電源 OFF のままキーやツマミを触ると、POWER ボタンがピカッと光る。</li><li>ブラウザは「最初に操作するまで音を出さない」決まりがあるけど、電源を入れる操作で音の準備も済む。</li></ul>')}
+    chapter('まずはさわってみよう！', '最初の 3 分でやること', `
+      <p>電源ボタンはいらない！ 画面のどこかをさわる（キーを押す）と、表示中のおもちゃの電源が入る。タブで別のおもちゃに切り替えても、自動で入る。</p>
+      <table class="grid"><tr><th>おもちゃ</th><th>RESET（再起動）の場所</th></tr>${powerRows}</table>
+      ${point('ここがポイント！', '<ul><li>電源はいつも ON。POWER だったボタンは <b>RESET</b>（押すと再起動）。おかしくなったら押してみよう。</li><li>RESET や暴走で止まっても、すぐに自動で起動し直す。</li><li>ブラウザは「最初に操作するまで音を出さない」決まりがあるけど、最初にさわった時に音の準備も済む。</li></ul>')}
       <h3>最初の 3 分でやること</h3>
-      <ol class="steps"><li><b>電源を入れる</b>：1. BLIPPY なら「HELLO」としゃべる。</li><li><b>好きなキーを弾く</b>：PC キーボードの A〜Z がそのまま鳴る。</li><li><b>グリッチを押しながら弾く</b>：トイPC なら , . / ; : キーが GLITCH 1〜5。押している間だけ壊れる！</li><li><b>自動作曲</b>：右の緑の基板の赤いボタンを押すと、そのおもちゃの曲ができて鳴り出す。</li></ol>
-      ${bubble('改造おじさん', 'ヘルプ（右上の ?）の中の「電源の案内をもう一度見る」で、最初の案内をまた見られるぞ。')}`, 'power'),
+      <ol class="steps"><li><b>画面をさわる</b>：どこでも OK。1. BLIPPY なら「HELLO」としゃべる。</li><li><b>好きなキーを弾く</b>：PC キーボードの A〜Z がそのまま鳴る。</li><li><b>グリッチを押しながら弾く</b>：トイPC なら , . / ; : キーが GLITCH 1〜5。押している間だけ壊れる！</li><li><b>自動作曲</b>：右の緑の基板の赤いボタンを押すと、そのおもちゃの曲ができて鳴り出す。</li></ol>
+      ${bubble('改造おじさん', 'VROOMBOX のキーだけは別。電源はいつも入っているけど、キーを回している間にセルが回ってエンジンがかかるんだ。')}`, 'power'),
   
     chapter('各パーツ完全解説', '全ボタン・ノブ・スイッチを図解！', TOYS.map((t) => `
       <article class="toy-page"><h3 class="toy-title"><span>${t.index + 1}</span>${t.title}<small>${esc(t.catch)}</small></h3>
@@ -183,11 +183,11 @@ function makeHtml(): string {
         <tr><td>冷ます</td><td>手を離すと 2〜7 秒で落ち着く。RESET（Esc）で熱は 0 に（ただし CPU も止まる）</td><td>手を離すと約 8 秒で落ち着く。Esc（RESET）ですぐ 0 に</td></tr></table>
       ${point('ギリギリで粘るコツ', '<ul><li>グリッチは「押しっぱなし」より「拍に合わせて短く」。熱がたまりにくく、リズムにも乗る。</li><li>暴発が始まったら、1 個だけ離す。熱の上がり方は押している数でぐんと変わる。</li><li>トイPC は吹き出しで「熱くなりすぎ！」と教えてくれる。TELEKEY は HEAT の LED をよく見よう。</li><li>暴発も演奏のうち！ 気に入ったら、あえて熱いまま粘るのもアリだ。</li></ul>')}
       <h3>本当のクラッシュ：シーケンサーの CRASH</h3>
-      <figure class="shot"><div class="frame"><img src="img/crash.jpg" alt="クラッシュ中"></div><figcaption>CRASH の間：音が張り付いたあと無音になり、画面が固まって「SYSTEM HALTED」。終わると ① RESET → ② POWER で自動で再起動する</figcaption></figure>
+      <figure class="shot"><div class="frame"><img src="img/crash.jpg" alt="クラッシュ中"></div><figcaption>CRASH の間：音が張り付いたあと無音になり、画面が固まって「SYSTEM HALTED」。終わると自動で再起動する</figcaption></figure>
       <p>シーケンサーの ⚡ システムの行に <b>CRASH→再起動</b> の音符を置くと、その長さの間、わざとクラッシュさせられる。自動作曲では、壊れ度が高いとブレイクに入り、「崩壊」スタイルでは必ず最後に入る。</p>
       <h3>復帰の手順</h3>
-      <ol class="steps"><li><b>RESET</b>：トイPC なら Esc か RESET ボタン。CPU が止まって電源が切れた状態になる（吹き出しで教えてくれる）。</li><li><b>POWER</b>：もう一度 POWER（または Enter）で起動し直す。「HELLO」が聞こえたら復活！</li><li>シーケンサーの CRASH は、音符が終わると自動で RESET → 再起動する。止めたいときは ■（停止）。</li></ol>
-      ${warn('注意！', '<p>トイPC の LOOP スイッチがいちばん下（MUTE）だと、RESET のあと POWER を押しても起動しない。スイッチを上か真ん中に戻そう。</p>')}`, 'crash'),
+      <ol class="steps"><li><b>RESET</b>：おもちゃの RESET ボタン（トイPC なら Esc か RESET・REBOOT）。CPU が止まって、すぐに自動で起動し直す。「HELLO」が聞こえたら復活！</li><li>シーケンサーの CRASH は、音符が終わると自動で RESET → 再起動する。止めたいときは ■（停止）。</li></ol>
+      ${warn('注意！', '<p>トイPC の LOOP スイッチがいちばん下（MUTE）だと起動しない。スイッチを上か真ん中に戻すと、すぐ起動する。</p>')}`, 'crash'),
   
     chapter('映像マシン編', 'TELEKEY TK-6 で映像を壊せ！', `
       <div class="two"><figure class="shot"><div class="frame"><img src="img/tele-clean.jpg" alt=""></div><figcaption>テスト映像（ふつう）</figcaption></figure><figure class="shot"><div class="frame"><img src="img/tele-glitch.jpg" alt=""></div><figcaption>E（${GLITCHES[2].v}）と G（${GLITCHES[16].v}）を押している瞬間</figcaption></figure></div>

@@ -14,7 +14,7 @@ const OX = 340; // おもちゃ本体の左端
 const HELP = `
 <h3>VROOMBOX VR-5 のキー操作</h3>
 <table>
-  <tr><td>POWER</td><td>左の POWER の札のイグニッションキー（クリックで ON、ON のままクリックでエンジン始動）。電源 OFF のときは Enter キーでも入る</td></tr>
+  <tr><td>POWER</td><td>左の POWER の札のイグニッションキー。電源はいつも ON（最初に画面をさわると入る）。クリックしている間エンジン始動</td></tr>
   <tr><td>PageUp / PageDown</td><td>キーを ON / OFF</td></tr>
   <tr><td>Enter</td><td>エンジン始動（押している間セルが回る）</td></tr>
   <tr><td>↑ または W</td><td>アクセル（押している間）</td></tr>

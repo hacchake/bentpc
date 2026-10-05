@@ -25,7 +25,7 @@ const HELP = `
   <tr><td>Enter</td><td>DEMO</td></tr>
   <tr><td>Backspace</td><td>GLITCH スイッチ</td></tr>
   <tr><td>Tab</td><td>ENV / HOLD スイッチ</td></tr>
-  <tr><td>POWER</td><td>操作パネル左の大きな緑の POWER ボタン（押すたびに ON / OFF）。電源 OFF のときは Enter キーでも入る</td></tr>
+  <tr><td>RESET</td><td>操作パネル左の大きな緑のボタン。押すと再起動（電源はいつも ON。最初に画面をさわると入る）</td></tr>
   <tr><td>PageUp / PageDown</td><td>電源 ON / OFF</td></tr>
 </table>
 <p>AMP TOUCH・PITCH BEND の銀の丸は、押している間だけ効きます。押したまま上下に動かすと強さが変わります。</p>

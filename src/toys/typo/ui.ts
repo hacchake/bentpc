@@ -36,7 +36,7 @@ const HELP = `
   <tr><td>F5〜F8</td><td>音階 MAJOR / MINOR / PENTA / BENT</td></tr>
   <tr><td>F9〜F12</td><td>キーボードの故障：GHOST / SCAN / BOUNCE / OVERFLOW（ON/OFF）</td></tr>
   <tr><td>テンキー・無変換・変換・かな</td><td>ドラム</td></tr>
-  <tr><td>POWER</td><td>キーボード左上の大きな緑の POWER ボタン（押すたびに ON / OFF）。電源 OFF のときは Enter キーでも入る</td></tr>
+  <tr><td>RESET</td><td>キーボード左上の大きな緑のボタン。押すと再起動（電源はいつも ON。最初に画面をさわると入る）</td></tr>
   <tr><td>PgUp / PgDn</td><td>電源 ON / OFF</td></tr>
 </table>
 <p>F6・F7・F11・F12 などはブラウザによっては先に取られてしまうことがあります。そのときは画面のキーをクリックしてください。</p>
