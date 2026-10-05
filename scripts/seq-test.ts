@@ -1,5 +1,5 @@
 // シーケンサーの自動テスト：録音 → 曲に入る → 再生で同じ音が鳴る → 編集が音に反映される → オーバーダブ
-import { BTN, SYS_CRASH, SYS_POWER_ON, cloneSong, emptySong, type Song } from '../src/core/song';
+import { BTN, SYS_CRASH, SYS_POWER_ON, cloneSong, emptySong, songBeats, type Song } from '../src/core/song';
 import { hashSeed } from '../src/core/rng';
 import { TestSignal } from '../src/core/testsignal';
 import type { ToyEngine } from '../src/core/toy';
@@ -225,6 +225,26 @@ if (!bn.ended() || bn.seq.playing) ng('BOUNCE が終わらない');
   c.seq.setRecording(false);
   const n = c.seq.song.tracks[1].notes[0];
   n && Math.abs(n.start - 0.8) < 0.03 ? console.log(`OK 録音の遅れの補正：1 拍目で押す → ${n.start.toFixed(2)} 拍に記録（0.1 秒前）`) : ng(`録音の遅れの補正：${n?.start}`);
+}
+
+// 拍子：3/4 なら 1 小節 = 3 拍。クリックの強い音は 3 拍ごと、曲の長さは 小節 × 3 拍
+{
+  const s = emptySong(TOY_ENGINES.length);
+  s.beatsPerBar = 3;
+  s.bars = 2;
+  s.metronome = true;
+  s.loop = { on: false, start: 0, end: 6 };
+  const c = rig(s);
+  c.seq.play(0);
+  const acc: boolean[] = [];
+  let last = 1e9;
+  c.run(3.2, () => {
+    const t = (c.seq as unknown as { clickT: number; clickAccent: boolean });
+    if (t.clickT < last) acc.push(t.clickAccent);
+    last = t.clickT;
+  });
+  const pat = acc.map((x) => (x ? 'X' : 'x')).join('');
+  songBeats(s) === 6 && pat.startsWith('Xxx') && pat.slice(3, 6) === 'Xxx' ? console.log(`OK 拍子 3/4：長さ ${songBeats(s)} 拍・クリック ${pat}`) : ng(`拍子 3/4：長さ ${songBeats(s)}・クリック ${pat}`);
 }
 
 // MIDI クロック：外の機器のテンポ・START / STOP に合わせる

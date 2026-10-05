@@ -6,7 +6,7 @@
 //   ノブの点の間をなめらかにつなぐ、シードで「頭から再生するたびにおもちゃを新品にする」（毎回同じ音）
 
 import {
-  BTN, SYS_CRASH, mixGain, SYS_POWER_OFF, SYS_POWER_ON, emptySong, mergeTake, songBeats, takeFromRaw, trackToy, type RawEvent, type SeqAuto, type SeqNote, type SeqTrack, type Song,
+  BTN, SYS_CRASH, barBeats, mixGain, SYS_POWER_OFF, SYS_POWER_ON, emptySong, mergeTake, songBeats, takeFromRaw, trackToy, type RawEvent, type SeqAuto, type SeqNote, type SeqTrack, type Song,
 } from '../core/song';
 import type { ToyEngine } from '../core/toy';
 
@@ -363,7 +363,7 @@ export class Sequencer {
   /** このブロックの中で起きることを、サンプル位置つきで並べる */
   private schedule(n: number, evs: Ev[][]): void {
     const fpb = this.framesPerBeat;
-    const len = songBeats(this.song);
+    const len = songBeats(this.song), bpb = barBeats(this.song);
     const loop = this.song.loop;
     let beat = this.pos;
     let off = 0;
@@ -377,7 +377,7 @@ export class Sequencer {
       // メトロノームの位置
       for (let k = Math.ceil(b0 - 1e-9); k < b1; k++) {
         const o = off + Math.round((k - b0) * fpb);
-        evs[0].push({ off: Math.min(n - 1, Math.max(0, o)), apply: () => { this.clickT = 0; this.clickAccent = k % 4 === 0; } });
+        evs[0].push({ off: Math.min(n - 1, Math.max(0, o)), apply: () => { this.clickT = 0; this.clickAccent = k % bpb === 0; } });
       }
       this.song.tracks.forEach((tr, i) => {
         const toy = trackToy(this.song, i);

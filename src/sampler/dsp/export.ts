@@ -4,6 +4,7 @@ import { SamplerEngine } from './engine';
 import type { FxSlot } from './fx';
 import type { Pattern, SongStep } from './seq';
 import { PADS, PAD_COUNT, type PadParams, type SampleBuf } from './types';
+import { ptnBeats } from './seq';
 
 /** 16bit に：TPDF ディザー付き（静かな所がザラつかない） */
 const dither16 = (x: number) => Math.max(-32768, Math.min(32767, Math.round(Math.max(-1, Math.min(1, x)) * 32767 + Math.random() - Math.random())));
@@ -21,8 +22,8 @@ export interface RenderSetup {
 
 /** 曲の長さ（拍） */
 export function lengthBeats(st: RenderSetup, mode: 'pattern' | 'song', ptn: number, loops = 1): number {
-  if (mode === 'pattern') return st.patterns[ptn].bars * 4 * loops;
-  return st.song.reduce((s, x) => s + st.patterns[x.ptn].bars * 4 * Math.max(1, x.reps), 0);
+  if (mode === 'pattern') return ptnBeats(st.patterns[ptn]) * loops;
+  return st.song.reduce((s, x) => s + ptnBeats(st.patterns[x.ptn]) * Math.max(1, x.reps), 0);
 }
 
 /**
@@ -96,7 +97,7 @@ export function midiBytes(st: RenderSetup, mode: 'pattern' | 'song', ptn: number
         const vel = Math.max(1, Math.min(127, Math.round(e.vel * 127)));
         evs.push({ tick: on, data: [0x90 | ch, note, vel] }, { tick: off, data: [0x80 | ch, note, 0] });
       }
-      base += p.bars * 4;
+      base += ptnBeats(p);
     }
   }
   evs.sort((a, b) => a.tick - b.tick || (a.data[0] & 0xf0) - (b.data[0] & 0xf0));

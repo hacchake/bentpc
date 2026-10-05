@@ -16,7 +16,13 @@ export interface SeqEvent {
 export interface Pattern {
   bars: number;
   events: SeqEvent[];
+  /** 拍子：1 小節の拍の数（2〜7。無ければ 4） */
+  meter?: number;
 }
+/** 1 小節の拍の数 */
+export const ptnMeter = (p: Pattern) => Math.max(2, Math.min(7, Math.round(p.meter ?? 4)));
+/** パターンの長さ（拍） */
+export const ptnBeats = (p: Pattern) => Math.max(1, p.bars) * ptnMeter(p);
 export interface SongStep {
   ptn: number;
   reps: number;
@@ -71,7 +77,7 @@ export class PatternPlayer {
   constructor(private out: SeqOut) {}
 
   len(): number {
-    return Math.max(1, this.patterns[this.cur].bars) * 4;
+    return ptnBeats(this.patterns[this.cur]);
   }
 
   private build(): void {
@@ -84,7 +90,7 @@ export class PatternPlayer {
   }
 
   setPattern(i: number, p: Pattern): void {
-    this.patterns[i] = { bars: p.bars, events: p.events.map((e) => ({ ...e })) };
+    this.patterns[i] = { bars: p.bars, meter: p.meter, events: p.events.map((e) => ({ ...e })) };
     if (i === this.cur) this.build();
   }
   setSwing(s: number): void {
@@ -171,7 +177,7 @@ export class PatternPlayer {
     // メトロノーム
     if (this.metro) {
       const b = Math.floor(this.pos + eps);
-      if (b !== this.beatIdx && this.pos - b < 1e-4) { this.beatIdx = b; this.out.click(b % 4 === 0); }
+      if (b !== this.beatIdx && this.pos - b < 1e-4) { this.beatIdx = b; this.out.click(b % ptnMeter(this.patterns[this.cur]) === 0); }
     }
     // 音
     while (this.idx < this.sched.length && this.sched[this.idx].t <= this.pos + eps) {

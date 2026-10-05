@@ -6,7 +6,7 @@
 //   ・ノブ・スイッチ → そのパラメーターの CC（0〜127）。なめらかにつなぐ区間は 16 分音符ごとに細かく書く
 //   ・POWER ON / OFF → CC119 = 127 / 0、CRASH → CC117 = 127（終わりで 0）＋マーカー「CRASH」「REBOOT」
 import type { ParamDef } from '../core/params';
-import { BTN, SYS_CRASH, SYS_POWER_OFF, SYS_POWER_ON, trackToy, type Song } from '../core/song';
+import { BTN, SYS_CRASH, SYS_POWER_OFF, SYS_POWER_ON, barBeats, songBeats, trackToy, type Song } from '../core/song';
 
 export const PPQ = 480;
 export const CC_POWER = 119;
@@ -56,12 +56,12 @@ function trackBytes(evs: Ev[]): number[] {
 
 export function songToMidi(song: Song, toys: MidiToy[]): Uint8Array<ArrayBuffer> {
   const tk = (beat: number) => Math.round(beat * PPQ);
-  const endTick = tk(song.bars * 4);
+  const endTick = tk(songBeats(song));
   // ---- トラック 0：テンポ・拍子・セクション ----
   const t0: Ev[] = [
     { tick: 0, order: 0, bytes: meta(0x03, text(song.title ?? 'BENT TOY STUDIO')) },
     { tick: 0, order: 0, bytes: meta(0x51, (() => { const us = Math.round(60_000_000 / song.bpm); return [(us >> 16) & 255, (us >> 8) & 255, us & 255]; })()) },
-    { tick: 0, order: 0, bytes: meta(0x58, [4, 2, 24, 8]) },
+    { tick: 0, order: 0, bytes: meta(0x58, [barBeats(song), 2, 24, 8]) },
   ];
   for (const s of song.sections ?? []) t0.push({ tick: tk(s.start), order: 1, bytes: meta(0x06, text(s.name)) });
   t0.push({ tick: endTick, order: 9, bytes: meta(0x01, text('END')) });

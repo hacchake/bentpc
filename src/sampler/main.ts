@@ -13,7 +13,7 @@ import {
 import { SamplerHost } from './host';
 import { FX_LIST, SLOT_NAMES, defaultSlots, type FxSlot } from './dsp/fx';
 import { WIRES, defaultBend, type BendState } from './dsp/bend';
-import { PATTERNS, QUANTS, QUANT_NAMES, emptyPattern, swingT, type Pattern, type SongStep } from './dsp/seq';
+import { PATTERNS, QUANTS, QUANT_NAMES, emptyPattern, ptnBeats, ptnMeter, swingT, type Pattern, type SongStep } from './dsp/seq';
 import type { Song } from '../core/song';
 import { midiBytes, packProject, renderOffline, sampleWav, unpackProject, wavBytes, type RenderSetup } from './dsp/export';
 import { loadAll, loadMeta, saveMeta, savePads, type StoredPad } from './store';
@@ -239,7 +239,8 @@ const PAGES: [string, KDef[]][] = [
   ['SEQ', [
     { name: 'SWING', def: 0, get: () => (meta.swing - 0.5) / 0.25, set: (k) => { meta.swing = 0.5 + k * 0.25; sendSeqSet(); }, fmt: () => `${Math.round(meta.swing * 100)}%` },
     { name: 'BARS', def: 1 / 7, get: () => (curPattern().bars - 1) / 7, set: (k) => setBars(1 + Math.round(k * 7)), fmt: () => `${curPattern().bars}` },
-    NONE, NONE,
+    { name: 'METER', def: 2 / 5, get: () => (ptnMeter(curPattern()) - 2) / 5, set: (k) => setMeter(2 + Math.round(k * 5)), fmt: () => `${ptnMeter(curPattern())}/4` },
+    NONE,
   ]],
   ['BEND', [
     { name: 'AMOUNT', def: 0.5, get: () => meta.bend.amount, set: (k) => { meta.bend.amount = k; sendBend(); }, fmt: () => pct(meta.bend.amount) },
@@ -412,7 +413,9 @@ function renderPads(): void {
       continue;
     }
     if (padMode === 'step') {
-      const st = stepOfPad(i), t = stepBar * 4 + st * 0.25;
+      const st = stepOfPad(i), t = stepBar * ptnMeter(curPattern()) + st * 0.25;
+      // 4 拍に満たない小節（3/4 など）では、はみ出す分のパッドは使わない
+      if (st >= ptnMeter(curPattern()) * 4) { el.classList.add('empty'); el.classList.remove('sel', 'stepon'); (el.querySelector('.nm') as HTMLElement).textContent = ''; continue; }
       const on = curPattern().events.some((e) => e.pad === stepPad && Math.abs(e.t - t) < 0.01);
       el.classList.remove('empty');
       el.classList.toggle('sel', false);
@@ -906,10 +909,18 @@ function sendSeqSet(): void {
   showSeq();
 }
 function editPattern(f: (p: Pattern) => void): void {
-  pundo = { i: meta.ptn, p: { bars: curPattern().bars, events: curPattern().events.map((e) => ({ ...e })) } };
+  pundo = { i: meta.ptn, p: { bars: curPattern().bars, meter: curPattern().meter, events: curPattern().events.map((e) => ({ ...e })) } };
   f(curPattern());
   sendPattern(meta.ptn);
   renderPads();
+}
+/** 拍子（1 小節の拍の数）。音の位置（拍）はそのまま、パターンの長さと小節の区切りが変わる */
+function setMeter(n: number): void {
+  n = Math.max(2, Math.min(7, n));
+  if (n === ptnMeter(curPattern())) return;
+  editPattern((p) => { if (n === 4) delete p.meter; else p.meter = n; });
+  showSeq();
+  showKnobs();
 }
 function setBars(b: number): void {
   b = Math.max(1, Math.min(8, b));
@@ -928,7 +939,8 @@ function selectPattern(i: number): void {
   msg(`${ptnName(i)}${seqState.playing ? '（いまのパターンの終わりで替わる）' : ''}`, 2000);
 }
 function toggleStep(i: number): void {
-  const t = stepBar * 4 + stepOfPad(i) * 0.25;
+  if (stepOfPad(i) >= ptnMeter(curPattern()) * 4) return;
+  const t = stepBar * ptnMeter(curPattern()) + stepOfPad(i) * 0.25;
   editPattern((p) => {
     const k = p.events.findIndex((e) => e.pad === stepPad && Math.abs(e.t - t) < 0.01);
     if (k >= 0) p.events.splice(k, 1);
@@ -959,14 +971,14 @@ function drawPattern(): void {
   c.fillStyle = '#a9c98a';
   c.fillRect(0, 0, W, H);
   const p = meta.patterns[seqState.playing ? seqState.ptn : meta.ptn];
-  const L = p.bars * 4;
+  const L = ptnBeats(p), mb = ptnMeter(p) * 4;
   const rows = [...new Set(p.events.map((e) => e.pad))].sort((a, b) => a - b);
   const X = (t: number) => (t / L) * W;
   for (let b = 0; b <= L * 4; b++) {
-    c.fillStyle = b % 16 === 0 ? 'rgba(32,48,26,.6)' : b % 4 === 0 ? 'rgba(32,48,26,.3)' : 'rgba(32,48,26,.08)';
+    c.fillStyle = b % mb === 0 ? 'rgba(32,48,26,.6)' : b % 4 === 0 ? 'rgba(32,48,26,.3)' : 'rgba(32,48,26,.08)';
     c.fillRect(X(b / 4), 0, 1, H);
   }
-  if (padMode === 'step') { c.fillStyle = 'rgba(255,246,176,.5)'; c.fillRect(X(stepBar * 4), 0, X(4), H); }
+  if (padMode === 'step') { c.fillStyle = 'rgba(255,246,176,.5)'; c.fillRect(X(stepBar * ptnMeter(p)), 0, X(ptnMeter(p)), H); }
   const rh = Math.min(16, (H - 4) / Math.max(1, rows.length));
   c.font = '700 10px "Share Tech Mono", monospace';
   rows.forEach((pad, r) => {
@@ -1143,15 +1155,19 @@ click('pk-xstudio', () => {
     sections.push({ name: ptnName(st.ptn), start: base });
     for (let r = 0; r < Math.max(1, st.reps); r++) {
       for (const e of p.events) notes.push({ key: e.pad, start: base + swingT(e.t, meta.swing), len: Math.max(0.05, e.len), take: 0 });
-      base += p.bars * 4;
+      base += ptnBeats(p);
     }
   }
   if (!notes.length) { msg('パターンがからっぽです', 2500); return; }
   if (!confirm('スタジオ（PAKU-PAKU 16 だけを並べた画面）の曲を、このソングで置き換えて開きます。よろしいですか？')) return;
-  const bars = Math.ceil(base / 4);
+  // パターンの拍子がみんな同じなら、曲もその拍子に（ちがえば 4/4 のまま）
+  const meters = new Set(steps.map((st) => ptnMeter(meta.patterns[st.ptn])));
+  const bpb = meters.size === 1 ? [...meters][0] : 4;
+  const bars = Math.ceil(base / bpb);
   const song: Song = {
     version: 1, title: `PAKU-PAKU ${meta.song.length ? 'SONG' : ptnName(meta.ptn)}`, bpm: meta.bpm, bars, metronome: false, seed: 1616, ramp: true,
-    loop: { on: false, start: 0, end: bars * 4 }, sections,
+    ...(bpb !== 4 ? { beatsPerBar: bpb } : {}),
+    loop: { on: false, start: 0, end: bars * bpb }, sections,
     tracks: [{ toy: 0, name: 'PAKU-PAKU 16', mute: false, notes: notes.sort((a, b) => a.start - b.start), autos: [], rec: true }],
   };
   try {

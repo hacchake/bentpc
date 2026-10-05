@@ -346,6 +346,17 @@ const freq = (x: Float32Array, a: number, b: number) => { let z = 0; for (let i 
     const o = onsetsOf(L);
     o.length === 9 && o.every((t, i) => Math.abs(t - i * 0.5) < 0.0005) ? ok('パターン：4 つ打ちが 0.5 秒ごとぴったり・2 周目へ続く') : ng(`パターン ${o.map((t) => t.toFixed(4)).join(' ')}`);
   }
+  // ---- 拍子：3/4 のパターン（1 小節 = 3 拍）は 1.5 秒で 1 周する ----
+  {
+    const e = new SamplerEngine(SR);
+    e.bpm = 120;
+    e.setSample(0, { sr: SR, ch: [click] });
+    e.seq.setPattern(0, { bars: 1, meter: 3, events: [{ t: 0, pad: 0, vel: 1, len: 0.1 }] });
+    e.transport(true, 'pattern', 0);
+    const [L] = run(e, 3.2);
+    const o = onsetsOf(L);
+    o.length === 3 && o.every((t, i) => Math.abs(t - i * 1.5) < 0.0005) ? ok('拍子 3/4：1 小節のパターンが 1.5 秒ごとに 1 周') : ng(`拍子 3/4 ${o.map((t) => t.toFixed(4)).join(' ')}`);
+  }
   // ---- スイング：16 分の裏が遅れる ----
   {
     const e = new SamplerEngine(SR);

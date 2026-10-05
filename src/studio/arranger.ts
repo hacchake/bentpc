@@ -4,7 +4,7 @@
 //   ⇄ スイッチ（モード・BASE・LOOP・DIST タイプなど：値の段） / ◠ ノブ（線グラフ）
 // 上の目盛り：セクション名（イントロ・サビ…）、小節番号、ループ範囲。
 // 編集はすべてマウス（ダブルクリックで追加・ドラッグで移動・右クリックで削除）とキー（Delete・Ctrl+Z など）。
-import { autoValueAt, clampSong, cloneSong, mergeTake, songBeats, trackToy, BTN, SYS_CRASH, SYS_NAMES, SYS_POWER_OFF, SYS_POWER_ON, type MixCh, type SeqAuto, type SeqNote, type Song, type takeFromRaw } from '../core/song';
+import { autoValueAt, barBeats, clampSong, cloneSong, mergeTake, songBeats, trackToy, BTN, SYS_CRASH, SYS_NAMES, SYS_POWER_OFF, SYS_POWER_ON, type MixCh, type SeqAuto, type SeqNote, type Song, type takeFromRaw } from '../core/song';
 import { seqKeyName, type ToyUI } from '../core/ui';
 import './arranger.css';
 import { deleteSong, getSong, listSongs, newSongId, putSong, type SongEntry } from '../core/songlib';
@@ -74,6 +74,7 @@ export class Arranger {
         <span class="pos" data-id="pos">1.1</span>
         <label>BPM <input data-id="bpm" type="number" min="40" max="300" step="1"></label>
         <label>長さ <input data-id="bars" type="number" min="1" max="400" step="1"> 小節</label>
+        <label title="拍子：1 小節の拍の数（自動作曲・カバーは 4/4 で作ります）">拍子 <select data-id="meter">${[2, 3, 4, 5, 6, 7].map((n) => `<option value="${n}">${n}/4</option>`).join('')}</select></label>
         <label class="chk"><input data-id="loop" type="checkbox"> LOOP</label>
         <label>グリッド <select data-id="grid">${GRIDS.map(([n], i) => `<option value="${i}">${n}</option>`).join('')}</select></label>
         <label class="chk"><input data-id="metro" type="checkbox"> クリック</label>
@@ -181,7 +182,8 @@ export class Arranger {
   }
 
   posText(beat: number): string {
-    const bar = Math.floor(beat / 4) + 1, bt = Math.floor(beat % 4) + 1;
+    const bpb = barBeats(this.song);
+    const bar = Math.floor(beat / bpb) + 1, bt = Math.floor(beat % bpb) + 1;
     const sec = (beat * 60) / this.song.bpm;
     const sect = this.sectionAt(beat);
     return `${bar}.${bt}  ${Math.floor(sec / 60)}:${String(Math.floor(sec % 60)).padStart(2, '0')}${sect ? '  ' + sect : ''}`;
@@ -406,7 +408,8 @@ export class Arranger {
     this.snapshot();
     const notes = [...this.sel];
     const s = Math.min(...notes.map((n) => n.start)), e = Math.max(...notes.map((n) => n.start + n.len));
-    const span = Math.max(4, Math.ceil((e - s) / 4) * 4);
+    const bpb = barBeats(this.song);
+    const span = Math.max(bpb, Math.ceil((e - s) / bpb) * bpb);
     const added: SeqNote[] = [];
     for (const n of notes) {
       const tr = this.song.tracks[this.selTrackOf(n)];
@@ -431,7 +434,7 @@ export class Arranger {
     });
     on('play', () => this.togglePlay());
     on('rec', () => {
-      if (!this.recording) { this.snapshot(); this.host.record(true, this.nextTake(), !this.playing && (this.$('count') as HTMLInputElement).checked ? 4 : 0); }
+      if (!this.recording) { this.snapshot(); this.host.record(true, this.nextTake(), !this.playing && (this.$('count') as HTMLInputElement).checked ? barBeats(this.song) : 0); }
       else this.host.record(false, 0);
     });
     on('undo', () => this.undo());
@@ -495,6 +498,14 @@ export class Arranger {
     });
     num('bpm', (v) => { this.song.bpm = Math.max(40, Math.min(300, Math.round(v))); });
     num('bars', (v) => { this.song.bars = Math.max(1, Math.min(400, Math.round(v))); });
+    // 拍子を変えても、音符の位置（拍）はそのまま。小節の区切りと、クリックの強い音の位置が変わる
+    (this.$('meter') as HTMLSelectElement).addEventListener('change', (e) => {
+      this.snapshot();
+      const n = Number((e.target as HTMLSelectElement).value);
+      if (n === 4) delete this.song.beatsPerBar; else this.song.beatsPerBar = n;
+      this.commit();
+      this.refreshBar();
+    });
     num('seed', (v) => { this.song.seed = Math.max(0, Math.floor(v)) >>> 0; });
     (this.$('loop') as HTMLInputElement).addEventListener('change', (e) => {
       this.snapshot();
@@ -592,6 +603,7 @@ export class Arranger {
     if (!this.$('mixer').hidden) this.renderMixer();
     (this.$('bpm') as HTMLInputElement).value = String(this.song.bpm);
     (this.$('bars') as HTMLInputElement).value = String(this.song.bars);
+    (this.$('meter') as HTMLSelectElement).value = String(barBeats(this.song));
     (this.$('seed') as HTMLInputElement).value = String(this.song.seed ?? 0);
     (this.$('loop') as HTMLInputElement).checked = !!this.song.loop?.on;
     (this.$('metro') as HTMLInputElement).checked = this.song.metronome;
@@ -744,7 +756,7 @@ export class Arranger {
       if (near) {
         if (name.trim()) cur!.name = name.trim();
         else this.song.sections.splice(i, 1);
-      } else if (name.trim()) this.song.sections.push({ name: name.trim(), start: Math.max(0, Math.round(this.beatOf(x) / 4) * 4) });
+      } else if (name.trim()) this.song.sections.push({ name: name.trim(), start: Math.max(0, Math.round(this.beatOf(x) / barBeats(this.song)) * barBeats(this.song)) });
       this.commit();
     });
     c.addEventListener('contextmenu', (e) => {
@@ -1065,10 +1077,11 @@ export class Arranger {
       if (x1 > x0) { g.fillStyle = lp.on ? 'rgba(255, 200, 60, .45)' : 'rgba(255,255,255,.08)'; g.fillRect(x0, 19, x1 - x0, 24); }
     }
     // 小節番号
-    const step = this.pxPerBeat * 4 < 26 ? (this.pxPerBeat * 16 < 26 ? 16 : 4) : 1;
+    const bpb = barBeats(this.song);
+    const step = this.pxPerBeat * bpb < 26 ? (this.pxPerBeat * bpb * 4 < 26 ? 16 : 4) : 1;
     g.font = '11px "Share Tech Mono", monospace';
-    for (let bar = Math.floor(this.viewStart / 4); bar * 4 <= end; bar++) {
-      const x = this.xOf(bar * 4);
+    for (let bar = Math.floor(this.viewStart / bpb); bar * bpb <= end; bar++) {
+      const x = this.xOf(bar * bpb);
       if (x > w) break;
       if (x < GUTTER) continue;
       g.fillStyle = '#5a5566';
@@ -1110,12 +1123,13 @@ export class Arranger {
       g.fillRect(0, y + l.h - 1, w, 1);
     }
     // 拍と小節の線
-    const step = this.grid && this.grid * this.pxPerBeat >= 6 ? this.grid : this.pxPerBeat >= 6 ? 1 : 4;
+    const bpb = barBeats(this.song);
+    const step = this.grid && this.grid * this.pxPerBeat >= 6 ? this.grid : this.pxPerBeat >= 6 ? 1 : bpb;
     for (let b = Math.floor(this.viewStart / step) * step; b <= end; b += step) {
       const x = this.xOf(b);
       if (x > w) break;
       if (x < GUTTER) continue;
-      g.fillStyle = b % 16 === 0 ? '#6a6478' : b % 4 === 0 ? '#4a4556' : b % 1 === 0 ? '#34303c' : '#2a2731';
+      g.fillStyle = b % (bpb * 4) === 0 ? '#6a6478' : b % bpb === 0 ? '#4a4556' : b % 1 === 0 ? '#34303c' : '#2a2731';
       g.fillRect(Math.round(x), 0, 1, h);
     }
     // セクションの境目

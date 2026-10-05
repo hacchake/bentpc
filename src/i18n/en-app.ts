@@ -700,4 +700,6 @@ export const EN_APP: Record<string, string> = {
   '⤓ M4A ソング': '⤓ M4A song',
   '圧縮しています…': 'Compressing…',
   '{0} を書き出しました（{1} 秒{2}）': 'Exported {0} ({1} s{2})',
+  '拍子：1 小節の拍の数（自動作曲・カバーは 4/4 で作ります）': 'Time signature: beats per bar (the auto composer and covers use 4/4)',
+  '拍子': 'Meter',
 };

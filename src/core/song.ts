@@ -56,7 +56,7 @@ export const SYS_NAMES: Record<number, string> = { [SYS_CRASH]: 'CRASH→再起�
 export interface Song {
   version: 1;
   bpm: number;
-  bars: number; // 4/4 拍子の小節数 = ループの長さ
+  bars: number; // 小節数 = ループの長さ（1 小節 = beatsPerBar 拍）
   metronome: boolean;
   tracks: SeqTrack[]; // 基本はおもちゃ 1 台 = 1 トラック（並び順 = おもちゃ番号）。toy を書けば 1 台に何本でも
   // ---- スタジオ用（無ければ従来どおり） ----
@@ -74,6 +74,8 @@ export interface Song {
   compose?: ComposeInfo;
   /** ミキサー：おもちゃごとの音量・左右・ミュート・ソロ（並び順 = おもちゃ番号。無ければ 0dB・自動で並べる） */
   mix?: (MixCh | null)[];
+  /** 拍子：1 小節の拍（4 分音符）の数。2〜7（無ければ 4 = 4/4 拍子） */
+  beatsPerBar?: number;
   /** 曲の置き場（songlib）での番号：上書き保存の先 */
   libId?: string;
 }
@@ -114,7 +116,9 @@ export function emptySong(toys: number): Song {
   return { version: 1, bpm: 120, bars: 4, metronome: true, tracks: Array.from({ length: toys }, () => ({ mute: false, notes: [], autos: [] })) };
 }
 
-export const songBeats = (s: Song) => s.bars * 4;
+/** 1 小節の拍の数（拍子） */
+export const barBeats = (s: Song) => Math.max(1, Math.min(12, Math.round(s.beatsPerBar ?? 4)));
+export const songBeats = (s: Song) => s.bars * barBeats(s);
 
 /**
  * 生の操作を音符とツマミの動きに変える。
