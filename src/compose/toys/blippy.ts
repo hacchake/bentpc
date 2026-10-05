@@ -9,7 +9,7 @@ import type { Rng } from '../../core/rng';
 import type { Plan, PlannedSection } from '../plan';
 import type { Texture } from '../styles';
 import { PartWriter } from '../writer';
-import { crashSpan, drumBar, snapToScale } from '../harmony';
+import { crashSpan, drumBar, midiToDeg, snapToScale } from '../harmony';
 
 // ================= おもちゃの番号 =================
 const P = { volume: 0, mode: 1, base: 8, lfoRate: 11, lfoDepth: 12, stretch: 13, stretchHold: 14, stretchRel: 15, dist: 16, distType: 17 };
@@ -165,6 +165,12 @@ export function composeBlippy(ctx: BlippyContext): (SeqTrack & { part: string })
         break;
     }
 
+    // ---- カバー：解析したメロディが鳴っている所は melody に（1 音ずつなので、声・ドラムより優先） ----
+    const coverMel = plan.cover ? plan.cover.melody.filter((n) => n.t >= s0 && n.t < s0 + sec.bars * 4) : null;
+    if (coverMel) for (const n of coverMel) {
+      const i0 = Math.round((n.t - s0) * 4), i1 = Math.min(steps, i0 + Math.max(1, Math.round(n.len * 4)));
+      for (let i = i0; i < i1; i++) slot[i] = 'm';
+    }
     // ---- keys：モードと文字 ----
     const mode = { say: MODE.SAY, callmel: MODE.WORD, spell: MODE.ABC, drum: MODE.DRUM, chars: MODE.WORD, sfx: MODE.SFX, quiz: MODE.QUIZ, long: MODE.SAY }[tex];
     keys.set(P.mode, Math.max(0, s0 - 0.25), mode);
@@ -214,10 +220,17 @@ export function composeBlippy(ctx: BlippyContext): (SeqTrack & { part: string })
     // 呼びかけの後、ときどき機能キー（♪ ? ★ OK）で返す（読み上げ系のセクション）
     if ((tex === 'callmel' || tex === 'say') && sec.bars >= 4 && r.chance(0.5)) keys.note(26 + r.int(4), s0 + sec.bars * 4 - 1, 0.25);
 
+    // ---- melody（カバー）：解析したメロディをドレミの 1〜10 で ----
+    if (coverMel) for (const n of coverMel) {
+      let d = snapToScale(plan, midiToDeg(n.midi));
+      while (d > 9) d -= 7;
+      while (d < 0) d += 7;
+      mel.note(DO(d + 1), n.t, Math.max(0.15, n.len * 0.9));
+    }
     // ---- melody：モチーフを繰り返し、ときどき変える ----
     const motif = motifFor(sec.kind, sec);
     const long = tex === 'long';
-    let pos = 0, rep = 0;
+    let pos = coverMel ? steps : 0, rep = 0; // カバーのときはモチーフを作らない
     while (pos < steps) {
       const variant = rep % 2 === 1;
       let pitch = nearest(chordTones(Math.floor((s0 + pos / 4) / 4)), lastPitch + (rep % 4 === 3 ? 2 : 0));

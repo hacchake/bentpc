@@ -3,6 +3,7 @@
 // 同じ ComposeRequest を受け取って Song を返せばよい。
 
 import type { Song } from '../core/song';
+import type { CoverSource } from '../cover/plan';
 
 /** スタイルの名前（styles.ts の STYLES の鍵。'plain' 'beat' 'enka' 'dnb' など） */
 export type StyleId = string;
@@ -33,6 +34,8 @@ export interface ComposeRequest {
   base?: Song;
   /** このセクション（番号）だけ作り直す */
   section?: number;
+  /** カバー：取り込んだ曲の解析（あれば、構成・コード・メロディ・ベース・ドラムをこれに合わせる） */
+  cover?: CoverSource;
 }
 
 export interface Composer {
@@ -48,4 +51,6 @@ export interface ComposeInfo {
   toys: ComposeToy[];
   /** セクションごとの作り直し回数（乱数を変えるため） */
   salt?: Record<number, number>;
+  /** カバーの元（解析結果。音そのものは入れない） */
+  cover?: CoverSource;
 }

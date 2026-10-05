@@ -11,7 +11,7 @@
     "typecheck": "tsc --noEmit",
     "smoke": "tsx scripts/smoke.ts",
     "manual": "tsx scripts/manual/shots.ts && tsx scripts/manual/seeds.ts && tsx scripts/manual/build.ts && tsx scripts/manual/pdf.ts",
-    "test": "tsx scripts/engine-test.ts && tsx scripts/mods-test.ts && tsx scripts/heat-test.ts && tsx scripts/mic-test.ts && tsx scripts/piko-test.ts && tsx scripts/dj-test.ts && tsx scripts/vroom-test.ts && tsx scripts/typo-test.ts && tsx scripts/seq-test.ts && tsx scripts/tele-test.ts && tsx scripts/demo-test.ts && tsx scripts/export-test.ts && tsx scripts/compose-test.ts && tsx scripts/sampler-test.ts && tsx scripts/master-test.ts"
+    "test": "tsx scripts/engine-test.ts && tsx scripts/mods-test.ts && tsx scripts/heat-test.ts && tsx scripts/mic-test.ts && tsx scripts/piko-test.ts && tsx scripts/dj-test.ts && tsx scripts/vroom-test.ts && tsx scripts/typo-test.ts && tsx scripts/seq-test.ts && tsx scripts/tele-test.ts && tsx scripts/demo-test.ts && tsx scripts/export-test.ts && tsx scripts/compose-test.ts && tsx scripts/sampler-test.ts && tsx scripts/master-test.ts && tsx scripts/cover-test.ts"
   },
   "devDependencies": {
     "@types/node": "^26.6.3",

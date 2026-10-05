@@ -3,6 +3,7 @@
 import { Rng, hashSeed } from '../core/rng';
 import { styleOf, type SectionKind, type StyleDef } from './styles';
 import type { ComposeSettings } from './types';
+import type { CoverPart } from '../cover/plan';
 
 export interface PlannedSection {
   index: number;
@@ -26,6 +27,8 @@ export interface Plan {
   chords: number[];
   /** クラッシュさせるセクション（無ければ -1） */
   crashSection: number;
+  /** カバー（取り込んだ曲の解析）：あれば、メロディ・ベース・ドラムを作らずにこれを使う（cover/plan.ts） */
+  cover?: CoverPart;
 }
 
 /** コード進行の候補（度数）。どれを使うかはシードで決まる */

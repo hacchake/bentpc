@@ -48,6 +48,7 @@ export interface MelNote { t: number; len: number; deg: number }
  * 演歌（ornament = kobushi）は、長い音の前に上の音から小さく回す（こぶし）。stretch = リズムを何倍に伸ばすか
  */
 export function realize(plan: Plan, sec: PlannedSection, motif: Motif, range: [number, number], opts: { stretch?: number; start?: number; gate?: number } = {}): MelNote[] {
+  if (plan.cover) return coverNotes(plan, plan.cover.melody, sec, range, opts.gate ?? 0.9);
   const out: MelNote[] = [];
   const st = opts.stretch ?? 1;
   const end = sec.start + sec.bars * 4;
@@ -110,6 +111,7 @@ const BASS: Record<string, BassHit[][]> = {
 };
 /** セクションのベース（音階の段と、拍・長さ） */
 export function bassLine(plan: Plan, sec: PlannedSection, r: Rng): MelNote[] {
+  if (plan.cover) return coverNotes(plan, plan.cover.bass, sec, [0, 6], 0.9);
   const out: MelNote[] = [];
   const type = plan.style.bass;
   if (type === 'none') return out;
@@ -129,6 +131,25 @@ export function bassLine(plan: Plan, sec: PlannedSection, r: Rng): MelNote[] {
     for (const [o, len, iv] of pat) out.push({ t: t0 + o, len, deg: root + iv });
   }
   return out;
+}
+
+// ================= カバー：解析した音符 → 音階の段 =================
+/** MIDI → 音階の段（60 = C4 が 0。黒鍵は下の白鍵へ） */
+export function midiToDeg(midi: number): number {
+  const oct = Math.floor(midi / 12) - 5, pc = ((midi % 12) + 12) % 12;
+  let idx = 0;
+  for (let i = 0; i < 7; i++) if (MAJOR[i] <= pc) idx = i;
+  return oct * 7 + idx;
+}
+/** セクションの中の解析の音符を、範囲（段）に入るようオクターブで動かして返す */
+function coverNotes(plan: Plan, notes: { t: number; len: number; midi: number }[], sec: PlannedSection, range: [number, number], gate: number): MelNote[] {
+  const a = sec.start, b = sec.start + sec.bars * 4;
+  return notes.filter((n) => n.t >= a && n.t < b).map((n) => {
+    let deg = snapToScale(plan, midiToDeg(n.midi));
+    while (deg > range[1]) deg -= 7;
+    while (deg < range[0]) deg += 7;
+    return { t: n.t, len: Math.max(0.1, Math.min(n.len, b - n.t) * gate), deg };
+  });
 }
 
 // ================= 伴奏（コード）：スタイルの弾き方で =================
@@ -202,6 +223,11 @@ const reorder = (p: string, order: number[]) => order.map((i) => p.slice(i * 4, 
 
 /** セクションの小節 b のドラム（4 小節目はフィル。IDM・ブレイクコアは毎回組み直す） */
 export function drumBar(plan: Plan, sec: PlannedSection, b: number, r: Rng): DrumBar | null {
+  if (plan.cover) {
+    // カバー：解析したドラムをそのまま（空の小節は鳴らさない）
+    const d = plan.cover.drums[barOf(sec.start) + b];
+    return d && /x/.test(d.kick + d.snare + d.hat) ? d : null;
+  }
   const kit: DrumKit = plan.style.drums;
   if (kit === 'none' || sec.energy < 0.2) return null;
   if (kit === 'idm') {

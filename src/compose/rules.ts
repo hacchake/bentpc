@@ -4,6 +4,7 @@
 // 3. 鍵の付いたトラックは残す。セクションだけ作り直すときは、その範囲だけ差し替える
 import { trackToy, type SeqTrack, type Song } from '../core/song';
 import { planSong, rngFor } from './plan';
+import { coverPlan } from '../cover/plan';
 import { swingTime } from './harmony';
 import { styleOf } from './styles';
 import { composeBlippy } from './toys/blippy';
@@ -40,8 +41,10 @@ export class RuleComposer implements Composer {
     const settings = req.section !== undefined && base?.compose ? base.compose.settings : req.settings;
     const salt: Record<number, number> = { ...(req.section !== undefined ? base?.compose?.salt : undefined) };
     if (req.section !== undefined) salt[req.section] = (salt[req.section] ?? 0) + 1;
-    const plan = planSong(settings);
-    const info: ComposeInfo = { engine: this.id, settings, toys: req.toys, salt };
+    // カバー：取り込んだ曲の解析から設計図を作る（セクションだけ作り直すときは、元の曲のカバーを使う）
+    const cover = req.cover ?? (req.section !== undefined ? base?.compose?.cover : undefined);
+    const plan = cover ? coverPlan(settings, cover) : planSong(settings);
+    const info: ComposeInfo = { engine: this.id, settings: plan.settings, toys: req.toys, salt, ...(cover ? { cover } : {}) };
 
     const generated: Part[] = [];
     for (const t of req.toys) {
@@ -88,7 +91,7 @@ export class RuleComposer implements Composer {
     const style = styleOf(settings.style);
     return {
       version: 1,
-      title: `${style.name} #${settings.seed}`,
+      title: cover ? `${cover.title}（${style.name}カバー）` : `${style.name} #${settings.seed}`,
       bpm: plan.bpm,
       bars: plan.bars,
       metronome: false,
