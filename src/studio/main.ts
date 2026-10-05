@@ -142,7 +142,7 @@ const arr = new Arranger({
   toys,
   send: (song) => audio.post({ type: 'song', song }),
   transport: (play, from) => void transport(play, from),
-  record: async (on, take, countIn) => { await audio.start(); audio.post({ type: 'seqRec', on, take, countIn }); },
+  record: async (on, take, countIn) => { await audio.start(); audio.post({ type: 'seqRec', on, take, countIn, latency: audio.outputDelay }); },
   onSong: (s) => { $('songTitle').textContent = s.title ?? ''; },
   storeKey: isDefault ? 'bentpc.studio.song.v1' : `bentpc.studio.song.v1.${lineup.join('-')}`,
   blank: () => blankStudioSong(toys.map((t) => t.title)),

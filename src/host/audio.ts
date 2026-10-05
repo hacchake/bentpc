@@ -35,6 +35,14 @@ export class AudioHost {
     return this.starting;
   }
 
+  /** 音を出してから耳に届くまでの遅れ（秒）。手で弾いた録音を、その分だけ前にずらすのに使う */
+  get outputDelay(): number {
+    const c = this.ctx;
+    if (!c) return 0;
+    const v = (c.outputLatency || 0) + (c.baseLatency || 0);
+    return Number.isFinite(v) ? Math.max(0, Math.min(0.3, v)) : 0;
+  }
+
   post(m: ToEngine): void {
     if (this.node) {
       this.node.port.postMessage(m);

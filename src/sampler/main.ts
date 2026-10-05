@@ -993,10 +993,12 @@ click('pk-pplay', () => {
 click('pk-prec', () => {
   if (!seqState.playing) {
     pundo = { i: meta.ptn, p: { bars: curPattern().bars, events: curPattern().events.map((e) => ({ ...e })) } };
+    host.sendLatency();
     host.post({ type: 'transport', play: true, mode: 'pattern', ptn: meta.ptn, rec: true });
     msg('● 録音中：パッドを叩くと重なっていく（● REC でやめる・■ で止める）', 3000);
   } else {
     if (!seqState.recording) pundo = { i: meta.ptn, p: { bars: curPattern().bars, events: curPattern().events.map((e) => ({ ...e })) } };
+    host.sendLatency();
     host.post({ type: 'seqRec', on: !seqState.recording });
   }
 });

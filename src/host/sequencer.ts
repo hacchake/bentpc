@@ -143,6 +143,8 @@ export class Sequencer {
     this.cb.onRebuild?.();
   }
 
+  /** 手で弾いた録音を前にずらす秒数（スピーカーの遅れ：聞こえた音に合わせて弾くと、その分おそく押すため） */
+  recLatency = 0;
   /** カウントインしている最中か */
   get counting(): boolean { return this.countLeft > 0; }
   /** beats 拍クリックしてから、再生と録音を始める（止まっているときの録音） */
@@ -172,8 +174,11 @@ export class Sequencer {
       else this.liveHeld[toy].delete(m.key);
     }
     if (!this.recording || !this.playing) return;
-    if (m.type === 'key') this.raw.push({ toy, kind: 'key', key: m.key, down: m.down, beat: this.pos });
-    else this.raw.push({ toy, kind: 'param', index: m.index, value: m.value, beat: this.pos });
+    // 聞こえていた位置に戻す（ループの頭より前にはしない）
+    const floor = this.song.loop?.on && this.pos >= this.song.loop.start ? this.song.loop.start : 0;
+    const beat = Math.max(floor, this.pos - (this.recLatency * this.song.bpm) / 60);
+    if (m.type === 'key') this.raw.push({ toy, kind: 'key', key: m.key, down: m.down, beat });
+    else this.raw.push({ toy, kind: 'param', index: m.index, value: m.value, beat });
   }
 
   /** 録ったものを曲に重ね、画面に知らせる。final でなければ、押しっぱなしのキーを restart の位置から続ける */

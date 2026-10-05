@@ -77,6 +77,7 @@ class ToyRackProcessor extends AudioWorkletProcessor {
       if (m.type === 'song') { this.seq.setSong(m.song); return; }
       if (m.type === 'transport') { if (m.play) this.seq.play(m.from); else this.seq.stop(); return; }
       if (m.type === 'seqRec') {
+        if (m.on) this.seq.recLatency = m.latency ?? 0;
         // 止まっている所からの録音：カウントイン（クリックを countIn 拍）してから始める
         if (m.on && !this.seq.playing && m.countIn) { this.seq.startCountIn(m.countIn, m.take); return; }
         if (!m.on && this.seq.counting) { this.seq.cancelCountIn(); return; }

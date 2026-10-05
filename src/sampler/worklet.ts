@@ -29,6 +29,7 @@ class SamplerProcessor extends AudioWorkletProcessor {
         case 'pattern': eng.seq.setPattern(m.i, m.p); break;
         case 'song': eng.seq.song = m.steps.map((x) => ({ ...x })); break;
         case 'transport': eng.transport(m.play, m.mode, m.ptn, m.rec); break;
+        case 'latency': eng.seq.recLatency = m.sec; break;
         case 'seqRec': eng.seq.recording = m.on && eng.seq.playing && eng.seq.mode === 'pattern'; break;
         case 'seqSet': eng.seq.quant = m.quant; eng.seq.setSwing(m.swing); eng.seq.metro = m.metro; break;
         case 'selPtn': eng.seq.select(m.i); break;

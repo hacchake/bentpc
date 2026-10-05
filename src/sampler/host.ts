@@ -26,8 +26,17 @@ export class SamplerHost {
       for (const m of this.pending) node.port.postMessage(m);
       this.pending = [];
       await ctx.resume();
+      this.sendLatency();
     })();
     return this.starting;
+  }
+
+  /** スピーカーの遅れを音の側に知らせる（手で叩いた録音を、その分前にずらす）。録音を始めるたびに呼ぶ */
+  sendLatency(): void {
+    const c = this.ctx;
+    if (!c || !this.node) return;
+    const v = (c.outputLatency || 0) + (c.baseLatency || 0);
+    this.node.port.postMessage({ type: 'latency', sec: Number.isFinite(v) ? Math.max(0, Math.min(0.3, v)) : 0 });
   }
 
   get running(): boolean {

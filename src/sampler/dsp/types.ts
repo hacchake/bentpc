@@ -116,6 +116,8 @@ export type ToSampler =
   /** 再生／停止。rec = 録音しながら */
   | { type: 'transport'; play: boolean; mode?: 'pattern' | 'song'; ptn?: number; rec?: boolean }
   | { type: 'seqRec'; on: boolean }
+  /** 音を出してから耳に届くまでの遅れ（秒）。手で叩いた録音をその分前にずらす */
+  | { type: 'latency'; sec: number }
   | { type: 'seqSet'; quant: number; swing: number; metro: boolean }
   | { type: 'selPtn'; i: number };
 

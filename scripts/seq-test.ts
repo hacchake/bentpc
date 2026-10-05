@@ -209,6 +209,24 @@ if (!bn.ended() || bn.seq.playing) ng('BOUNCE が終わらない');
   Math.abs(startedAt - 2) < 0.01 && c.seq.recording && clickE > 1 ? console.log(`OK カウントイン：${startedAt.toFixed(3)} 秒後に再生と録音`) : ng(`カウントイン：始まり ${startedAt}・録音 ${c.seq.recording}・クリック ${clickE.toFixed(2)}`);
 }
 
+// 録音の遅れの補正：スピーカーの遅れ 0.1 秒（120 BPM で 0.2 拍）の分、前にずらして録る
+{
+  const s = emptySong(TOY_ENGINES.length);
+  s.bars = 1;
+  const c = rig(s);
+  c.seq.play(0);
+  c.seq.recLatency = 0.1;
+  c.seq.setRecording(true, 1);
+  let done = 0;
+  c.run(1.5, (beat) => {
+    if (done === 0 && beat >= 1) { done = 1; c.seq.live(1, { type: 'key', key: 3, down: true }); }
+    if (done === 1 && beat >= 2) { done = 2; c.seq.live(1, { type: 'key', key: 3, down: false }); }
+  });
+  c.seq.setRecording(false);
+  const n = c.seq.song.tracks[1].notes[0];
+  n && Math.abs(n.start - 0.8) < 0.03 ? console.log(`OK 録音の遅れの補正：1 拍目で押す → ${n.start.toFixed(2)} 拍に記録（0.1 秒前）`) : ng(`録音の遅れの補正：${n?.start}`);
+}
+
 // MIDI クロック：外の機器のテンポ・START / STOP に合わせる
 {
   const got: string[] = [];

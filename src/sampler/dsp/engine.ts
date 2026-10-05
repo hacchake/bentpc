@@ -90,6 +90,7 @@ export class SamplerEngine {
       click: (accent) => { this.clickLeft = Math.round(this.sr * 0.03); this.clickPh = 0; this.clickHz = accent ? 1600 : 1000; },
       added: (ptn, ev) => this.onSeqAdd(ptn, ev),
     });
+    this.seq.bpmOf = () => this.bpm;
   }
 
   /** 再生／停止（rec = 録音しながら） */

@@ -188,9 +188,13 @@ export class PatternPlayer {
     const L = this.len();
     return (Math.round(t / this.quant) * this.quant) % L;
   }
+  /** 手で叩いた録音を前にずらす秒数（スピーカーの遅れ。聞こえた音に合わせて叩くと、その分おそく押すため） */
+  recLatency = 0;
+  bpmOf: () => number = () => 120;
   noteOn(pad: number, vel: number, mod?: TrigMod): void {
     if (!this.playing || !this.recording) return;
-    this.rec.set(pad, { t: this.q(this.pos), vel, mod, at: this.played });
+    const L = this.len(), back = (this.recLatency * this.bpmOf()) / 60;
+    this.rec.set(pad, { t: this.q((((this.pos - back) % L) + L) % L), vel, mod, at: this.played });
   }
   noteOff(pad: number): void {
     const r = this.rec.get(pad);
