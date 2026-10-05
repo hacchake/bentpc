@@ -647,7 +647,11 @@ export function vocalPitch(vocal: Float32Array, ratio = 2): { pitch: Float32Arra
       for (let h = 1; h <= 6; h++) {
         const k = (midiHz(m) * h) / binHz;
         if (k >= N / 2 - 1) break;
-        s += lin(mag, k) * Math.pow(0.85, h - 1);
+        // 倍音の山は、ビブラート・すくい上げ・音の外れでずれる：まわり ±2%（±35 セント）でいちばん大きい所を使う
+        const w = Math.max(1, k * 0.02);
+        let v = 0;
+        for (let j = Math.max(1, Math.floor(k - w)); j <= Math.min(N / 2, Math.ceil(k + w)); j++) if (mag[j] > v) v = mag[j];
+        s += v * Math.pow(0.85, h - 1);
       }
       row[m - 48] = s; top = Math.max(top, s);
       // 低い方を少しひいきする（倍音を基音と取りちがえない）
@@ -655,11 +659,19 @@ export function vocalPitch(vocal: Float32Array, ratio = 2): { pitch: Float32Arra
     }
     for (let j = 0; j < NM; j++) obs[f * NM + j] = row[j] / (top + 1e-12);
     pitch[f] = bm; sal[f] = best;
-    // 倍音らしさ：その高さの倍音の所に、全体の何割が集まっているか（歌なら高い。伴奏の残りは低い）
+    // 倍音らしさ：その高さの倍音の所に、全体の何割が集まっているか（歌なら高い。伴奏の残りは低い）。
+    // 歌の高さは半音の間にもある（すくい上げ・ビブラート）ので、±60 セントの中で倍音がいちばんそろう細かい高さで数える
+    let fine = midiHz(bm), fs = -1;
+    for (let c = -60; c <= 60; c += 10) {
+      const f = midiHz(bm) * Math.pow(2, c / 1200);
+      let sc = 0;
+      for (let h = 1; h <= 8; h++) { const k = (f * h) / binHz; if (k >= N / 2 - 1) break; sc += lin(mag, k); }
+      if (sc > fs) { fs = sc; fine = f; }
+    }
     let he = 0, te = 0;
     for (let k = Math.round(80 / binHz); k <= Math.round(5000 / binHz); k++) te += mag[k] * mag[k];
     for (let h = 1; h <= 10; h++) {
-      const k = Math.round((midiHz(bm) * h) / binHz);
+      const k = Math.round((fine * h) / binHz);
       if (k >= N / 2 - 1 || k * binHz > 5000) break;
       for (let j = k - 1; j <= k + 1; j++) he += mag[j] * mag[j];
     }

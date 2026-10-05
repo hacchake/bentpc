@@ -22,6 +22,12 @@ export interface GenOpts {
   lead?: number;
   /** 調の外のコードを混ぜる（III・II の長三和音、iv の短三和音、♭VII・♭VI） */
   chromatic?: boolean;
+  /** 本物らしい歌い方：音の頭で下からすくい上げる・音ごとに少し外れる・ビブラートがまちまち・子音と息の音 */
+  realVoice?: boolean;
+  /** 伴奏を厚く：真ん中で鳴るシンセのアルペジオ（歌と同じくらいの高さ）・8 小節ごとのシンバル */
+  dense?: boolean;
+  /** 歌の大きさ（1 = ふつう） */
+  vocalGain?: number;
   /** 人が弾いたような揺れ：テンポがゆっくり ±drift 揺れ、音ごとに少しずれる（0〜0.05） */
   drift?: number;
 }
@@ -145,6 +151,25 @@ export function genSong(o: GenOpts): { L: Float32Array; R: Float32Array; vocal: 
     for (const q of [1, 3]) { const sn = new Float32Array(Math.round(0.2 * SR)); for (let i = 0; i < sn.length; i++) sn[i] = r.bi() * Math.pow(1 - i / sn.length, 3) + Math.sin((2 * Math.PI * 190 * i) / SR) * Math.exp(-i / (SR * 0.03)) * 0.5; pan(tOf(t0 + q), sn, 0.35, 0.1); }
     for (let e = 0; e < 8; e++) { const hh = new Float32Array(Math.round(0.05 * SR)); let hp = 0; for (let i = 0; i < hh.length; i++) { const w = r.bi(); hh[i] = (w - hp) * Math.pow(1 - i / hh.length, 2); hp = w; } pan(tOf(t0 + e * 0.5), hh, e % 2 ? 0.1 : 0.14, 0.3); }
   }
+  if (o.dense) {
+    // 真ん中のシンセ：コードの音を 8 分で上下（歌と同じくらいの高さ）。8 小節ごとにシンバル
+    const rd = new Rng(o.seed * 17 + 3);
+    cur = 'synth';
+    for (let b = 0; b < o.bars; b++) for (let e = 0; e < 8; e++) {
+      const p = triP(pcsHalf[b * 2 + (e >= 4 ? 1 : 0)], 72), m = p[[0, 1, 2, 1][e % 4]];
+      const x = new Float32Array(Math.round(beat * 0.45 * SR)), f = midiHz(m);
+      let ph = 0, lp = 0;
+      for (let i = 0; i < x.length; i++) { ph = (ph + f / SR) % 1; lp += ((ph * 2 - 1) - lp) * 0.25; x[i] = lp * Math.exp(-i / (SR * 0.12)); }
+      pan(tOf(b * 4 + e * 0.5), x, 0.07, 0.05);
+    }
+    cur = 'drums';
+    for (let b = 0; b < o.bars; b += 8) {
+      const x = new Float32Array(Math.round(1.5 * SR));
+      let hp = 0;
+      for (let i = 0; i < x.length; i++) { const w = rd.bi(); x[i] = (w - hp) * Math.exp(-i / (SR * 0.5)); hp = w; }
+      pan(tOf(b * 4), x, 0.12, -0.2);
+    }
+  }
   // ---- 歌：コードの音を中心に、ときどき経過音・半音。4 分と 8 分、ときどき休み ----
   const melody: GenTruth['melody'] = [];
   let pitch = 64 + toTonic;
@@ -164,11 +189,22 @@ export function genSong(o: GenOpts): { L: Float32Array; R: Float32Array; vocal: 
   }
   // 声：のこぎり波の声帯 → 3 つの口の形（母音を音ごとに変える）
   const VOWELS = [[730, 1090, 2440], [270, 2290, 3010], [300, 870, 2240], [530, 1840, 2480], [570, 840, 2410]];
+  const rvx = new Rng(o.seed * 31 + 7); // 本物らしい歌い方用（ほかの音の乱数は変えない）
   for (const nn of melody) {
     const t = tOf(nn.t), dur = nn.len * beat, len = Math.round(dur * SR), f0 = midiHz(nn.midi);
     const src = new Float32Array(len);
     let ph = 0;
-    for (let i = 0; i < len; i++) { const s = i / SR; const f = f0 * (1 + 0.015 * Math.sin(2 * Math.PI * 5.4 * s) * Math.min(1, s * 3)); ph = (ph + f / SR) % 1; src[i] = (ph * 2 - 1) + r.bi() * 0.04; }
+    // すくい上げ（-30〜-80 セントから 50〜90ms で）・音ごとの外れ（±12 セント）・ビブラート（深さ 0.8〜2.5%、4.5〜6.5Hz）
+    const scoop = o.realVoice ? -(30 + rvx.next() * 50) / 1200 : 0, scoopT = 0.05 + rvx.next() * 0.04;
+    const detune = o.realVoice ? (rvx.next() - 0.5) * 24 / 1200 : 0;
+    const vd = o.realVoice ? 0.008 + rvx.next() * 0.017 : 0.015, vr = o.realVoice ? 4.5 + rvx.next() * 2 : 5.4;
+    for (let i = 0; i < len; i++) {
+      const s = i / SR;
+      const bend = Math.pow(2, detune + scoop * Math.max(0, 1 - s / scoopT));
+      const f = f0 * bend * (1 + vd * Math.sin(2 * Math.PI * vr * s) * Math.min(1, s * 3));
+      ph = (ph + f / SR) % 1;
+      src[i] = (ph * 2 - 1) + r.bi() * 0.04;
+    }
     const vw = r.pick(VOWELS), out = new Float32Array(len);
     vw.forEach((fc, j) => {
       const w = (2 * Math.PI * fc) / SR, al = Math.sin(w) / (2 * 8), c = Math.cos(w), a0 = 1 + al;
@@ -176,7 +212,15 @@ export function genSong(o: GenOpts): { L: Float32Array; R: Float32Array; vocal: 
       for (let i = 0; i < len; i++) { const y = (al * src[i] - al * x2 + 2 * c * y1 - (1 - al) * y2) / a0; x2 = x1; x1 = src[i]; y2 = y1; y1 = y; out[i] += y * [1, 0.7, 0.35][j]; }
     });
     for (let i = 0; i < len; i++) out[i] *= Math.min(1, i / (SR * 0.04)) * Math.min(1, (len - i) / (SR * 0.06)) * 0.5;
-    put(V, t, out, 1);
+    if (o.realVoice) {
+      // 子音（音の頭の 25ms のシャッという音）と、うすい息の音
+      let hp = 0;
+      for (let i = 0; i < len; i++) {
+        const w = rvx.bi(), hiN = w - hp; hp = w;
+        out[i] += hiN * (i < SR * 0.025 ? 0.18 * (1 - i / (SR * 0.025)) : 0) + hiN * 0.012;
+      }
+    }
+    put(V, t, out, o.vocalGain ?? 1);
   }
   // 歌を置く（左右）＋残響（左右で違う遅れのくし形）
   const vp = o.vocalPan ?? 0, rv = o.reverb ?? 0.2;

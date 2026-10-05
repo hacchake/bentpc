@@ -17,6 +17,9 @@ export const SONGS: (GenOpts & { label: string })[] = [
   { label: 'C 116 調外コード', seed: 11, bpm: 116, tonic: 0, bars: 24, chromatic: true },
   { label: 'A 100 調外半小節', seed: 12, bpm: 100, tonic: 9, bars: 24, chromatic: true, halfChords: true },
   { label: 'Fm 88 調外', seed: 13, bpm: 88, tonic: 5, minor: true, bars: 24, chromatic: true },
+  { label: 'D 112 本物の歌', seed: 14, bpm: 112, tonic: 2, bars: 24, realVoice: true },
+  { label: 'Eb 96 厚い伴奏', seed: 15, bpm: 96, tonic: 3, bars: 24, realVoice: true, dense: true, vocalGain: 0.6 },
+  { label: 'Bm 132 厚い調外', seed: 16, bpm: 132, tonic: 11, minor: true, bars: 24, realVoice: true, dense: true, chromatic: true, vocalGain: 0.7, drift: 0.02 },
   { label: 'Cm 92 揺れハネ', seed: 10, bpm: 92, tonic: 0, minor: true, bars: 24, drift: 0.03, swing: 0.2, reverb: 0.5 },
 ];
 
