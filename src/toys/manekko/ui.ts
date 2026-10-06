@@ -36,6 +36,7 @@ const HELP = `
   <tr><td>STYLE ◀ ▶</td><td>カバーの雰囲気（どの楽器・どんな刻み方で弾くか）</td></tr>
   <tr><td>FROM・TO</td><td>使う範囲（小節）</td></tr>
   <tr><td>VOCAL ON</td><td>カバーに元の歌（取り出したボーカル）を重ねる</td></tr>
+  <tr><td>AI SEP</td><td>AI（Demucs）で歌・ドラム・ベース・その他に分ける（本物の曲できれいに分かれる）。初回だけモデル（約 170MB）をダウンロード。速さはパソコンで曲の長さくらい</td></tr>
   <tr><td>COVER!</td><td>カバーを作ってシーケンサーに入れ、頭から鳴らす。押すたびに少し違うカバー</td></tr>
   <tr><td>▶ 原曲</td><td>押している間、元の曲を鳴らす（聞きくらべ。カバーと同じ調に合わせてある）</td></tr>
   <tr><td>ツマミ</td><td>VOL・VOCAL（歌）・KARAOKE（伴奏）・ORIGINAL（元の曲）の大きさ、WOW（テープのよれ）・LO-FI（こもり）・ECHO・CHAOS（カバーの壊れ度）</td></tr>
@@ -62,7 +63,7 @@ async function loadFile(): Promise<{ blob: Blob; name: string } | null> {
   } catch { return null; }
 }
 
-interface Settings { kinds: ToyKind[]; style: string; chaos: number; vocalOn: boolean; from: number; to: number; sampled?: { key: string; bank: number; kit: CoverKit } }
+interface Settings { kinds: ToyKind[]; style: string; chaos: number; vocalOn: boolean; ai?: boolean; from: number; to: number; sampled?: { key: string; bank: number; kit: CoverKit } }
 
 export function mountManekko(api: HostApi): ToyUI {
   const root = document.createElement('div');
@@ -85,6 +86,7 @@ export function mountManekko(api: HostApi): ToyUI {
           <span class="mk-lbl">FROM</span><div class="knob small black" data-k="from"><div class="cap"></div></div>
           <span class="mk-lbl">TO</span><div class="knob small black" data-k="to"><div class="cap"></div></div>
           <button class="mk-sw" data-a="vocal" aria-label="VOCAL ON"><i></i></button><span class="mk-lbl">VOCAL ON</span>
+          <button class="mk-sw" data-a="ai" aria-label="AI SEP" title="AI（Demucs）で歌・ドラム・ベース・その他に分ける。本物の曲できれいに分かれる。初回だけモデル（約 170MB）をダウンロードしてこのブラウザに保存。曲の音はどこにも送らない"><i></i></button><span class="mk-lbl">AI SEP</span>
         </div>
       </div>
       <div class="mk-deck">
@@ -157,6 +159,10 @@ export function mountManekko(api: HostApi): ToyUI {
   const vocalSw = q('[data-a="vocal"]');
   const showVocal = () => vocalSw.classList.toggle('on', st.vocalOn);
   vocalSw.addEventListener('click', () => { st.vocalOn = !st.vocalOn; saveSt(); showVocal(); });
+  // AI SEP：入れると、いま入っている曲も AI で分け直す
+  const aiSw = q('[data-a="ai"]');
+  const showAi = () => aiSw.classList.toggle('on', !!st.ai);
+  aiSw.addEventListener('click', () => { st.ai = !st.ai; saveSt(); showAi(); if (lastBlob && !busy) void loadBlob(lastBlob.blob, lastBlob.name, false); });
 
   // ================= 電源 =================
   const pwr = $('power');
@@ -170,7 +176,9 @@ export function mountManekko(api: HostApi): ToyUI {
   input.addEventListener('change', () => { const f = input.files?.[0]; if (f) void loadBlob(f, f.name, true); input.value = ''; });
   root.addEventListener('dragover', (e) => { e.preventDefault(); });
   root.addEventListener('drop', (e) => { e.preventDefault(); const f = e.dataTransfer?.files?.[0]; if (f) void loadBlob(f, f.name, true); });
+  let lastBlob: { blob: Blob; name: string } | null = null;
   async function loadBlob(blob: Blob, name: string, store: boolean): Promise<void> {
+    lastBlob = { blob, name };
     title = name.replace(/\.[^.]+$/, '');
     analysis = null; sep = null; errMsg = '';
     busy = { f: 0, what: 'ファイルを読んでいます' };
@@ -188,13 +196,14 @@ export function mountManekko(api: HostApi): ToyUI {
       w.onmessage = (e: MessageEvent) => {
         const m = e.data;
         if (m.type === 'progress') { busy = { f: m.f, what: m.what }; draw(); }
+        else if (m.type === 'note') { errMsg = m.message; draw(); }
         else if (m.type === 'done') {
           w.terminate();
           analysis = m.analysis; sep = { sr: m.sr, vocal: m.vocal, inst: m.inst, orig: m.orig, hi: m.hi, hiSr: m.hiSr }; busy = null;
           syncRange(); render();
         } else if (m.type === 'error') { w.terminate(); busy = null; errMsg = m.message; render(); }
       };
-      w.postMessage({ ch, sr: audio.sampleRate }, ch.map((c) => c.buffer));
+      w.postMessage({ ch, sr: audio.sampleRate, ai: !!st.ai }, ch.map((c) => c.buffer));
     } catch (err) {
       busy = null;
       errMsg = `このファイルは読めませんでした（${String(err).slice(0, 60)}）`;
@@ -359,7 +368,7 @@ export function mountManekko(api: HostApi): ToyUI {
     root.classList.toggle('off', !powered);
     root.classList.toggle('spin', beat >= 0);
     q('.mk-label').textContent = busy ? 'READING…' : analysis ? title.slice(0, 22) || 'TAPE' : 'NO TAPE';
-    showStyle(); showVocal();
+    showStyle(); showVocal(); showAi();
     draw();
   }
   setTimeout(renderToys, 0); // ホストの準備ができてから

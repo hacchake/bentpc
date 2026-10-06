@@ -30,12 +30,33 @@ export const SONGS: (GenOpts & { label: string })[] = [
 
 export interface Score { tempo: number; bar: number; key: number; chord: number; half: number; chro: number; mel: number; onset: number; drum: number; bass: number; drumSdr: number; bassSdr: number; voiced: number; extra: number; sdr: number; swing: number }
 
-export function score(o: GenOpts): Score {
+/** AI の分離（Demucs）を使うとき：左右 44.1kHz → 歌・ドラム・ベース・その他（npm run bench -- --ai で） */
+type AiSep = (L: Float32Array, R: Float32Array) => Promise<Record<'vocals' | 'drums' | 'bass' | 'other', { left: Float32Array; right: Float32Array }>>;
+let aiSep: AiSep | null = null;
+export async function useAi(): Promise<void> {
+  const { readFileSync } = await import('node:fs');
+  const ort = await import('onnxruntime-node');
+  const { DemucsProcessor } = await import('demucs-web');
+  const proc = new DemucsProcessor({ ort, sessionOptions: { executionProviders: ['cpu'] } });
+  const buf = readFileSync('.cache/htdemucs_embedded.onnx');
+  await proc.loadModel(buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength));
+  aiSep = (L, R) => proc.separate(L, R);
+}
+
+export async function score(o: GenOpts): Promise<Score> {
   const g = genSong(o);
   const a = analyze([g.L, g.R], g.sr);
-  const sep = separateVocal([g.L, g.R], g.sr);
   const mid22 = to22k(Float32Array.from(g.L, (v, i) => (v + g.R[i]) / 2), g.sr);
-  const stems = process.env.NOSTEM ? null : splitInst(sep.inst, bassPitch(mid22));
+  let sep: { vocal: Float32Array; inst: Float32Array }, stems: { drums: Float32Array; bass: Float32Array; other: Float32Array } | null;
+  if (aiSep) {
+    const r = await aiSep(g.L, g.R);
+    const m = (x: { left: Float32Array; right: Float32Array }) => to22k(Float32Array.from(x.left, (v, i) => (v + x.right[i]) / 2), g.sr);
+    stems = { drums: m(r.drums), bass: m(r.bass), other: m(r.other) };
+    sep = { vocal: m(r.vocals), inst: Float32Array.from(stems.drums, (v, i) => v + stems!.bass[i] + stems!.other[i]) };
+  } else {
+    sep = separateVocal([g.L, g.R], g.sr);
+    stems = process.env.NOSTEM ? null : splitInst(sep.inst, bassPitch(mid22));
+  }
   refineHarmony(sep.inst, a);
   if (stems) refineStems(stems, a);
   const mv = melodyFromVocal(sep.vocal, a);
@@ -140,9 +161,11 @@ if (process.argv[1]?.includes('cover-bench')) {
   const pct = (v: number) => `${Math.round(v * 100)}%`.padStart(4);
   console.log('曲'.padEnd(16), 'テンポ 小節 調  コード 途中 調外 メロ 頭   太鼓 ベース 歌った 余計 分離dB ハネ 太鼓dB ベdB');
   // 曲名の頭を並べると、その曲だけ（例：npm run bench -- Eb Bm）
-  const only = process.argv.slice(2);
+  const args = process.argv.slice(2);
+  if (args.includes('--ai')) await useAi();
+  const only = args.filter((x) => x !== '--ai');
   for (const s of SONGS.filter((x) => !only.length || only.some((o) => x.label.startsWith(o)))) {
-    const sc = score(s);
+    const sc = await score(s);
     rows.push(sc);
     console.log(s.label.padEnd(16), ` ${sc.tempo ? 'o' : 'x'}    ${sc.bar ? 'o' : 'x'}   ${sc.key ? 'o' : 'x'}  ${pct(sc.chord)}  ${pct(sc.half)} ${pct(sc.chro)} ${pct(sc.mel)} ${pct(sc.onset)} ${pct(sc.drum)} ${pct(sc.bass)}   ${pct(sc.voiced)} ${pct(sc.extra)}  ${sc.sdr.toFixed(1).padStart(5)}   ${sc.swing ? 'o' : 'x'}  ${sc.drumSdr.toFixed(1).padStart(5)} ${sc.bassSdr.toFixed(1).padStart(5)}`);
   }

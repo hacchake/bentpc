@@ -181,6 +181,7 @@ export const TOYS: ToyManual[] = [
       { find: { sel: '.mk-toys' }, name: 'PLAY BY', what: 'カバーを弾くおもちゃ（いくつでも）。光っているおもちゃが弾く。' },
       { find: { sel: '.mk-style' }, name: 'STYLE ◀ ▶', what: 'カバーの雰囲気。どの楽器・どんな刻み方で弾くかが変わる（テンポ・コード・メロディは元の曲のまま）。' },
       { find: { sel: '[data-k="from"]' }, name: 'FROM・TO', what: '使う範囲（小節）。サビだけ・イントロだけのカバーもできる。' },
+      { find: { sel: '[data-a="ai"]' }, name: 'AI SEP', what: '入れると、AI（Demucs v4）で歌・ドラム・ベース・その他に分けてから聞き取る。本物の曲では歌もドラムもずっときれいに分かれる。初回だけモデル（約 170MB）をダウンロードしてこのブラウザに保存（曲の音はどこにも送らない）。WebGPU のあるパソコンで曲の長さくらいかかる。使えないときは、いつもの方式に戻る。' },
       { find: { sel: '[data-a="vocal"]' }, name: 'VOCAL ON', what: 'カバーに元の歌（取り出したボーカル）を重ねる。元の曲のテンポの揺れをならして、カバーの拍にそろえる。' },
       { find: { sel: '.mk-window' }, name: 'カセットの窓', what: 'テープが鳴っている間、リールが回る。ラベルは曲名。' },
       { find: { sel: '[data-a="load"]' }, name: '⏏ LOAD', what: '曲のファイル（MP3・AAC・M4A・WAV など）を入れる。本体に落としても OK。解析とボーカル分離は、このブラウザの中だけで行う。' },

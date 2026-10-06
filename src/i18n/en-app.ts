@@ -703,4 +703,12 @@ export const EN_APP: Record<string, string> = {
   '拍子：1 小節の拍の数（自動作曲・カバーは 4/4 で作ります）': 'Time signature: beats per bar (the auto composer and covers use 4/4)',
   '拍子': 'Meter',
   '楽器ごとに分けています': 'Splitting the instruments',
+  'AI（Demucs）で歌・ドラム・ベース・その他に分ける。本物の曲できれいに分かれる。初回だけモデル（約 170MB）をダウンロードしてこのブラウザに保存。曲の音はどこにも送らない': 'Split into vocals, drums, bass and other with AI (Demucs). Separates real songs cleanly. The model (about 170 MB) is downloaded once and kept in this browser. The song itself is never sent anywhere',
+  'AI の準備をしています': 'Getting the AI ready',
+  'AI のモデルを読み込んでいます（初回だけ・約 170MB）': 'Loading the AI model (first time only, about 170 MB)',
+  'AI で楽器ごとに分けています': 'Splitting the instruments with AI',
+  'AI で楽器ごとに分けました': 'Split the instruments with AI',
+  'AI で分けられなかったので、いつもの方式で分けます（{0}）': 'Could not split with AI, so the usual method is used ({0})',
+  'モデルをダウンロードできませんでした（{0}）': 'Could not download the model ({0})',
+  'AI（Demucs）で歌・ドラム・ベース・その他に分ける（本物の曲できれいに分かれる）。初回だけモデル（約 170MB）をダウンロード。速さはパソコンで曲の長さくらい': 'Split into vocals, drums, bass and other with AI (Demucs) (separates real songs cleanly). The model (about 170 MB) is downloaded the first time. Takes about as long as the song on a computer',
 };

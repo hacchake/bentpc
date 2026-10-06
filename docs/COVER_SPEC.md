@@ -95,6 +95,14 @@
   - 試してやめたもの：しきい値を大津の方法で（にじみまで拾う）・タム用の 4 つ目の音色（キックを取られる）
   - ギターとキーボードは AI なしでは見分けがほぼ付かないので「その他」のまま
 
+- [x] AI で分ける（AI SEP、2026-10-06）
+  - MANEKKO の **AI SEP** スイッチ：Demucs v4（htdemucs、MIT）で歌・ドラム・ベース・その他に分けてから、いつもの聞き取り（`refineHarmony`・`refineStems`・`melodyFromVocal`）に渡す（`src/cover/ai.ts`）
+  - 部品：demucs-web（MIT・npm）。動かす土台 onnxruntime-web は使うときだけ CDN（jsDelivr）から、モデル（htdemucs_embedded.onnx・約 172MB）は初回だけ Hugging Face からダウンロードして Cache Storage（`bent-ai-models`）に保存。曲の音はどこにも送らない
+  - WebGPU があれば使い、無ければ WASM。使えないとき（ダウンロード失敗・メモリ不足）は、お知らせを出していつもの方式に戻る
+  - 速さ：WebGPU のあるパソコンで、28 秒の曲を約 29 秒（いつもの方式は約 2 秒）
+  - 物差し（`npm run bench -- --ai`。モデルを `.cache/` に置く）：ドラムの分かれ方 +5 → +18.5dB。ただし物差しの歌は作り物の声なので AI は歌と認識しにくく（+1.5dB）、物差しでは歌の良し悪しを測れない。本物の曲で聞きくらべる
+  - ギター・キーボードは htdemucs では「その他」のまま（ギター・ピアノも分ける htdemucs_6s もある。モデルが大きくなる）
+
 ## 精度（`scripts/cover-test.ts`）
 
 - 合成した曲（ニ長調・120 BPM）：テンポ・調・小節の頭・コード 100%・キック／スネア 100%・メロディ 63%・ベース 94%
