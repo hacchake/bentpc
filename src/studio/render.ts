@@ -54,7 +54,8 @@ export function renderSongStereo(song: Song, sr: number, opts: RenderOpts = {}):
   seq.center = toyCenter(ids);
   const out = new Float32Array(BLOCK), outR = new Float32Array(BLOCK), click = new Float32Array(BLOCK), tmp = new Float32Array(BLOCK), inp = new Float32Array(BLOCK);
   for (let i = 0; i < total + lat; i += BLOCK) {
-    sig.render(inp, seq.playing ? seq.pos : null, s.bpm);
+    // テスト信号（TELEKEY のテスト映像の音）は、曲が鳴っている間だけ（曲の後は静かに）
+    if (seq.playing) sig.render(inp, seq.pos, s.bpm); else inp.fill(0);
     seq.render(out, click, tmp, inp, outR);
     if (opts.raw) { L.set(out, i); R.set(outR, i); } else master.process(out, outR, L.subarray(i, i + BLOCK), R.subarray(i, i + BLOCK));
     if (opts.onProgress && (i / BLOCK) % 2000 === 0) opts.onProgress(i / total);

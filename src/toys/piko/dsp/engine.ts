@@ -96,6 +96,13 @@ export class PikoEngine implements ToyEngine<PikoDisplay> {
     this.demoOn = false;
   }
 
+  /** 曲が止まった：リズム・デモ曲を止め、鳴っている音を止める */
+  songStopped(): void {
+    this.rhythm.stop();
+    this.stopDemo();
+    this.voices.allOff();
+  }
+
   /** CPU 電圧が低いと、弾いた音が違う音になることがある */
   private misfire(note: number): number {
     const starve = 1 - this.p('cpuPower');

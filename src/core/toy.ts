@@ -34,6 +34,8 @@ export interface ToyEngine<Display = unknown> {
   setUserSample?(key: number, buf: Float32Array | null): void;
   /** 全部止めて元に戻す（シーケンサーのクラッシュからの復帰で使う） */
   reset?(): void;
+  /** 曲が止まった（最後まで鳴り終わった・■ で止めた）：自分で鳴り続けるもの（エンジン・自動のリズムなど）を止めて静かにする */
+  songStopped?(): void;
   /** おもちゃ専用のデータ（サンプラーの音など）。作り直したときも同じ順に送り直される */
   custom?(data: unknown): void;
 }

@@ -4,7 +4,7 @@ import { SYS_CRASH, songBeats, type Song } from '../src/core/song';
 import { defaultComposer } from '../src/compose/rules';
 import { LENGTHS, styleOf, STYLE_IDS } from '../src/compose/styles';
 import type { ComposeSettings } from '../src/compose/types';
-import { renderSong } from '../src/studio/render';
+import { renderSong, renderSongStereo, songSeconds } from '../src/studio/render';
 
 const SR = 24000;
 let fail = 0;
@@ -152,5 +152,21 @@ for (const style of STYLE_IDS) {
 
 // 壊れ度 0 ならクラッシュしない（崩壊スタイル以外）
 if (make({ style: 'beat', chaos: 0 }).tracks.some((t) => t.notes.some((n) => n.key === SYS_CRASH))) ng('壊れ度 0 でクラッシュする');
+// 曲が終わった後は静か：エンジン・リズムボックス・ディスク・テスト信号などが鳴り続けない（7 台の合奏で）
+{
+  const KINDS = ['blippy', 'piko', 'dj', 'vroom', 'typo', 'tele', 'sampler'] as const, ids = [0, 1, 2, 3, 4, 5, 6];
+  const loud: string[] = [];
+  for (const style of ['beat', 'noise', 'ambient', 'breakcore', 'reggae'] as const) {
+    const s = C.compose({ settings: { seed: 77, style, chaos: 0.6, lengthSec: 30, bpm: styleOf(style).bpm }, toys: ids.map((id, toy) => ({ toy, kind: KINDS[id] })) });
+    const sr = 16000, end = songSeconds(s, 0);
+    const [L, R] = renderSongStereo(s, sr, { toys: ids, tail: 6, raw: true });
+    let e = 0, c = 0;
+    for (let i = Math.floor((end + 2.5) * sr); i < L.length; i++) { e += L[i] * L[i] + R[i] * R[i]; c += 2; }
+    const rmsAfter = Math.sqrt(e / Math.max(1, c));
+    if (rmsAfter > 2e-3) loud.push(`${style} ${rmsAfter.toFixed(4)}`);
+  }
+  loud.length ? ng(`曲の後に音が残る：${loud.join(' / ')}`) : console.log('曲が終わった後は静か（5 スタイル・7 台）OK');
+}
+
 console.log(fail ? `失敗 ${fail} 件` : 'すべて OK');
 process.exit(fail ? 1 : 0);

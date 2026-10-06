@@ -124,6 +124,12 @@ export class DjEngine implements ToyEngine<DjDisplay> {
     this.show('');
   }
 
+  /** 曲が止まった：リズムボックスを止め、鍵盤の音も止める（曲の後にリズムが鳴り続けないように） */
+  songStopped(): void {
+    this.playing = false;
+    this.synth.allOff();
+  }
+
   get bpm(): number {
     return Math.max(40, this.pattern(this.p('rhythm')).bpm + this.tempoOffset);
   }

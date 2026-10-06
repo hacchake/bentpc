@@ -139,15 +139,35 @@ export class Sequencer {
     if (from !== undefined) { this.releaseAll(); this.pos = from; }
     // 頭からの再生：おもちゃを新品に作り直す（同じ曲データなら毎回同じ音・同じグリッチ）
     if (this.pos < 1e-9 && this.song.seed !== undefined && this.factory) this.rebuild();
+    // 止まっている所からの再生：曲が動かすツマミの、再生前の値を覚えておく（止めたら戻す）
+    if (!this.playing) this.prePlay = this.toys.map((t) => Float32Array.from(t.params));
     this.playing = true;
   }
 
   stop(): void {
     if (this.recording) this.flushTake(this.pos, true);
+    const was = this.playing;
     this.playing = false;
     this.recording = false;
     this.bounce = false;
     this.releaseAll();
+    if (was) this.quietToys();
+  }
+  /** 再生を始める前のツマミの値（おもちゃごと） */
+  private prePlay: Float32Array[] | null = null;
+  /**
+   * 曲が止まったら静かにする：曲が動かしたツマミ（オートメーション）を再生前の値に戻し（ディスクが回りっぱなし・フィードバックが鳴りっぱなし…を防ぐ）、
+   * 自分で鳴り続けるもの（エンジン・自動のリズムなど）を止める
+   */
+  private quietToys(): void {
+    const pre = this.prePlay;
+    if (pre) this.song.tracks.forEach((tr, i) => {
+      const toy = trackToy(this.song, i), t = this.toys[toy], p = pre[toy];
+      if (!t || !p) return;
+      for (const a of tr.autos) if (a.index < p.length && t.params[a.index] !== p[a.index]) t.setParam(a.index, p[a.index]);
+    });
+    this.prePlay = null;
+    this.toys.forEach((t) => t.songStopped?.());
   }
 
   /** おもちゃを新品にする */
@@ -436,6 +456,7 @@ export class Sequencer {
           this.playing = false;
           this.bounce = false;
           this.pos = loop?.on ? loop.start : 0;
+          this.quietToys();
           this.cb.onEnd();
           return;
         }

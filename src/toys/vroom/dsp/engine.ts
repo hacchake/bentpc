@@ -130,6 +130,16 @@ export class VroomEngine implements ToyEngine<VroomDisplay> {
     this.hornOn = false;
   }
 
+  /** 曲が止まった：エンジンを止め、押していた音も止める（アイドリングが鳴り続けないように） */
+  songStopped(): void {
+    this.running = false;
+    this.cranking = false;
+    this.notes = [];
+    this.hornOn = false;
+    // 曲の中でプリセットのボタンで選んだラジオも切る
+    this.setParamById('station', 0);
+  }
+
   keyDown(key: number): void {
     if (!this.powered) return;
     if (key >= V_PRESET && key < V_PRESET + 8) {

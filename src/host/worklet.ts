@@ -35,6 +35,10 @@ class ToyRackProcessor extends AudioWorkletProcessor {
   private signal = new TestSignal(sampleRate);
   private signalOn: boolean[];
   private sigBuf = new Float32Array(128);
+  /** テスト信号の大きさ（0〜1）と、テスト信号のおもちゃを最後にさわった時刻（サンプル） */
+  private sigGain = 0;
+  private sigTouch = -1e12;
+  private clock = 0;
   private seq: Sequencer;
   // 録音
   private recording = false;
@@ -94,8 +98,8 @@ class ToyRackProcessor extends AudioWorkletProcessor {
       const t = this.toys[m.toy];
       if (!t) return;
       switch (m.type) {
-        case 'param': t.setParam(m.index, m.value); this.seq.live(m.toy, m); break;
-        case 'key': m.down ? t.keyDown(m.key) : t.keyUp(m.key); this.seq.live(m.toy, m); break;
+        case 'param': t.setParam(m.index, m.value); this.seq.live(m.toy, m); if (this.signalOn[m.toy]) this.sigTouch = this.clock; break;
+        case 'key': m.down ? t.keyDown(m.key) : t.keyUp(m.key); this.seq.live(m.toy, m); if (this.signalOn[m.toy]) this.sigTouch = this.clock; break;
         case 'power': m.on ? t.powerOn() : t.powerOff(); break;
         case 'mic':
           if (m.on) { this.micToy = m.toy; this.micKey = m.key; this.micPos = 0; }
@@ -107,7 +111,7 @@ class ToyRackProcessor extends AudioWorkletProcessor {
           t.setUserSample?.(m.key, buf);
           break;
         }
-        case 'signal': this.signalOn[m.toy] = m.on; break;
+        case 'signal': this.signalOn[m.toy] = m.on; if (m.on) this.sigTouch = this.clock; break;
         case 'custom': this.customs[m.toy].set(m.key, m.data); t.custom?.(m.data); break;
       }
     };
@@ -156,9 +160,16 @@ class ToyRackProcessor extends AudioWorkletProcessor {
     }
     // テスト映像のときは、取り込んだ音の代わりにテスト信号を渡す（再生中は曲の拍に合わせる）
     let input = this.vin;
+    this.clock += l.length;
     if (this.signalOn.some((x) => x)) {
       if (this.sigBuf.length !== l.length) this.sigBuf = new Float32Array(l.length);
-      this.signal.render(this.sigBuf, this.seq.playing ? this.seq.pos : null, this.seq.song.bpm);
+      // 曲が鳴っている間と、テスト映像のおもちゃをさわってから 8 秒だけ鳴らす（曲の後・放っておいた間は静かに）
+      const want = this.seq.playing || this.clock - this.sigTouch < sampleRate * 8 ? 1 : 0;
+      if (want || this.sigGain > 1e-4) {
+        this.signal.render(this.sigBuf, this.seq.playing ? this.seq.pos : null, this.seq.song.bpm);
+        const k = 1 - Math.exp(-1 / (sampleRate * 0.25));
+        for (let i = 0; i < l.length; i++) { this.sigGain += (want - this.sigGain) * k; this.sigBuf[i] *= this.sigGain; }
+      } else this.sigBuf.fill(0);
       input = this.sigBuf;
     }
     if (this.right.length !== l.length) this.right = new Float32Array(l.length);

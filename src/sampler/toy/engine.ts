@@ -193,6 +193,8 @@ export class SamplerToy implements ToyEngine<SamplerDisplay> {
     this.eng.stopAll();
   }
   reset(): void { this.eng.stopAll(); }
+  /** 曲が止まった：鳴っている音を全部止める（長く伸びる音・ループが残らないように） */
+  songStopped(): void { this.eng.stopAll(); }
 
   custom(d: unknown): void {
     const m = d as SamplerCustom;
