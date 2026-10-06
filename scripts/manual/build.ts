@@ -278,7 +278,7 @@ function makeHtml(): string {
     chapter('まねっこ（カバー）編', 'MANEKKO MK-8 で、聞いた曲をおもちゃでまねしろ！', `
       <p>ラック・スタジオの 8 台目 <b>MANEKKO MK-8</b> は、取り込んだ曲を聞いて、選んだおもちゃだけで同じ曲を弾き直す（<b>カバー</b>）。元の歌を取り出して重ねることもできる。曲のファイルは<b>このブラウザの中だけ</b>で処理して、どこにも送らない。</p>
       <h3>カバーができるまで</h3>
-      <div class="flow"><div class="flow-step"><b>1</b><p><b>入れる</b>：⏏ LOAD（または本体に落とす）。MP3・AAC・M4A・WAV など</p></div><div class="flow-step"><b>2</b><p><b>聞き取る</b>：数秒から十数秒で、モニターにテンポ・調・構成・コード・メロディが出る</p></div><div class="flow-step"><b>3</b><p><b>選ぶ</b>：PLAY BY（弾くおもちゃ）・STYLE・FROM / TO（範囲）・VOCAL ON・AI SEP（AI で分ける）</p></div><div class="flow-step"><b>4</b><p><b>COVER!</b>：シーケンサーに入って、頭から鳴る。押すたびに少し違うカバー</p></div><div class="flow-step"><b>5</b><p><b>くらべる・直す</b>：▶ 原曲で聞きくらべ。シーケンサーで手直しして、WAV に書き出し</p></div></div>
+      <div class="flow"><div class="flow-step"><b>1</b><p><b>入れる</b>：⏏ LOAD（または本体に落とす）。MP3・AAC・M4A・WAV など</p></div><div class="flow-step"><b>2</b><p><b>聞き取る</b>：数秒から十数秒で、モニターにテンポ・調・構成・コード・メロディが出る</p></div><div class="flow-step"><b>3</b><p><b>選ぶ</b>：PLAY BY（弾くおもちゃ）・STYLE・FROM / TO（範囲）・VOCAL ON・ANALYZER（AI か CLASSIC か）</p></div><div class="flow-step"><b>4</b><p><b>COVER!</b>：シーケンサーに入って、頭から鳴る。押すたびに少し違うカバー</p></div><div class="flow-step"><b>5</b><p><b>くらべる・直す</b>：▶ 原曲で聞きくらべ。シーケンサーで手直しして、WAV に書き出し</p></div></div>
       <figure class="shot wide-shot"><div class="frame"><img src="img/mk-cover.jpg" alt=""></div><figcaption>COVER! を押したところ（PIKOTONE とサンプラーでカバー。下のシーケンサーにカバーが入る）</figcaption></figure>
       <h3>何を聞き取るの？</h3>
       <table class="grid"><tr><th>聞き取るもの</th><th>どう使う？</th></tr>

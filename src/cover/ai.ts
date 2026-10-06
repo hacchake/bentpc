@@ -1,4 +1,4 @@
-// AI で楽器ごとに分ける（Demucs v4 = htdemucs、MIT）。MANEKKO の「AI SEP」を入れたときだけ、解析の Worker の中で使う。
+// AI で楽器ごとに分ける（Demucs v4 = htdemucs、MIT）。MANEKKO の ANALYZER のレバーを AI にしたときだけ、解析の Worker の中で使う。
 // 動かす土台（onnxruntime-web）は使うときだけ CDN から読み込み、モデル（約 172MB）は初回だけダウンロードしてこのブラウザに保存する。
 // 曲の音はどこにも送らない（ダウンロードするのは土台とモデルだけ）。WebGPU があれば速く、無ければ WASM（遅い）
 import { DemucsProcessor } from 'demucs-web';

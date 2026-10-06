@@ -3,7 +3,7 @@
 // → 弾くおもちゃ・スタイル・範囲を選んで「COVER!」→ カバーの曲をシーケンサーに入れて鳴らす（元の歌を重ねることも）。
 // 曲のファイルはこのブラウザ（IndexedDB）にだけ保存し、どこにも送らない。
 import './manekko.css';
-import { Knob, momentary } from '../../core/controls';
+import { Knob, Toggle, momentary } from '../../core/controls';
 import type { HostApi, ToyUI } from '../../core/ui';
 import type { FromToy } from '../../host/protocol';
 import type { ToyKind } from '../../compose/types';
@@ -36,7 +36,7 @@ const HELP = `
   <tr><td>STYLE ◀ ▶</td><td>カバーの雰囲気（どの楽器・どんな刻み方で弾くか）</td></tr>
   <tr><td>FROM・TO</td><td>使う範囲（小節）</td></tr>
   <tr><td>VOCAL ON</td><td>カバーに元の歌（取り出したボーカル）を重ねる</td></tr>
-  <tr><td>AI SEP</td><td>AI（Demucs）で歌・ドラム・ベース・その他に分ける（本物の曲できれいに分かれる）。初回だけモデル（約 170MB）をダウンロード。速さはパソコンで曲の長さくらい</td></tr>
+  <tr><td>ANALYZER（レバー）</td><td>上 = AI：Demucs で歌・ドラム・ベース・その他に分けてから解析（本物の曲できれいに分かれる。初回だけモデル約 170MB をダウンロード）。下 = CLASSIC：これまでの方式（速い）。切り替えると、入っている曲を解析し直す</td></tr>
   <tr><td>COVER!</td><td>カバーを作ってシーケンサーに入れ、頭から鳴らす。押すたびに少し違うカバー</td></tr>
   <tr><td>▶ 原曲</td><td>押している間、元の曲を鳴らす（聞きくらべ。カバーと同じ調に合わせてある）</td></tr>
   <tr><td>ツマミ</td><td>VOL・VOCAL（歌）・KARAOKE（伴奏）・ORIGINAL（元の曲）の大きさ、WOW（テープのよれ）・LO-FI（こもり）・ECHO・CHAOS（カバーの壊れ度）</td></tr>
@@ -74,6 +74,11 @@ export function mountManekko(api: HostApi): ToyUI {
       <div class="mk-head"><i class="mk-eye"></i><i class="mk-beak"></i><i class="mk-crest"></i></div>
       <div class="mk-logo"><b>MANEKKO</b><span>MK-8</span><em>まねっこ</em></div>
       <div class="mk-power"><div class="dome red big" data-id="power"></div><small class="power-label">POWER</small><span class="led" data-id="led"></span></div>
+      <div class="mk-ana" title="解析のしかたの切り替え：上 = AI（Demucs で歌・ドラム・ベース・その他に分けてから。初回だけモデル約 170MB をダウンロード）、下 = CLASSIC（これまでの方式。速い）">
+        <i class="mk-bolt a"></i><i class="mk-bolt b"></i><i class="mk-bolt c"></i><i class="mk-bolt d"></i>
+        <span class="mk-tape">ANALYZER</span>
+        <div class="mk-ana-row"><div class="toggle" data-id="ana"></div><div class="mk-ana-lbl"><b>AI</b><b>CLASSIC</b></div><span class="led green" data-id="ailed"></span></div>
+      </div>
       <div class="mk-monitor"><i class="mk-bolt a"></i><i class="mk-bolt b"></i><i class="mk-bolt c"></i><i class="mk-bolt d"></i><canvas class="mk-screen" width="620" height="340"></canvas></div>
       <div class="mk-plate">
         ${KNOBS.map(([id, label, cls]) => `<div class="mk-k"><span class="mk-tape">${label}</span><div class="knob small ${cls}" data-k="${id}"><div class="cap"></div></div></div>`).join('')}
@@ -86,7 +91,6 @@ export function mountManekko(api: HostApi): ToyUI {
           <span class="mk-lbl">FROM</span><div class="knob small black" data-k="from"><div class="cap"></div></div>
           <span class="mk-lbl">TO</span><div class="knob small black" data-k="to"><div class="cap"></div></div>
           <button class="mk-sw" data-a="vocal" aria-label="VOCAL ON"><i></i></button><span class="mk-lbl">VOCAL ON</span>
-          <button class="mk-sw" data-a="ai" aria-label="AI SEP" title="AI（Demucs）で歌・ドラム・ベース・その他に分ける。本物の曲できれいに分かれる。初回だけモデル（約 170MB）をダウンロードしてこのブラウザに保存。曲の音はどこにも送らない"><i></i></button><span class="mk-lbl">AI SEP</span>
         </div>
       </div>
       <div class="mk-deck">
@@ -159,10 +163,12 @@ export function mountManekko(api: HostApi): ToyUI {
   const vocalSw = q('[data-a="vocal"]');
   const showVocal = () => vocalSw.classList.toggle('on', st.vocalOn);
   vocalSw.addEventListener('click', () => { st.vocalOn = !st.vocalOn; saveSt(); showVocal(); });
-  // AI SEP：入れると、いま入っている曲も AI で分け直す
-  const aiSw = q('[data-a="ai"]');
-  const showAi = () => aiSw.classList.toggle('on', !!st.ai);
-  aiSw.addEventListener('click', () => { st.ai = !st.ai; saveSt(); showAi(); if (lastBlob && !busy) void loadBlob(lastBlob.blob, lastBlob.name, false); });
+  // ANALYZER のレバー：上 = AI、下 = CLASSIC（これまでの方式）。切り替えると、いま入っている曲も解析し直す
+  const anaLever = new Toggle($('ana'), 2, st.ai ? 1 : 0, (v) => {
+    st.ai = v === 1; saveSt(); showAi();
+    if (lastBlob && !busy) void loadBlob(lastBlob.blob, lastBlob.name, false);
+  });
+  const showAi = () => { anaLever.set(st.ai ? 1 : 0, false); $('ailed').classList.toggle('lit', !!st.ai); };
 
   // ================= 電源 =================
   const pwr = $('power');
@@ -177,6 +183,8 @@ export function mountManekko(api: HostApi): ToyUI {
   root.addEventListener('dragover', (e) => { e.preventDefault(); });
   root.addEventListener('drop', (e) => { e.preventDefault(); const f = e.dataTransfer?.files?.[0]; if (f) void loadBlob(f, f.name, true); });
   let lastBlob: { blob: Blob; name: string } | null = null;
+  /** いまの解析が AI で分けたものか（モニターに出す） */
+  let usedAi = false;
   async function loadBlob(blob: Blob, name: string, store: boolean): Promise<void> {
     lastBlob = { blob, name };
     title = name.replace(/\.[^.]+$/, '');
@@ -199,6 +207,7 @@ export function mountManekko(api: HostApi): ToyUI {
         else if (m.type === 'note') { errMsg = m.message; draw(); }
         else if (m.type === 'done') {
           w.terminate();
+          usedAi = !!m.ai;
           analysis = m.analysis; sep = { sr: m.sr, vocal: m.vocal, inst: m.inst, orig: m.orig, hi: m.hi, hiSr: m.hiSr }; busy = null;
           syncRange(); render();
         } else if (m.type === 'error') { w.terminate(); busy = null; errMsg = m.message; render(); }
@@ -319,7 +328,7 @@ export function mountManekko(api: HostApi): ToyUI {
     const a = analysis, n = a.bars;
     g.fillText(`♪ ${title}`.slice(0, 44), 16, 12);
     g.font = '700 17px "Share Tech Mono", monospace';
-    g.fillText(`BPM ${a.bpm}   KEY ${a.key.name}   ${n} BARS   ${Math.floor(a.duration / 60)}:${String(Math.floor(a.duration % 60)).padStart(2, '0')}`, 16, 42);
+    g.fillText(`BPM ${a.bpm}   KEY ${a.key.name}   ${n} BARS   ${Math.floor(a.duration / 60)}:${String(Math.floor(a.duration % 60)).padStart(2, '0')}   ${usedAi ? '[AI]' : '[CLASSIC]'}`, 16, 42);
     // 構成の帯（全体）・使う範囲・再生位置
     const x0 = 16, bw = (w - 32) / n, y0 = 72;
     for (const s of a.sections) {

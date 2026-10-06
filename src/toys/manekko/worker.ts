@@ -15,7 +15,7 @@ self.onmessage = async (e: MessageEvent<Req>) => {
     const mono = new Float32Array(ch[0].length);
     for (const c of ch) for (let i = 0; i < mono.length; i++) mono[i] += c[i] / ch.length;
     const orig = to22k(mono, sr);
-    let sep: { sr: number; vocal: Float32Array; inst: Float32Array } | null = null, stems: InstStems | null = null;
+    let sep: { sr: number; vocal: Float32Array; inst: Float32Array } | null = null, stems: InstStems | null = null, usedAi = false;
     if (ai) {
       // AI（Demucs）：歌・ドラム・ベース・その他に分ける。使えなければ（ダウンロードできない・メモリが足りない…）いつもの方式で
       try {
@@ -23,6 +23,7 @@ self.onmessage = async (e: MessageEvent<Req>) => {
         stems = { drums: r.drums, bass: r.bass, other: r.other };
         const n = Math.min(r.vocal.length, orig.length);
         sep = { sr: 22050, vocal: r.vocal.slice(0, n), inst: Float32Array.from({ length: n }, (_, i) => r.drums[i] + r.bass[i] + r.other[i]) };
+        usedAi = true;
       } catch (err) {
         post({ type: 'note', message: `AI で分けられなかったので、いつもの方式で分けます（${String((err as Error)?.message ?? err).slice(0, 80)}）` });
       }
@@ -40,7 +41,7 @@ self.onmessage = async (e: MessageEvent<Req>) => {
     const mv = melodyFromVocal(sep.vocal, analysis);
     if (mv) analysis.melody = mv;
     // サンプリング用に、元の曲のモノラル（元のサンプルレートのまま）も
-    post({ type: 'done', analysis, sr: sep.sr, vocal: sep.vocal, inst: sep.inst, orig, hi: mono, hiSr: sr }, [sep.vocal.buffer, sep.inst.buffer, orig.buffer, mono.buffer]);
+    post({ type: 'done', ai: usedAi, analysis, sr: sep.sr, vocal: sep.vocal, inst: sep.inst, orig, hi: mono, hiSr: sr }, [sep.vocal.buffer, sep.inst.buffer, orig.buffer, mono.buffer]);
   } catch (err) {
     post({ type: 'error', message: String(err) });
   }

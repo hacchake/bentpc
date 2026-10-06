@@ -711,4 +711,7 @@ export const EN_APP: Record<string, string> = {
   'AI で分けられなかったので、いつもの方式で分けます（{0}）': 'Could not split with AI, so the usual method is used ({0})',
   'モデルをダウンロードできませんでした（{0}）': 'Could not download the model ({0})',
   'AI（Demucs）で歌・ドラム・ベース・その他に分ける（本物の曲できれいに分かれる）。初回だけモデル（約 170MB）をダウンロード。速さはパソコンで曲の長さくらい': 'Split into vocals, drums, bass and other with AI (Demucs) (separates real songs cleanly). The model (about 170 MB) is downloaded the first time. Takes about as long as the song on a computer',
+  '解析のしかたの切り替え：上 = AI（Demucs で歌・ドラム・ベース・その他に分けてから。初回だけモデル約 170MB をダウンロード）、下 = CLASSIC（これまでの方式。速い）': 'Analysis method: up = AI (splits into vocals, drums, bass and other with Demucs first; the model, about 170 MB, is downloaded the first time), down = CLASSIC (the previous method; fast)',
+  'ANALYZER（レバー）': 'ANALYZER (lever)',
+  '上 = AI：Demucs で歌・ドラム・ベース・その他に分けてから解析（本物の曲できれいに分かれる。初回だけモデル約 170MB をダウンロード）。下 = CLASSIC：これまでの方式（速い）。切り替えると、入っている曲を解析し直す': 'Up = AI: analyze after splitting into vocals, drums, bass and other with Demucs (separates real songs cleanly; the model, about 170 MB, is downloaded the first time). Down = CLASSIC: the previous method (fast). Switching re-analyzes the loaded song',
 };

@@ -97,3 +97,18 @@
 .toy-mk .knob { position: relative; width: 50px; height: 50px; flex-shrink: 0; }
 .toy-mk .mk-row .knob { width: 40px; height: 40px; }
 .toy-mk .dome { position: relative; }
+
+/* 解析のしかたの切り替え（後付けの小さな板・レバー） */
+.mk-ana {
+  position: absolute; left: 214px; top: 302px; width: 150px; height: 68px; border-radius: 8px; padding: 5px 10px 0; box-sizing: border-box;
+  background: repeating-linear-gradient(90deg, rgba(255,255,255,.06) 0 2px, transparent 2px 6px), linear-gradient(180deg, #c9ccd2, #8e939c);
+  box-shadow: 0 0 0 3px #333, 0 5px 0 rgba(0,0,0,.3);
+}
+.mk-ana .mk-bolt { width: 9px; height: 9px; }
+.mk-ana .mk-bolt::after { top: 3px; }
+.mk-ana .mk-bolt.a { left: 3px; top: 3px; } .mk-ana .mk-bolt.b { right: 3px; top: 3px; } .mk-ana .mk-bolt.c { left: 3px; bottom: 3px; } .mk-ana .mk-bolt.d { right: 3px; bottom: 3px; }
+.mk-ana .mk-tape { position: absolute; left: 14px; top: -10px; }
+.mk-ana-row { display: flex; align-items: center; gap: 8px; margin-top: 4px; }
+.mk-ana .toggle { position: relative; flex: none; transform: scale(.95); }
+.mk-ana-lbl { display: flex; flex-direction: column; justify-content: space-between; height: 54px; font: 700 12px 'Share Tech Mono', monospace; color: #1a1a1a; }
+.mk-ana-lbl b:first-child { color: #b0160e; }
