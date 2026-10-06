@@ -169,7 +169,9 @@ function bassTrack(x: Float32Array, count: number): { bass: Float32Array; sal: F
     for (let m = 28; m <= 52; m++) {
       // 倍音（2・3 倍）が無い低い音は、ほぼキック（正弦波の「ドン」）。倍音がそろうほど、ベースの音として数える
       const h1 = lin(bmag, midiHz(m) / bHz), h2 = lin(bmag, (midiHz(m) * 2) / bHz), h3 = lin(bmag, (midiHz(m) * 3) / bHz);
-      const s = (h1 + 0.5 * h2 + 0.5 * h3) * (0.1 + 0.9 * Math.min(1, (h2 + h3) / (h1 + 1e-9)) ** 2);
+      let s = (h1 + 0.5 * h2 + 0.5 * h3) * (0.1 + 0.9 * Math.min(1, (h2 + h3) / (h1 + 1e-9)) ** 2);
+      // 2 倍音が弱いのに 3 倍音だけ強いのは、本当の音（3 倍音の 2/3 の高さ）の倍音を拾った 5 度下の読みちがい
+      s *= Math.min(1, (2.5 * h2) / (h2 + h3 + 1e-9));
       if (s > bb) { bb = s; bm = m; }
     }
     bass[f] = bm; sal[f] = bb;
@@ -570,35 +572,11 @@ export function analyze(ch: Float32Array[], sr: number, progress?: Progress): Co
   const onsetAt = (s: number) => at(nov, beatFrame(s / 4)) > 0.25;
   const melody = notesFrom(melSlots, 0.25, onsetAt, shift);
   // ---- ベース：8 分ごと ----
-  const bsSorted = [...F.bassSal].sort((a, b) => a - b);
-  const bassTh = bsSorted[Math.floor(bsSorted.length * 0.35)] ?? 0;
-  const bassSlots: number[] = [];
-  for (let s = 0; s < bars * 8; s++) {
-    const f0 = Math.round(beatFrame(s / 2)), f1 = Math.max(f0 + 1, Math.round(beatFrame((s + 1) / 2)));
-    const votes = new Map<number, number>();
-    for (let f = f0; f < f1 && f < F.count; f++) if (F.bassSal[f] > bassTh) votes.set(F.bass[f] % 12, (votes.get(F.bass[f] % 12) ?? 0) + F.bassSal[f]);
-    let m = -1, mv = 0;
-    votes.forEach((v, k) => { if (v > mv) { mv = v; m = k; } });
-    // ベースは音の名前（12 音）だけ使い、高さは 36（C2）〜47 にそろえる
-    bassSlots.push(m < 0 ? 0 : 36 + m);
-  }
-  const bass = notesFrom(bassSlots, 0.5, (s) => at(F.kick, beatFrame(s / 2)) > 0.3, shift).map((n) => ({ ...n, midi: 36 + (((n.midi - 36) % 12) + 12) % 12 }));
+  const bass = bassOf(F, beatFrame, bars, shift);
 
   progress?.(0.93, 'ドラムを聞き取っています');
   // ---- ドラム：16 分ごとに、帯域ごとの出だしが強い所 ----
-  const thOf = (arr: Float32Array) => { const s = [...arr].sort((a, b) => a - b); return Math.max(s[Math.floor(s.length * 0.9)] * 0.6, 1e-6); };
-  const kTh = thOf(F.kick), sTh = thOf(F.snare), hTh = thOf(F.hat);
-  const drums: CoverDrumBar[] = [];
-  for (let b = 0; b < bars; b++) {
-    let k = '', sn = '', h = '';
-    for (let s = 0; s < 16; s++) {
-      const fr = beatFrame(b * 4 + s / 4);
-      k += at(F.kick, fr) > kTh ? 'x' : '.';
-      sn += at(F.snare, fr) > sTh ? 'x' : '.';
-      h += at(F.hat, fr) > hTh ? 'x' : '.';
-    }
-    drums.push({ kick: k, snare: sn, hat: h });
-  }
+  const drums = drumsOf(F, beatFrame, bars);
 
   progress?.(0.97, '曲の構成を調べています');
   const sections = sectionsOf(feat, energy);
@@ -846,6 +824,128 @@ function harmonyOf(F: Frames, beatFrame: BeatFrame, bars: number) {
   const chords = chords4(chordsHalf);
   const chordNames = chordQ.filter((_, i) => i % 2 === 0).map((c) => chordName(c, toC));
   return { key, toC, shift, chords, chordNames, chordsHalf, chordQ };
+}
+
+/** その時刻（フレーム）の前後 2 フレームの中でいちばん大きい値 */
+const peakNear = (arr: Float32Array, t: number) => { let m = 0; for (let k = -2; k <= 2; k++) m = Math.max(m, arr[Math.round(t) + k] ?? 0); return m; };
+
+/** ベース：8 分ごとに、目立つ低い音の名前の多数決（音の頭は低い音の出だし）。高さは 36（C2）〜47 にそろえる */
+function bassOf(F: Frames, beatFrame: BeatFrame, bars: number, shift: number): CoverNote[] {
+  const bsSorted = [...F.bassSal].sort((a, b) => a - b);
+  const bassTh = bsSorted[Math.floor(bsSorted.length * 0.35)] ?? 0;
+  const bassSlots: number[] = [];
+  for (let s = 0; s < bars * 8; s++) {
+    const f0 = Math.round(beatFrame(s / 2)), f1 = Math.max(f0 + 1, Math.round(beatFrame((s + 1) / 2)));
+    const votes = new Map<number, number>();
+    for (let f = f0; f < f1 && f < F.count; f++) if (F.bassSal[f] > bassTh) votes.set(F.bass[f] % 12, (votes.get(F.bass[f] % 12) ?? 0) + F.bassSal[f]);
+    let m = -1, mv = 0;
+    votes.forEach((v, k) => { if (v > mv) { mv = v; m = k; } });
+    bassSlots.push(m < 0 ? 0 : 36 + m);
+  }
+  return notesFrom(bassSlots, 0.5, (s) => peakNear(F.kick, beatFrame(s / 2)) > 0.3, shift).map((n) => ({ ...n, midi: 36 + (((n.midi - 36) % 12) + 12) % 12 }));
+}
+
+/** ドラム：16 分ごとに、帯域ごとの出だし（キック 40〜130Hz・スネア・ハット）が強い所 */
+function drumsOf(F: Frames, beatFrame: BeatFrame, bars: number): CoverDrumBar[] {
+  const thOf = (arr: Float32Array) => { const s = [...arr].sort((a, b) => a - b); return Math.max(s[Math.floor(s.length * 0.9)] * 0.6, 1e-6); };
+  const kTh = thOf(F.kick), sTh = thOf(F.snare), hTh = thOf(F.hat);
+  const drums: CoverDrumBar[] = [];
+  for (let b = 0; b < bars; b++) {
+    let k = '', sn = '', h = '';
+    for (let s = 0; s < 16; s++) {
+      const fr = beatFrame(b * 4 + s / 4);
+      k += peakNear(F.kick, fr) > kTh ? 'x' : '.';
+      sn += peakNear(F.snare, fr) > sTh ? 'x' : '.';
+      h += peakNear(F.hat, fr) > hTh ? 'x' : '.';
+    }
+    drums.push({ kick: k, snare: sn, hat: h });
+  }
+  return drums;
+}
+
+/**
+ * ドラムだけの音 → キック・スネア・ハット（NMF）。音を 48 の帯域の大きさの並びにして、
+ * 「キック（低い）・スネア（真ん中に広い）・ハット（高い）の 3 つの音色 × いつどれだけ鳴ったか」に分ける。
+ * 音色は最初に形を決めておき、曲に合わせて少し直す。鳴った量が急に増えた所が打音
+ */
+function drumsNmf(x: Float32Array, beatFrame: BeatFrame, bars: number): CoverDrumBar[] {
+  const NF = 1024, HP = 256, NB = 48, R = 3;
+  const fft = new FFT(NF), mag = new Float32Array(NF / 2 + 1), binHz = SR / NF;
+  const T = Math.max(1, Math.floor((x.length - NF) / HP) + 1);
+  // 帯域の境目：30Hz〜11kHz を対数で 48 に
+  const edges = Array.from({ length: NB + 1 }, (_, b) => 30 * Math.pow(11000 / 30, b / NB));
+  const bandOf = new Int16Array(NF / 2 + 1).fill(-1);
+  for (let k = 0; k <= NF / 2; k++) { const f = k * binHz; for (let b = 0; b < NB; b++) if (f >= edges[b] && f < edges[b + 1]) { bandOf[k] = b; break; } }
+  const V = new Float32Array(T * NB);
+  for (let t = 0; t < T; t++) {
+    fft.magnitudes(x, t * HP, mag);
+    for (let k = 0; k <= NF / 2; k++) { const b = bandOf[k]; if (b >= 0) V[t * NB + b] += mag[k] * mag[k]; }
+    for (let b = 0; b < NB; b++) V[t * NB + b] = Math.sqrt(V[t * NB + b]);
+  }
+  // 音色の最初の形（帯域の中心の Hz で）
+  const W = new Float32Array(NB * R);
+  for (let b = 0; b < NB; b++) {
+    const f = Math.sqrt(edges[b] * edges[b + 1]), lf = Math.log2(f);
+    W[b * R + 0] = Math.exp(-0.5 * ((lf - Math.log2(65)) / 0.7) ** 2);
+    W[b * R + 1] = Math.exp(-0.5 * ((lf - Math.log2(1500)) / 1.6) ** 2) + 0.6 * Math.exp(-0.5 * ((lf - Math.log2(200)) / 0.4) ** 2);
+    W[b * R + 2] = Math.exp(-0.5 * ((lf - Math.log2(9000)) / 0.6) ** 2);
+  }
+  const H = new Float32Array(T * R).fill(0.1);
+  const WH = new Float32Array(T * NB);
+  const recon = () => { for (let t = 0; t < T; t++) for (let b = 0; b < NB; b++) { let v = 1e-9; for (let r = 0; r < R; r++) v += W[b * R + r] * H[t * R + r]; WH[t * NB + b] = v; } };
+  // KL の掛け算の更新（H は 40 回、W は後半の 15 回だけ少し）
+  for (let it = 0; it < 40; it++) {
+    recon();
+    for (let r = 0; r < R; r++) {
+      let ws = 1e-9; for (let b = 0; b < NB; b++) ws += W[b * R + r];
+      for (let t = 0; t < T; t++) { let a = 0; for (let b = 0; b < NB; b++) a += W[b * R + r] * V[t * NB + b] / WH[t * NB + b]; H[t * R + r] *= a / ws; }
+    }
+    if (it >= 25) {
+      recon();
+      for (let r = 0; r < R; r++) {
+        let hs = 1e-9; for (let t = 0; t < T; t++) hs += H[t * R + r];
+        for (let b = 0; b < NB; b++) { let a = 0; for (let t = 0; t < T; t++) a += H[t * R + r] * V[t * NB + b] / WH[t * NB + b]; W[b * R + r] *= a / hs; }
+      }
+    }
+  }
+  // 鳴った量の増え方 → 16 分の枠ごとの強さ → しきい値（その音色の強い所の何割か）
+  const slotFrame = (s: number) => ((beatFrame(s / 4) * HOP + N / 2) - NF / 2) / HP;
+  const parts = [0, 1, 2].map((r) => {
+    const on = new Float32Array(T);
+    for (let t = 1; t < T; t++) on[t] = Math.max(0, H[t * R + r] - H[(t - 1) * R + r]);
+    const val = (s: number) => { const c = Math.round(slotFrame(s)); let m = 0; for (let d = -3; d <= 3; d++) m = Math.max(m, on[c + d] ?? 0); return m; };
+    const vs: number[] = [];
+    for (let s = 0; s < bars * 16; s++) vs.push(val(s));
+    const sorted = [...vs].sort((p, q) => p - q);
+    const top = sorted[Math.floor(sorted.length * 0.97)] ?? 0;
+    // キックは強い所の 3 割、スネアは 5 割（ほかの楽器のにじみが乗りやすい）
+    let th = Math.max(top * (r === 1 ? 0.5 : 0.3), 1e-9);
+    if (r === 2) {
+      // ハット：鳴っていない所はほぼ 0 なので、対数で「鳴った・鳴っていない」の切れ目を探す（強い所の 4〜30% の間で）
+      const lv = sorted.map((v) => Math.log(v + top * 1e-3)), n = lv.length, tot = lv.reduce((x, y) => x + y, 0);
+      let best = -1, cut = th, sum = 0;
+      for (let i = 1; i < n; i++) { sum += lv[i - 1]; const w0 = i / n, m0 = sum / i, m1 = (tot - sum) / (n - i), bv = w0 * (1 - w0) * (m0 - m1) ** 2; if (bv > best) { best = bv; cut = Math.exp((lv[i - 1] + lv[i]) / 2) - top * 1e-3; } }
+      th = Math.min(top * 0.3, Math.max(top * 0.04, cut));
+    }
+    return { vs, th };
+  });
+  // キックの頭にはスネアの帯域の音も少し出るので、キックと同じ枠のスネアは、はっきり強いときだけ
+  const SC = 2;
+  const marks = parts.map(({ vs, th }, r) => vs.map((v, s) => (v > th * (r === 1 && parts[0].vs[s] > parts[0].th ? SC : 1) ? 'x' : '.')));
+  const out: CoverDrumBar[] = [];
+  for (let b = 0; b < bars; b++) out.push({ kick: marks[0].slice(b * 16, b * 16 + 16).join(''), snare: marks[1].slice(b * 16, b * 16 + 16).join(''), hat: marks[2].slice(b * 16, b * 16 + 16).join('') });
+  return out;
+}
+
+/**
+ * 楽器ごとに分けた音（ドラムだけ・ベースだけ）から、ドラムとベースを聞き取り直す。
+ * ほかの楽器・歌に邪魔されないので正しく取りやすい（refineHarmony の後で呼ぶ：ベースの移調をそろえるため）
+ */
+export function refineStems(st: { drums?: Float32Array; bass?: Float32Array }, a: CoverAnalysis): void {
+  const grid = gridOf(a);
+  const loud = (x: Float32Array) => { let e = 0; for (let i = 0; i < x.length; i += 7) e += x[i] * x[i]; return e / (x.length / 7) > 1e-8; };
+  if (st.drums && loud(st.drums)) a.drums = drumsNmf(st.drums, grid, a.bars);
+  if (st.bass && loud(st.bass)) a.bass = bassOf(frames(st.bass), grid, a.bars, a.shift);
 }
 
 /** 拍（秒）→ フレーム（窓の真ん中の時刻にそろえる）の格子 */

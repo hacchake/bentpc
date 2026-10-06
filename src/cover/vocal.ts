@@ -230,3 +230,72 @@ export function separateVocal(ch: Float32Array[], sr: number, progress?: (f: num
   return sep;
 }
 
+/** 歌を抜いた伴奏を、楽器ごとに分けたもの（どれも 22.05kHz のモノラル。足すと伴奏に戻る） */
+export interface InstStems { drums: Float32Array; bass: Float32Array; other: Float32Array }
+
+/** 17 個までの値の真ん中（並べ替えて） */
+function median(buf: Float32Array, n: number): number {
+  for (let i = 1; i < n; i++) { const v = buf[i]; let j = i - 1; while (j >= 0 && buf[j] > v) { buf[j + 1] = buf[j]; j--; } buf[j + 1] = v; }
+  return buf[n >> 1];
+}
+
+/**
+ * 伴奏 → ドラム・ベース・その他（ギター・キーボードなど）。AI を使わない分け方：
+ *   ドラム＝「一瞬の音」：時間方向の真ん中の値（伸びる音）より、高さ方向の真ん中の値（ジャッという広がった音）が大きい所（HPSS）
+ *   ベース＝伸びる音のうち、ベースの高さ（bassTrack）の倍音の線（1.5kHz まで）
+ *   その他＝残りの伸びる音
+ */
+export function splitInst(inst: Float32Array, bassTrack: ArrayLike<number>, progress?: (f: number) => void): InstStems {
+  const n = inst.length, B = N / 2 + 1, binHz = SR / N;
+  const frames = Math.floor((n + N) / HOP);
+  const fft = new FFT(N), out = new FFT(N);
+  const K = 5, W = 2 * K + 1, FK = 5;
+  const ring = Array.from({ length: W }, () => ({ re: new Float64Array(B), im: new Float64Array(B), mag: new Float32Array(B), t: -1 }));
+  const drums = new Float32Array(n), bass = new Float32Array(n), other = new Float32Array(n);
+  const tmp = new Float32Array(Math.max(W, 2 * FK + 1));
+  const re = new Float64Array(B), im = new Float64Array(B);
+  const mp = new Float32Array(B), mb = new Float32Array(B);
+  const emit = (slot: (typeof ring)[number]) => {
+    const t = slot.t;
+    // 1. ドラムか：時間の真ん中（H）と高さの真ん中（P）
+    for (let k = 0; k < B; k++) {
+      let c = 0;
+      for (const r of ring) if (r.t >= 0) tmp[c++] = r.mag[k];
+      const H = median(tmp, c);
+      let d = 0;
+      for (let j = Math.max(0, k - FK); j <= Math.min(B - 1, k + FK); j++) tmp[d++] = slot.mag[j];
+      const P = median(tmp, d);
+      mp[k] = (P * P) / (H * H + P * P + 1e-20);
+    }
+    // 2. ベースの倍音の線
+    // 高さはオクターブを読みちがえることがあるので、音の名前だけ使い、いちばん低いオクターブ（30Hz 以上）の倍音にする（上のオクターブの線もみな入る）
+    mb.fill(0);
+    const bm = bassTrack[t - (N / 2) / HOP] ?? 0;
+    if (bm > 0) {
+      let fb = 440 * Math.pow(2, (bm - 69) / 12);
+      while (fb / 2 >= 30) fb /= 2;
+      for (let h = 1; h * fb < 1500; h++) {
+        const hf = h * fb, w = 0.03 * hf + 4;
+        for (let k = Math.max(0, Math.floor((hf - w) / binHz)); k <= Math.min(B - 1, Math.ceil((hf + w) / binHz)); k++) mb[k] = 1;
+      }
+    }
+    // 150Hz より下で、ベースの線でない所はキック（低くて少し伸びるので、1. では伸びる音にされやすい）
+    for (let k = 0; k * binHz < 150; k++) if (!mb[k]) mp[k] = 1;
+    for (const [dst, f] of [[drums, (k: number) => mp[k]], [bass, (k: number) => (1 - mp[k]) * mb[k]], [other, (k: number) => (1 - mp[k]) * (1 - mb[k])]] as const) {
+      for (let k = 0; k < B; k++) { const g = f(k); re[k] = slot.re[k] * g; im[k] = slot.im[k] * g; }
+      out.inverseAdd(re, im, dst, t * HOP - N / 2, 1 / 1.5);
+    }
+  };
+  for (let t = 0; t < frames + K; t++) {
+    const slot = ring[t % W];
+    if (t < frames) {
+      const a = fft.forward(inst, t * HOP - N / 2);
+      for (let k = 0; k < B; k++) { slot.re[k] = a.re[k]; slot.im[k] = a.im[k]; slot.mag[k] = Math.hypot(a.re[k], a.im[k]); }
+      slot.t = t;
+    } else { slot.t = -1; slot.mag.fill(0); }
+    const ready = t - K;
+    if (ready >= 0 && ready < frames) emit(ring[ready % W]);
+    if (progress && t % 300 === 0) progress(t / (frames + K));
+  }
+  return { drums, bass, other };
+}

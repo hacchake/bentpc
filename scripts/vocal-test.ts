@@ -1,10 +1,10 @@
 // ボーカルを取り出す検査：答えのわかる曲（真ん中の歌・左のギター・右のピアノ・真ん中のベースとドラム）を作って、取り出した歌がどれだけ本物に近いか
 import { mkdirSync, writeFileSync } from 'node:fs';
-import { analyze, melodyFromVocal, refineHarmony } from '../src/cover/analyze';
+import { analyze, bassPitch, melodyFromVocal, refineHarmony } from '../src/cover/analyze';
 import { f0Of, sampleBank } from '../src/cover/sampling';
 import { coverSource } from '../src/cover/plan';
 import { defaultComposer } from '../src/compose/rules';
-import { alignToGrid, separateVocal, pitchShift, to22k } from '../src/cover/vocal';
+import { alignToGrid, separateVocal, pitchShift, splitInst, to22k } from '../src/cover/vocal';
 import { Rng } from '../src/core/rng';
 
 const SR = 44100;
@@ -94,6 +94,19 @@ vInInst / vInMix < 0.5 ? ok(`伴奏（カラオケ）：歌が ${Math.round((1 -
 const mono = separateVocal([Float32Array.from(L, (v, i) => (v + R[i]) / 2)], SR);
 const monoSdr = sdr(mono.vocal);
 monoSdr > before ? ok(`モノラルの曲でも取り出せる（${monoSdr.toFixed(1)}dB）`) : ng(`モノラル ${monoSdr}`);
+// 伴奏を楽器ごとに：ドラム・ベース・その他を足すと伴奏に戻る。ドラムにはキック・スネア、ベースには低い音が多く入る
+{
+  const t1 = performance.now();
+  const st = splitInst(sep.inst, bassPitch(to22k(Float32Array.from(L, (v, i) => (v + R[i]) / 2), SR)));
+  const ms = performance.now() - t1;
+  let e = 0, d = 0;
+  for (let i = 0; i < sep.inst.length; i++) { const sum = st.drums[i] + st.bass[i] + st.other[i]; e += sep.inst[i] ** 2; d += (sep.inst[i] - sum) ** 2; }
+  const back = 10 * Math.log10(e / (d + 1e-20));
+  // 低い音（150Hz より下）の割合：ベースとドラムに多く、その他には少ない
+  const lowShare = (x: Float32Array) => { let lo = 0, all = 0, lp = 0; const k = 1 - Math.exp((-2 * Math.PI * 150) / 22050); for (const v of x) { lp += (v - lp) * k; lo += lp * lp; all += v * v; } return lo / (all + 1e-20); };
+  const okSplit = back > 40 && lowShare(st.bass) > lowShare(st.other) && lowShare(st.drums) > lowShare(st.other);
+  okSplit ? ok(`楽器ごとに分ける：足すと伴奏に戻る（${back.toFixed(0)}dB）・低い音の割合 ベース ${Math.round(lowShare(st.bass) * 100)}%・ドラム ${Math.round(lowShare(st.drums) * 100)}%・その他 ${Math.round(lowShare(st.other) * 100)}%・${(ms / 1000).toFixed(1)} 秒（曲 ${(L.length / SR).toFixed(0)} 秒）`) : ng(`楽器ごと：戻り ${back}`);
+}
 // 拍にそろえる：解析の拍の時刻 → 一定のテンポの格子（長さが小節数ぶん）
 const al = alignToGrid(sep.vocal, sep.sr, a.beats, Math.round(a.bpm), 0, a.bars);
 const want = Math.round(a.bars * 4 * (60 / Math.round(a.bpm)) * sep.sr);

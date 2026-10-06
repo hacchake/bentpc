@@ -30,6 +30,8 @@ export interface GenOpts {
   vocalGain?: number;
   /** 歌の代わりに、楽器（矩形波のリード）がメロディを弾く（インストの曲） */
   instrumental?: boolean;
+  /** ドラムにばらつき：小節ごとに違うキック・小さいスネア（ゴースト）・オープンハット・4 小節ごとのタムのフィル・シンバル、曲ごとに違う音色 */
+  drumVar?: boolean;
   /** 人が弾いたような揺れ：テンポがゆっくり ±drift 揺れ、音ごとに少しずれる（0〜0.05） */
   drift?: number;
 }
@@ -46,6 +48,8 @@ export interface GenTruth {
   /** メロディ（拍は最初の小節の頭が 0。midi は元の調） */
   melody: { t: number; len: number; midi: number }[];
   swing: number;
+  /** 小節ごとのドラム（16 分 × 16 の 'x' と '.'） */
+  drums: { kick: string; snare: string; hat: string }[];
 }
 
 const SR = 44100;
@@ -118,6 +122,50 @@ export function genSong(o: GenOpts): { L: Float32Array; R: Float32Array; vocal: 
   const qOf = (p: number[]) => { const a = (p[1] - p[0] + 12) % 12, b = (p[2] - p[0] + 12) % 12; return a === 4 ? 'maj' : b === 6 ? 'dim' : 'min'; };
   const chordQ = pcsHalf.map((p) => ({ root: p[0], q: qOf(p) as 'maj' | 'min' | 'dim' }));
   const triP = (p: number[], base: number) => { const m0 = base + p[0] + toTonic; return [m0, m0 + ((p[1] - p[0] + 12) % 12), m0 + ((p[2] - p[0] + 12) % 12)]; };
+  const drums: GenTruth['drums'] = [];
+  // ---- ばらつきのあるドラム（別の乱数で。ほかの音は変わらない） ----
+  const rdv = new Rng(o.seed * 101 + 5);
+  const kitKick = 45 + rdv.next() * 20, kitSn = 160 + rdv.next() * 70, kitHat = 0.3 + rdv.next() * 0.6, kitDecay = 0.2 + rdv.next() * 0.2;
+  const KICKS = ['x.......x.......', 'x.......x.x.....', 'x..x....x.......', 'x.....x.x.......', 'x.......x.....x.', 'x..x..x...x.....'];
+  const drumVarBar = (b: number, t0: number) => {
+    const fill = b % 4 === 3 && rdv.chance(0.7);
+    let k = rdv.pick(KICKS), sn = '....x.......x...', hat = rdv.chance(0.3) ? 'xxxxxxxxxxxxxxxx' : 'x.x.x.x.x.x.x.x.';
+    const ghosts: number[] = [];
+    if (rdv.chance(0.4)) { const g = rdv.pick([2, 7, 10, 15]); ghosts.push(g); sn = sn.slice(0, g) + 'x' + sn.slice(g + 1); }
+    const openAt = rdv.chance(0.35) ? rdv.pick([6, 14]) : -1;
+    const toms: number[] = [];
+    if (fill) { k = k.slice(0, 8) + '........'; sn = sn.slice(0, 8) + '........'; hat = hat.slice(0, 8) + '........'; toms.push(8, 10, 12, 13, 14, 15); }
+    drums.push({ kick: k, snare: sn, hat });
+    const kick = new Float32Array(Math.round(0.3 * SR));
+    for (let i = 0; i < kick.length; i++) kick[i] = Math.sin(2 * Math.PI * (kitKick * i / SR + 1.6 * (1 - Math.exp(-i / (SR * 0.02))))) * Math.pow(1 - i / kick.length, 2);
+    for (let st = 0; st < 16; st++) {
+      const at = tOf(t0 + st / 4);
+      if (k[st] === 'x') pan(at, kick, 0.75, 0);
+      if (sn[st] === 'x') {
+        const x = new Float32Array(Math.round(kitDecay * SR));
+        for (let i = 0; i < x.length; i++) x[i] = rdv.bi() * Math.pow(1 - i / x.length, 3) + Math.sin((2 * Math.PI * kitSn * i) / SR) * Math.exp(-i / (SR * 0.03)) * 0.5;
+        pan(at, x, ghosts.includes(st) ? 0.14 : 0.35, 0.1);
+      }
+      if (hat[st] === 'x') {
+        const open = st === openAt, x = new Float32Array(Math.round((open ? 0.3 : 0.05) * SR));
+        let hp = 0;
+        for (let i = 0; i < x.length; i++) { const w = rdv.bi(); x[i] = (w - hp * kitHat) * Math.pow(1 - i / x.length, open ? 1 : 2); hp = w; }
+        pan(at, x, st % 2 ? 0.1 : 0.14, 0.3);
+      }
+      if (toms.includes(st)) {
+        const f = [180, 150, 120, 100, 90, 80][toms.indexOf(st)], x = new Float32Array(Math.round(0.25 * SR));
+        for (let i = 0; i < x.length; i++) x[i] = Math.sin(2 * Math.PI * f * (i / SR) * (1 + 0.3 * Math.exp(-i / (SR * 0.03)))) * Math.exp(-i / (SR * 0.08));
+        pan(at, x, 0.4, -0.15);
+      }
+    }
+    if (b % 8 === 0) {
+      // シンバル（小節の頭）。ハットとは別（答えには入れない）
+      const x = new Float32Array(Math.round(1.2 * SR));
+      let hp = 0;
+      for (let i = 0; i < x.length; i++) { const w = rdv.bi(); x[i] = (w - hp * 0.5) * Math.exp(-i / (SR * 0.4)); hp = w; }
+      pan(tOf(t0), x, 0.1, -0.25);
+    }
+  };
   // ---- 伴奏 ----
   for (let b = 0; b < o.bars; b++) {
     for (const half of [0, 1]) {
@@ -148,6 +196,8 @@ export function genSong(o: GenOpts): { L: Float32Array; R: Float32Array; vocal: 
     // ドラム
     cur = 'drums';
     const t0 = b * 4;
+    if (o.drumVar) { drumVarBar(b, t0); continue; }
+    drums.push({ kick: b % 2 ? 'x.......x.x.....' : 'x.......x.......', snare: '....x.......x...', hat: 'x.x.x.x.x.x.x.x.' });
     const kick = new Float32Array(Math.round(0.3 * SR)); for (let i = 0; i < kick.length; i++) kick[i] = Math.sin(2 * Math.PI * (52 * i / SR + 1.6 * (1 - Math.exp(-i / (SR * 0.02))))) * Math.pow(1 - i / kick.length, 2);
     for (const q of [0, 2, ...(b % 2 ? [2.5] : [])]) pan(tOf(t0 + q), kick, 0.75, 0);
     for (const q of [1, 3]) { const sn = new Float32Array(Math.round(0.2 * SR)); for (let i = 0; i < sn.length; i++) sn[i] = r.bi() * Math.pow(1 - i / sn.length, 3) + Math.sin((2 * Math.PI * 190 * i) / SR) * Math.exp(-i / (SR * 0.03)) * 0.5; pan(tOf(t0 + q), sn, 0.35, 0.1); }
@@ -247,5 +297,5 @@ export function genSong(o: GenOpts): { L: Float32Array; R: Float32Array; vocal: 
   for (let i = 0; i < n; i++) { L[i] *= g; R[i] *= g; V[i] *= g; }
   for (const k in stems) for (let i = 0; i < n; i++) stems[k][i] *= g;
   const shiftRaw = ((o.minor ? 9 : 0) - o.tonic + 12) % 12;
-  return { L, R, vocal: V, sr: SR, truth: { bpm: o.bpm, offset: lead, shift: shiftRaw > 6 ? shiftRaw - 12 : shiftRaw, chordsHalf, chordQ, melody, swing }, stems };
+  return { L, R, vocal: V, sr: SR, truth: { bpm: o.bpm, offset: lead, shift: shiftRaw > 6 ? shiftRaw - 12 : shiftRaw, chordsHalf, chordQ, melody, swing, drums }, stems };
 }
